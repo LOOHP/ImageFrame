@@ -45,7 +45,7 @@ public class Charts {
             }
         }));
 
-        metrics.addCustomChart(new Metrics.AdvancedPie("image_map_created_by_type", new Callable<Map<String, Integer>>() {
+        metrics.addCustomChart(new Metrics.AdvancedPie("images_created_by_type", new Callable<Map<String, Integer>>() {
             @Override
             public Map<String, Integer> call() throws Exception {
                 Map<String, Integer> valueMap = new HashMap<>();
