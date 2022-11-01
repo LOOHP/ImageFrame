@@ -29,9 +29,11 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 import org.bukkit.util.Vector;
 
@@ -42,9 +44,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -63,6 +67,7 @@ public abstract class ImageMap {
     protected final ImageMapManager manager;
 
     protected int imageIndex;
+    protected String name;
     protected final List<MapView> mapViews;
     protected final IntList mapIds;
     protected final int width;
@@ -70,12 +75,13 @@ public abstract class ImageMap {
     protected final UUID creator;
     protected final long creationTime;
 
-    public ImageMap(ImageMapManager manager, int imageIndex, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
+    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
         if (mapViews.size() != width * height) {
             throw new IllegalArgumentException("mapViews size does not equal width * height");
         }
         this.manager = manager;
         this.imageIndex = imageIndex;
+        this.name = name;
         this.mapViews = Collections.unmodifiableList(mapViews);
         this.mapIds = IntLists.unmodifiable(mapIds);
         this.width = width;
@@ -92,8 +98,20 @@ public abstract class ImageMap {
         return imageIndex;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public void stop() {
-        //do nothing
+        for (MapView mapView : mapViews) {
+            for (MapRenderer mapRenderer : mapView.getRenderers()) {
+                mapView.removeRenderer(mapRenderer);
+            }
+        }
     }
 
     public boolean requiresAnimationService() {
@@ -114,11 +132,26 @@ public abstract class ImageMap {
 
     public abstract void save(File dataFolder) throws Exception;
 
-    public void giveMaps(Collection<? extends Player> players) {
+    public void giveMaps(Collection<? extends Player> players, String mapNameFormat) {
+        int i = 0;
         for (MapView mapView : mapViews) {
             ItemStack itemStack = new ItemStack(Material.FILLED_MAP);
             MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
             mapMeta.setMapView(mapView);
+            String creatorName = Bukkit.getOfflinePlayer(getCreator()).getName();
+            if (creatorName == null) {
+                creatorName = "";
+            }
+            mapMeta.setLore(Collections.singletonList(mapNameFormat
+                    .replace("{ImageID}", getImageIndex() + "")
+                    .replace("{X}", (i % width) + "")
+                    .replace("{Y}", (i / width) + "")
+                    .replace("{Name}", getName())
+                    .replace("{Width}", getWidth() + "")
+                    .replace("{Height}", getHeight() + "")
+                    .replace("{CreatorName}", creatorName)
+                    .replace("{CreatorUUID}", getCreator().toString())
+                    .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
             itemStack.setItemMeta(mapMeta);
             Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
                 players.forEach(p -> {
@@ -128,7 +161,42 @@ public abstract class ImageMap {
                     }
                 });
             });
+            i++;
         }
+    }
+
+    public void fillItemFrames(List<ItemFrame> itemFrames, String mapNameFormat) {
+        if (itemFrames.size() != mapViews.size()) {
+            throw new IllegalArgumentException("itemFrames size does not equal to mapView size");
+        }
+        int i = 0;
+        Map<ItemFrame, ItemStack> items = new HashMap<>(mapViews.size());
+        for (MapView mapView : mapViews) {
+            ItemStack itemStack = new ItemStack(Material.FILLED_MAP);
+            MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
+            mapMeta.setMapView(mapView);
+            String creatorName = Bukkit.getOfflinePlayer(getCreator()).getName();
+            if (creatorName == null) {
+                creatorName = "";
+            }
+            mapMeta.setLore(Collections.singletonList(mapNameFormat
+                    .replace("{ImageID}", getImageIndex() + "")
+                    .replace("{X}", (i % width) + "")
+                    .replace("{Y}", (i / width) + "")
+                    .replace("{Name}", getName())
+                    .replace("{Width}", getWidth() + "")
+                    .replace("{Height}", getHeight() + "")
+                    .replace("{CreatorName}", creatorName)
+                    .replace("{CreatorUUID}", getCreator().toString())
+                    .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
+            itemStack.setItemMeta(mapMeta);
+            items.put(itemFrames.get(i++), itemStack);
+        }
+        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+            for (Map.Entry<ItemFrame, ItemStack> entry : items.entrySet()) {
+                entry.getKey().setItem(entry.getValue(), false);
+            }
+        });
     }
 
     public Set<Player> getViewers() {

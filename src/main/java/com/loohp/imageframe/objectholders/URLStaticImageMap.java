@@ -48,7 +48,7 @@ import java.util.UUID;
 
 public class URLStaticImageMap extends URLImageMap {
 
-    public static URLStaticImageMap create(ImageMapManager manager, String url, int width, int height, UUID creator) throws Exception {
+    public static URLStaticImageMap create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
         World world = Bukkit.getWorlds().get(0);
         int mapsCount = width * height;
         List<MapView> mapViews = new ArrayList<>(mapsCount);
@@ -61,7 +61,7 @@ public class URLStaticImageMap extends URLImageMap {
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, -1, url, new BufferedImage[mapsCount], mapViews, mapIds, width, height, creator, System.currentTimeMillis());
+        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, width, height, creator, System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
             mapView.addRenderer(new URLStaticImageMapRenderer(map, i));
@@ -70,11 +70,13 @@ public class URLStaticImageMap extends URLImageMap {
         return map;
     }
 
+    @SuppressWarnings("unused")
     public static URLStaticImageMap load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
         if (!json.get("type").getAsString().equals(URLStaticImageMap.class.getName())) {
             throw new IllegalArgumentException("invalid type");
         }
         int imageIndex = json.get("index").getAsInt();
+        String name = json.has("name") ? json.get("name").getAsString() : "Unnamed";
         String url = json.get("url").getAsString();
         int width = json.get("width").getAsInt();
         int height = json.get("height").getAsInt();
@@ -93,7 +95,7 @@ public class URLStaticImageMap extends URLImageMap {
             cachedImages[i] = ImageIO.read(new File(folder, jsonObject.get("image").getAsString()));
             i++;
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, url, cachedImages, mapViews, mapIds, width, height, creator, creationTime);
+        URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, width, height, creator, creationTime);
         for (int u = 0; u < mapViews.size(); u++) {
             MapView mapView = mapViews.get(u);
             for (MapRenderer renderer : mapView.getRenderers()) {
@@ -106,8 +108,8 @@ public class URLStaticImageMap extends URLImageMap {
 
     private final BufferedImage[] cachedImages;
 
-    private URLStaticImageMap(ImageMapManager manager, int imageIndex, String url, BufferedImage[] cachedImages, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
-        super(manager, imageIndex, url, mapViews, mapIds, width, height, creator, creationTime);
+    private URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
+        super(manager, imageIndex, name, url, mapViews, mapIds, width, height, creator, creationTime);
         this.cachedImages = cachedImages;
     }
 
@@ -131,6 +133,7 @@ public class URLStaticImageMap extends URLImageMap {
         JsonObject json = new JsonObject();
         json.addProperty("type", this.getClass().getName());
         json.addProperty("index", imageIndex);
+        json.addProperty("name", name);
         json.addProperty("url", url);
         json.addProperty("width", width);
         json.addProperty("height", height);

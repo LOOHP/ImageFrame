@@ -52,7 +52,7 @@ public class URLAnimatedImageMap extends URLImageMap {
 
     private static final byte[] EMPTY_COLORS = new byte[MapUtils.COLOR_ARRAY_LENGTH];
 
-    public static URLAnimatedImageMap create(ImageMapManager manager, String url, int width, int height, UUID creator) throws Exception {
+    public static URLAnimatedImageMap create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
         World world = Bukkit.getWorlds().get(0);
         int mapsCount = width * height;
         List<MapView> mapViews = new ArrayList<>(mapsCount);
@@ -65,7 +65,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
         }
-        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, url, new BufferedImage[mapsCount][], mapViews, mapIds, width, height, creator, System.currentTimeMillis());
+        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new BufferedImage[mapsCount][], mapViews, mapIds, width, height, creator, System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
             mapView.addRenderer(new URLAnimatedImageMapRenderer(map, i));
@@ -74,11 +74,13 @@ public class URLAnimatedImageMap extends URLImageMap {
         return map;
     }
 
+    @SuppressWarnings("unused")
     public static URLAnimatedImageMap load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
         if (!json.get("type").getAsString().equals(URLAnimatedImageMap.class.getName())) {
             throw new IllegalArgumentException("invalid type");
         }
         int imageIndex = json.get("index").getAsInt();
+        String name = json.has("name") ? json.get("name").getAsString() : "Unnamed";
         String url = json.get("url").getAsString();
         int width = json.get("width").getAsInt();
         int height = json.get("height").getAsInt();
@@ -102,7 +104,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             }
             cachedImages[i++] = images;
         }
-        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, url, cachedImages, mapViews, mapIds, width, height, creator, creationTime);
+        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, width, height, creator, creationTime);
         for (int u = 0; u < mapViews.size(); u++) {
             MapView mapView = mapViews.get(u);
             for (MapRenderer renderer : mapView.getRenderers()) {
@@ -117,8 +119,8 @@ public class URLAnimatedImageMap extends URLImageMap {
 
     private byte[][][] cachedColors;
 
-    private URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String url, BufferedImage[][] cachedImages, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
-        super(manager, imageIndex, url, mapViews, mapIds, width, height, creator, creationTime);
+    private URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[][] cachedImages, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
+        super(manager, imageIndex, name, url, mapViews, mapIds, width, height, creator, creationTime);
         this.cachedImages = cachedImages;
         cacheColors();
     }
@@ -191,6 +193,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         JsonObject json = new JsonObject();
         json.addProperty("type", this.getClass().getName());
         json.addProperty("index", imageIndex);
+        json.addProperty("name", name);
         json.addProperty("url", url);
         json.addProperty("width", width);
         json.addProperty("height", height);

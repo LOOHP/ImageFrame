@@ -26,8 +26,11 @@ import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.updater.Updater;
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -51,6 +54,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageReloaded;
     public static String messageImageMapCreated;
     public static String messageImageMapRefreshed;
+    public static String messageImageMapDeleted;
     public static String messageUnableToLoadMap;
     public static String messageNotAnImageMap;
     public static List<String> messageURLImageMapInfo;
@@ -58,11 +62,51 @@ public class ImageFrame extends JavaPlugin {
     public static String messageNoConsole;
     public static String messageInvalidUsage;
     public static String messageNotEnoughMaps;
+    public static String messageURLRestricted;
+    public static String messagePlayerCreationLimitReached;
+    public static String messageOversize;
+    public static String messageDuplicateMapName;
+    public static String messageMapLookup;
+
     public static SimpleDateFormat dateFormat;
 
+    public static String mapItemFormat;
     public static boolean requireEmptyMaps;
+    public static int mapMaxSize;
+    public static boolean restrictImageUrlEnabled;
+    public static List<String> restrictImageUrls;
+    public static Object2IntMap<String> playerCreationLimit;
 
     public static ImageMapManager imageMapManager;
+
+    public static boolean isURLAllowed(String url) {
+        if (!restrictImageUrlEnabled) {
+            return true;
+        }
+        String normalized = url.trim().toLowerCase();
+        return restrictImageUrls.stream().anyMatch(each -> normalized.startsWith(each.toLowerCase()));
+    }
+
+    public static int getPlayerCreationLimit(Player player) {
+        if (player.hasPermission("imageframe.createlimit.unlimited")) {
+            return -1;
+        }
+        int limit = Integer.MIN_VALUE;
+        for (Object2IntMap.Entry<String> entry : playerCreationLimit.object2IntEntrySet()) {
+            if (player.hasPermission("imageframe.createlimit." + entry.getKey())) {
+                int value = entry.getIntValue();
+                if (value < 0) {
+                    return -1;
+                } else if (value > limit) {
+                    limit = value;
+                }
+            }
+        }
+        if (limit == Integer.MIN_VALUE) {
+            return playerCreationLimit.getOrDefault("default", -1);
+        }
+        return limit;
+    }
 
     @Override
     public void onEnable() {
@@ -109,6 +153,7 @@ public class ImageFrame extends JavaPlugin {
         messageReloaded = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Reloaded"));
         messageImageMapCreated = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapCreated"));
         messageImageMapRefreshed = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
+        messageImageMapDeleted = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
         messageUnableToLoadMap = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
         messageNotAnImageMap = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
         messageURLImageMapInfo = config.getConfiguration().getStringList("Messages.URLImageMapInfo").stream().map(each -> ChatColor.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
@@ -116,10 +161,23 @@ public class ImageFrame extends JavaPlugin {
         messageNoConsole = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoConsole"));
         messageInvalidUsage = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidUsage"));
         messageNotEnoughMaps = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughMaps"));
+        messageURLRestricted = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.URLRestricted"));
+        messagePlayerCreationLimitReached = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.PlayerCreationLimitReached"));
+        messageOversize = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Oversize"));
+        messageDuplicateMapName = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.DuplicateMapName"));
+        messageMapLookup = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.MapLookup"));
 
         dateFormat = new SimpleDateFormat(config.getConfiguration().getString("Messages.DateFormat"));
 
+        mapItemFormat = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Settings.MapItemFormat"));
         requireEmptyMaps = config.getConfiguration().getBoolean("Settings.RequireEmptyMaps");
+        mapMaxSize = config.getConfiguration().getInt("Settings.MaxSize");
+        restrictImageUrlEnabled = config.getConfiguration().getBoolean("Settings.RestrictImageUrl.Enabled");
+        restrictImageUrls = config.getConfiguration().getStringList("Settings.RestrictImageUrl.Whitelist");
+        playerCreationLimit = new Object2IntArrayMap<>();
+        for (String group : config.getConfiguration().getConfigurationSection("Settings.PlayerCreationLimit").getKeys(false)) {
+            playerCreationLimit.put(group, config.getConfiguration().getInt("Settings.PlayerCreationLimit." + group));
+        }
 
         if (updaterTaskID >= 0) {
             Bukkit.getScheduler().cancelTask(updaterTaskID);

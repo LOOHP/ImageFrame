@@ -2,10 +2,12 @@ Messages:
   Reloaded: "&eImageFrame has been reloaded!"
   ImageMapCreated: "&aImageMap has been created!"
   ImageMapRefreshed: "&aImageMap has been refreshed!"
+  ImageMapDeleted: "&eImageMap had been deleted!"
   UnableToLoadMap: "&cImageMap cannot be loaded, Error: {Error}"
   NotAnImageMap: "&cThat is not an ImageMap"
   URLImageMapInfo:
     - "&bImageID: {ImageID}"
+    - "&aName: {Name}"
     - "&eMap Size: {Width} x {Height}"
     - "&dCreator: {CreatorName} ({CreatorUUID})"
     - "&aTime Created: {TimeCreated}"
@@ -14,11 +16,43 @@ Messages:
   NoConsole: "&cThis command can only be ran by players!"
   InvalidUsage: "&cInvalid Usage!"
   NotEnoughMaps: "&cYou do not have {Amount} maps!"
+  Oversize: "&cThat is too big! Max size for a map is {MaxSize}"
+  URLRestricted: "&cThat URL is restricted and cannot be used to create image maps."
+  PlayerCreationLimitReached: "&cYou can only create <Limit> maps at once! Delete some to create new ones"
+  DuplicateMapName: "&cYou've already created an image map with that name!"
+  MapLookup: "&bList of image maps by {CreatorName} ({CreatorUUID}):"
+  #Date format used where a time based variable is displayed
   DateFormat: "dd/MM/yyyy HH:mm:ss zzz"
 
 Settings:
+  MapItemFormat: "&f{Name} &7({X}, {Y})"
   #Whether empty maps are required to create image maps when not in creative
   RequireEmptyMaps: true
+  #Max size of an image map
+  MaxSize: 100
+  #When enabled, Only websites from the list below is allowed to be shown through in-game maps
+  RestrictImageUrl:
+    Enabled: false
+    Whitelist:
+      - "https://i.imgur.com"
+      - "http://i.imgur.com"
+      - "https://storage.googleapis.com"
+      - "http://storage.googleapis.com"
+      - "https://cdn.discordapp.com"
+      - "http://cdn.discordapp.com"
+      - "https://media.discordapp.net"
+      - "http://media.discordapp.net"
+      - "https://textures.minecraft.net"
+      - "http://textures.minecraft.net"
+  #Max amount of image maps a player in the following groups can create
+  #Setting -1 means unlimited
+  #To add a player to a group, give the permission "imageframe.createlimit.<group>"
+  #For example "imageframe.createlimit.vip"
+  #Players with no groups will be treated as "default" unless they have "imageframe.createlimit.unlimited"
+  PlayerCreationLimit:
+    default: 10
+    vip: 15
+    moderator: 20
 
 #Enable update notifications for admins
 Updater: true

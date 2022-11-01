@@ -13,7 +13,7 @@ commands:
 
 permissions:
   imageframe.create:
-    default: op
+    default: true
     description: Allow players to create new image maps
   imageframe.create.animated:
     default: op
@@ -24,9 +24,27 @@ permissions:
   imageframe.info:
     default: true
     description: Allow players to view image map data
+  imageframe.list:
+    default: true
+    description: Allow players to list all image maps they've created
+  imageframe.list.others:
+    default: true
+    description: Allow players to list all image maps a player have created
+  imageframe.delete:
+    default: true
+    description: Allow players to delete an image map they've created
   imageframe.get:
     default: true
-    description: Allow players to get an image map with its image id
+    description: Allow players to get an image map they've created
+  imageframe.admininfo:
+    default: true
+    description: Allow players to view image map data of any image id
+  imageframe.admindelete:
+    default: op
+    description: Allow players to delete any image map with its image id
+  imageframe.adminget:
+    default: op
+    description: Allow players to get any image map with its image id
   imageframe.update:
     default: op
     description: Allows you receive update messages

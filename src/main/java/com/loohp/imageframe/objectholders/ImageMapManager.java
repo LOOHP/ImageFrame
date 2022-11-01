@@ -30,9 +30,14 @@ import org.bukkit.map.MapView;
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class ImageMapManager implements AutoCloseable {
 
@@ -99,10 +104,25 @@ public class ImageMapManager implements AutoCloseable {
         return maps.values().stream().filter(each -> each.getMapViews().contains(mapView)).findFirst().orElse(null);
     }
 
-    public void deleteMap(ImageMap imageMap) {
-        maps.remove(imageMap.getImageIndex());
+    public Set<ImageMap> getFromCreator(UUID uuid) {
+        return maps.values().stream().filter(each -> each.getCreator().equals(uuid)).collect(Collectors.toSet());
+    }
+
+    public List<ImageMap> getFromCreator(UUID uuid, Comparator<ImageMap> order) {
+        return maps.values().stream().filter(each -> each.getCreator().equals(uuid)).sorted(order).collect(Collectors.toList());
+    }
+
+    public ImageMap getFromCreator(UUID uuid, String name) {
+        return maps.values().stream().filter(each -> each.getCreator().equals(uuid) && each.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
+    }
+
+    public void deleteMap(int imageIndex) {
+        ImageMap imageMap = maps.remove(imageIndex);
+        if (imageMap == null) {
+            return;
+        }
         dataFolder.mkdirs();
-        File folder = new File(dataFolder, String.valueOf(imageMap.getImageIndex()));
+        File folder = new File(dataFolder, String.valueOf(imageIndex));
         if (folder.exists() && folder.isDirectory()) {
             FileUtils.removeFolderRecursively(folder);
         }

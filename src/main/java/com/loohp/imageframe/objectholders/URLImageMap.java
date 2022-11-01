@@ -30,8 +30,8 @@ public abstract class URLImageMap extends ImageMap {
 
     protected String url;
 
-    public URLImageMap(ImageMapManager manager, int imageIndex, String url, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
-        super(manager, imageIndex, mapViews, mapIds, width, height, creator, creationTime);
+    public URLImageMap(ImageMapManager manager, int imageIndex, String name, String url, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
+        super(manager, imageIndex, name, mapViews, mapIds, width, height, creator, creationTime);
         this.url = url;
     }
 
