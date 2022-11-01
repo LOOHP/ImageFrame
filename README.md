@@ -1,4 +1,4 @@
-[![Build Status](https://ci.loohpjames.com/job/Bookshelf/badge/icon)](https://ci.loohpjames.com/job/Bookshelf/)
+[![Build Status](https://ci.loohpjames.com/job/ImageFrame/badge/icon)](https://ci.loohpjames.com/job/ImageFrame/)
 # ImageFrame
 
 https://www.spigotmc.org/resources/-1/
