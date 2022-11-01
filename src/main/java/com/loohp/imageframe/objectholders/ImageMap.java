@@ -23,14 +23,17 @@ package com.loohp.imageframe.objectholders;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.MapUtils;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapView;
+import org.bukkit.util.Vector;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -117,11 +120,13 @@ public abstract class ImageMap {
             MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
             mapMeta.setMapView(mapView);
             itemStack.setItemMeta(mapMeta);
-            players.forEach(p -> {
-                HashMap<Integer, ItemStack> result = p.getInventory().addItem(itemStack.clone());
-                for (ItemStack stack : result.values()) {
-                    p.getWorld().dropItem(p.getEyeLocation(), stack);
-                }
+            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                players.forEach(p -> {
+                    HashMap<Integer, ItemStack> result = p.getInventory().addItem(itemStack.clone());
+                    for (ItemStack stack : result.values()) {
+                        p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                    }
+                });
             });
         }
     }
