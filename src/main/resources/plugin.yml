@@ -1,0 +1,32 @@
+name: ImageFrame
+version: '${project.version}'
+main: com.loohp.imageframe.ImageFrame
+api-version: 1.19
+prefix: ImageFrame
+authors: [LOOHP]
+description: Put images on maps and walls!
+
+commands:
+  imageframe:
+    aliases: [iframe, if, frame]
+    description: Plugin main command
+
+permissions:
+  imageframe.create:
+    default: op
+    description: Allow players to create new image maps
+  imageframe.create.animated:
+    default: op
+    description: Allow players to create new animated image maps
+  imageframe.refresh:
+    default: op
+    description: Allow players to refresh image maps
+  imageframe.info:
+    default: true
+    description: Allow players to view image map data
+  imageframe.get:
+    default: true
+    description: Allow players to get an image map with its image id
+  imageframe.update:
+    default: op
+    description: Allows you receive update messages

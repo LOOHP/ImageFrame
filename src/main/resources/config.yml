@@ -1,0 +1,24 @@
+Messages:
+  Reloaded: "&eImageFrame has been reloaded!"
+  ImageMapCreated: "&aImageMap has been created!"
+  ImageMapRefreshed: "&aImageMap has been refreshed!"
+  UnableToLoadMap: "&cImageMap cannot be loaded, Error: {Error}"
+  NotAnImageMap: "&cThat is not an ImageMap"
+  URLImageMapInfo:
+    - "&bImageID: {ImageID}"
+    - "&eMap Size: {Width} x {Height}"
+    - "&dCreator: {CreatorName} ({CreatorUUID})"
+    - "&aTime Created: {TimeCreated}"
+    - "&eURL: {URL}"
+  NoPermission: "&cYou do not have permission to do that!"
+  NoConsole: "&cThis command can only be ran by players!"
+  InvalidUsage: "&cInvalid Usage!"
+  NotEnoughMaps: "&cYou do not have {Amount} maps!"
+  DateFormat: "dd/MM/yyyy HH:mm:ss zzz"
+
+Settings:
+  #Whether empty maps are required to create image maps when not in creative
+  RequireEmptyMaps: true
+
+#Enable update notifications for admins
+Updater: true
