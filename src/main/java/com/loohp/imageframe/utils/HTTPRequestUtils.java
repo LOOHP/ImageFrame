@@ -30,6 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.stream.Collectors;
@@ -72,6 +73,40 @@ public class HTTPRequestUtils {
         }
         is.close();
         return baos.toByteArray();
+    }
+
+    public static long getContentSize(String link) {
+        try {
+            URLConnection connection = new URL(link).openConnection();
+            connection.setUseCaches(false);
+            connection.setDefaultUseCaches(false);
+            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
+            connection.addRequestProperty("Pragma", "no-cache");
+            if (connection instanceof HttpURLConnection) {
+                ((HttpURLConnection) connection).setRequestMethod("HEAD");
+            }
+            return connection.getContentLengthLong();
+        } catch (IOException e) {
+            return -1;
+        }
+    }
+
+    public static String getContentType(String link) {
+        try {
+            URLConnection connection = new URL(link).openConnection();
+            connection.setUseCaches(false);
+            connection.setDefaultUseCaches(false);
+            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
+            connection.addRequestProperty("Pragma", "no-cache");
+            if (connection instanceof HttpURLConnection) {
+                ((HttpURLConnection) connection).setRequestMethod("HEAD");
+            }
+            return connection.getContentType();
+        } catch (IOException e) {
+            return "";
+        }
     }
 
 }

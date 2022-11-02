@@ -25,7 +25,9 @@ import com.loohp.imageframe.debug.Debug;
 import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
 import com.loohp.imageframe.objectholders.ImageMapManager;
+import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.updater.Updater;
+import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.bukkit.Bukkit;
@@ -33,6 +35,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import javax.imageio.ImageIO;
+import javax.imageio.spi.IIORegistry;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -55,6 +59,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageImageMapCreated;
     public static String messageImageMapRefreshed;
     public static String messageImageMapDeleted;
+    public static String messageImageMapRenamed;
     public static String messageUnableToLoadMap;
     public static String messageNotAnImageMap;
     public static List<String> messageURLImageMapInfo;
@@ -67,6 +72,15 @@ public class ImageFrame extends JavaPlugin {
     public static String messageOversize;
     public static String messageDuplicateMapName;
     public static String messageMapLookup;
+    public static String messageSelectionBegin;
+    public static String messageSelectionClear;
+    public static String messageSelectionCorner1;
+    public static String messageSelectionCorner2;
+    public static String messageSelectionInvalid;
+    public static String messageSelectionOversize;
+    public static String messageSelectionSuccess;
+    public static String messageSelectionNoSelection;
+    public static String messageSelectionIncorrectSize;
 
     public static SimpleDateFormat dateFormat;
 
@@ -78,6 +92,7 @@ public class ImageFrame extends JavaPlugin {
     public static Object2IntMap<String> playerCreationLimit;
 
     public static ImageMapManager imageMapManager;
+    public static ItemFrameSelectionManager itemFrameSelectionManager;
 
     public static boolean isURLAllowed(String url) {
         if (!restrictImageUrlEnabled) {
@@ -117,6 +132,10 @@ public class ImageFrame extends JavaPlugin {
 
         getDataFolder().mkdirs();
 
+        if (!ImageIO.getImageReadersByFormatName("webp").hasNext()) {
+            IIORegistry.getDefaultInstance().registerServiceProvider(new WebPImageReaderSpi());
+        }
+
         try {
             Config.loadConfig(CONFIG_ID, new File(getDataFolder(), "config.yml"), getClass().getClassLoader().getResourceAsStream("config.yml"), getClass().getClassLoader().getResourceAsStream("config.yml"), true);
         } catch (IOException e) {
@@ -132,6 +151,7 @@ public class ImageFrame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new Updater(), this);
 
         imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
+        itemFrameSelectionManager = new ItemFrameSelectionManager();
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
@@ -141,6 +161,9 @@ public class ImageFrame extends JavaPlugin {
     public void onDisable() {
         if (imageMapManager != null) {
             imageMapManager.close();
+        }
+        if (itemFrameSelectionManager != null) {
+            itemFrameSelectionManager.close();
         }
         getServer().getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageFrame has been Disabled!");
     }
@@ -154,6 +177,7 @@ public class ImageFrame extends JavaPlugin {
         messageImageMapCreated = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapCreated"));
         messageImageMapRefreshed = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
         messageImageMapDeleted = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
+        messageImageMapRenamed = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRenamed"));
         messageUnableToLoadMap = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
         messageNotAnImageMap = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
         messageURLImageMapInfo = config.getConfiguration().getStringList("Messages.URLImageMapInfo").stream().map(each -> ChatColor.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
@@ -166,6 +190,15 @@ public class ImageFrame extends JavaPlugin {
         messageOversize = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Oversize"));
         messageDuplicateMapName = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.DuplicateMapName"));
         messageMapLookup = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.MapLookup"));
+        messageSelectionBegin = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Begin"));
+        messageSelectionClear = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Clear"));
+        messageSelectionCorner1 = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Corner1"));
+        messageSelectionCorner2 = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Corner2"));
+        messageSelectionInvalid = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Invalid"));
+        messageSelectionOversize = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Oversize"));
+        messageSelectionSuccess = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Success"));
+        messageSelectionNoSelection = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.NoSelection"));
+        messageSelectionIncorrectSize = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.IncorrectSize"));
 
         dateFormat = new SimpleDateFormat(config.getConfiguration().getString("Messages.DateFormat"));
 

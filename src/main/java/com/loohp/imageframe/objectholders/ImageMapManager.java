@@ -55,6 +55,10 @@ public class ImageMapManager implements AutoCloseable {
         this.taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(ImageFrame.plugin, () -> animationTask(), 0, 1).getTaskId();
     }
 
+    public File getDataFolder() {
+        return dataFolder;
+    }
+
     private void animationTask() {
         tickCounter.getAndIncrement();
         for (ImageMap imageMap : maps.values()) {
@@ -74,6 +78,9 @@ public class ImageMapManager implements AutoCloseable {
     }
 
     public synchronized void addMap(ImageMap map) throws Exception {
+        if (map.getManager() != this) {
+            throw new IllegalArgumentException("ImageMap's manager is not set to this");
+        }
         int imageIndex = map.getImageIndex();
         if (imageIndex < 0) {
             map.imageIndex = mapIndexCounter.getAndIncrement();
@@ -81,7 +88,7 @@ public class ImageMapManager implements AutoCloseable {
             mapIndexCounter.updateAndGet(i -> Math.max(imageIndex + 1, i));
         }
         maps.put(map.getImageIndex(), map);
-        map.save(dataFolder);
+        map.save();
     }
 
     public boolean hasMap(int imageIndex) {

@@ -3,7 +3,8 @@ Messages:
   ImageMapCreated: "&aImageMap has been created!"
   ImageMapRefreshed: "&aImageMap has been refreshed!"
   ImageMapDeleted: "&eImageMap had been deleted!"
-  UnableToLoadMap: "&cImageMap cannot be loaded, Error: {Error}"
+  ImageMapRenamed: "&aImageMap had been Renamed!"
+  UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image."
   NotAnImageMap: "&cThat is not an ImageMap"
   URLImageMapInfo:
     - "&bImageID: {ImageID}"
@@ -21,6 +22,16 @@ Messages:
   PlayerCreationLimitReached: "&cYou can only create <Limit> maps at once! Delete some to create new ones"
   DuplicateMapName: "&cYou've already created an image map with that name!"
   MapLookup: "&bList of image maps by {CreatorName} ({CreatorUUID}):"
+  Selection:
+    Begin: "&bRight click an Item Frame to select corner 1 and 2"
+    Clear: "&eLeaving selection mode"
+    Corner1: "&aSelected Item Frame corner 1"
+    Corner2: "&aSelected Item Frame corner 2"
+    Invalid: "&cInvalid selection!"
+    Oversize: "&cOversize selection! Max size for a map is {MaxSize}"
+    Success: "&aSelected {Width} x {Height} Item Frames! &eIf any of them are removed/replaced, you will need to select them again."
+    NoSelection: "&cYou don't have a valid selection yet."
+    IncorrectSize: "&cYour selection's size does not match, {Width} x {Height} required."
   #Date format used where a time based variable is displayed
   DateFormat: "dd/MM/yyyy HH:mm:ss zzz"
 

@@ -103,18 +103,18 @@ public class MapUtils {
         return ((MapMeta) meta).getMapView();
     }
 
-    public static boolean removeEmptyMaps(Player player, int count, boolean checkGameMode) {
+    public static int removeEmptyMaps(Player player, int count, boolean checkGameMode) {
         if (checkGameMode) {
             GameMode gameMode = player.getGameMode();
             if (gameMode.equals(GameMode.CREATIVE) || gameMode.equals(GameMode.SPECTATOR)) {
-                return true;
+                return 0;
             }
         }
         if (player.getInventory().contains(Material.MAP, count)) {
             player.getInventory().removeItem(new ItemStack(Material.MAP, count));
-            return true;
+            return count;
         }
-        return false;
+        return -1;
     }
 
     public static void setColors(MapView mapView, byte[] colors) {

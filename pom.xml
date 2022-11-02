@@ -6,7 +6,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>1.1.0.0</version>
+    <version>1.2.0.0</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -210,6 +210,12 @@
             <artifactId>craftbukkit</artifactId>
             <version>1.19.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>3.9.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

@@ -187,8 +187,8 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
-    public void save(File dataFolder) throws Exception {
-        File folder = new File(dataFolder, String.valueOf(imageIndex));
+    public void save() throws Exception {
+        File folder = new File(manager.getDataFolder(), String.valueOf(imageIndex));
         folder.mkdirs();
         JsonObject json = new JsonObject();
         json.addProperty("type", this.getClass().getName());

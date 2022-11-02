@@ -29,6 +29,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Rotation;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -51,9 +52,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 public abstract class ImageMap {
 
+    public static final UUID CONSOLE_CREATOR = new UUID(0, 0);
+    public static final String CONSOLE_CREATOR_NAME = "Console";
+    public static final String UNKNOWN_CREATOR_NAME = "???";
     public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static ImageMap load(ImageMapManager manager, File folder) throws Exception {
@@ -102,8 +107,9 @@ public abstract class ImageMap {
         return name;
     }
 
-    public void setName(String name) {
+    public void rename(String name) throws Exception {
         this.name = name;
+        save();
     }
 
     public void stop() {
@@ -130,7 +136,7 @@ public abstract class ImageMap {
         }
     }
 
-    public abstract void save(File dataFolder) throws Exception;
+    public abstract void save() throws Exception;
 
     public void giveMaps(Collection<? extends Player> players, String mapNameFormat) {
         int i = 0;
@@ -138,10 +144,6 @@ public abstract class ImageMap {
             ItemStack itemStack = new ItemStack(Material.FILLED_MAP);
             MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
             mapMeta.setMapView(mapView);
-            String creatorName = Bukkit.getOfflinePlayer(getCreator()).getName();
-            if (creatorName == null) {
-                creatorName = "";
-            }
             mapMeta.setLore(Collections.singletonList(mapNameFormat
                     .replace("{ImageID}", getImageIndex() + "")
                     .replace("{X}", (i % width) + "")
@@ -149,7 +151,7 @@ public abstract class ImageMap {
                     .replace("{Name}", getName())
                     .replace("{Width}", getWidth() + "")
                     .replace("{Height}", getHeight() + "")
-                    .replace("{CreatorName}", creatorName)
+                    .replace("{CreatorName}", getCreatorName())
                     .replace("{CreatorUUID}", getCreator().toString())
                     .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
             itemStack.setItemMeta(mapMeta);
@@ -165,7 +167,7 @@ public abstract class ImageMap {
         }
     }
 
-    public void fillItemFrames(List<ItemFrame> itemFrames, String mapNameFormat) {
+    public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat) {
         if (itemFrames.size() != mapViews.size()) {
             throw new IllegalArgumentException("itemFrames size does not equal to mapView size");
         }
@@ -175,10 +177,6 @@ public abstract class ImageMap {
             ItemStack itemStack = new ItemStack(Material.FILLED_MAP);
             MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
             mapMeta.setMapView(mapView);
-            String creatorName = Bukkit.getOfflinePlayer(getCreator()).getName();
-            if (creatorName == null) {
-                creatorName = "";
-            }
             mapMeta.setLore(Collections.singletonList(mapNameFormat
                     .replace("{ImageID}", getImageIndex() + "")
                     .replace("{X}", (i % width) + "")
@@ -186,7 +184,7 @@ public abstract class ImageMap {
                     .replace("{Name}", getName())
                     .replace("{Width}", getWidth() + "")
                     .replace("{Height}", getHeight() + "")
-                    .replace("{CreatorName}", creatorName)
+                    .replace("{CreatorName}", getCreatorName())
                     .replace("{CreatorUUID}", getCreator().toString())
                     .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
             itemStack.setItemMeta(mapMeta);
@@ -194,7 +192,16 @@ public abstract class ImageMap {
         }
         Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
             for (Map.Entry<ItemFrame, ItemStack> entry : items.entrySet()) {
-                entry.getKey().setItem(entry.getValue(), false);
+                ItemFrame frame = entry.getKey();
+                if (frame.isValid()) {
+                    ItemStack originalItem = frame.getItem();
+                    if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                        frame.setItem(entry.getValue(), false);
+                        frame.setRotation(rotation);
+                        continue;
+                    }
+                }
+                unableToPlaceAction.accept(frame, entry.getValue());
             }
         });
     }
@@ -212,6 +219,14 @@ public abstract class ImageMap {
 
     public UUID getCreator() {
         return creator;
+    }
+
+    public String getCreatorName() {
+        if (creator.equals(CONSOLE_CREATOR)) {
+            return CONSOLE_CREATOR_NAME;
+        }
+        String name = Bukkit.getOfflinePlayer(creator).getName();
+        return name == null ? UNKNOWN_CREATOR_NAME : name;
     }
 
     public long getCreationTime() {

@@ -116,6 +116,9 @@ public class URLStaticImageMap extends URLImageMap {
     @Override
     public void update() throws Exception {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(HTTPRequestUtils.download(url)));
+        if (image == null) {
+            throw new RuntimeException("Unable to read image");
+        }
         image = MapUtils.resize(image, width, height);
         int i = 0;
         for (int y = 0; y < height; y++) {
@@ -127,8 +130,8 @@ public class URLStaticImageMap extends URLImageMap {
     }
 
     @Override
-    public void save(File dataFolder) throws Exception {
-        File folder = new File(dataFolder, String.valueOf(imageIndex));
+    public void save() throws Exception {
+        File folder = new File(manager.getDataFolder(), String.valueOf(imageIndex));
         folder.mkdirs();
         JsonObject json = new JsonObject();
         json.addProperty("type", this.getClass().getName());
