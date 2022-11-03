@@ -22,6 +22,7 @@ package com.loohp.imageframe.metrics;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.ImageMap;
+import org.bukkit.map.MapCursor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,6 +53,29 @@ public class Charts {
                 for (ImageMap imageMap : ImageFrame.imageMapManager.getMaps()) {
                     String type = imageMap.getClass().getName();
                     valueMap.merge(type, 1, Integer::sum);
+                }
+                return valueMap;
+            }
+        }));
+
+        metrics.addCustomChart(new Metrics.SingleLineChart("total_markers_created", new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                return ImageFrame.imageMapManager.getMaps().stream().flatMap(each -> each.getMapMarkers().stream()).mapToInt(each -> each.size()).sum();
+            }
+        }));
+
+        metrics.addCustomChart(new Metrics.AdvancedPie("markers_created_by_type", new Callable<Map<String, Integer>>() {
+            @Override
+            public Map<String, Integer> call() throws Exception {
+                Map<String, Integer> valueMap = new HashMap<>();
+                for (ImageMap imageMap : ImageFrame.imageMapManager.getMaps()) {
+                    for (Map<String, MapCursor> map : imageMap.getMapMarkers()) {
+                        for (MapCursor mapCursor : map.values()) {
+                            String type = mapCursor.getType().name().toLowerCase();
+                            valueMap.merge(type, 1, Integer::sum);
+                        }
+                    }
                 }
                 return valueMap;
             }

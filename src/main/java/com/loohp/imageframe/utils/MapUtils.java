@@ -20,18 +20,31 @@
 
 package com.loohp.imageframe.utils;
 
+import it.unimi.dsi.fastutil.ints.IntIntPair;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Rotation;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.map.MapCursor;
+import org.bukkit.map.MapCursorCollection;
 import org.bukkit.map.MapView;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +61,9 @@ public class MapUtils {
     private static Field nmsWorldColorsField;
     private static Class<?> nmsEntityHumanClass;
     private static Method nmsEntityHumanGetBukkitEntityMethod;
+    private static Class<?> nmsMapIconTypeClass;
+    private static Object[] nmsMapIconTypeEnums;
+    private static Field nmsMapIconTypeRenderOnFrameField;
 
     static {
         try {
@@ -66,6 +82,9 @@ public class MapUtils {
             });
             nmsEntityHumanClass = NMSUtils.getNMSClass("net.minecraft.server.%s.EntityHuman", "net.minecraft.world.entity.player.EntityHuman");
             nmsEntityHumanGetBukkitEntityMethod = nmsEntityHumanClass.getMethod("getBukkitEntity");
+            nmsMapIconTypeClass = NMSUtils.getNMSClass("net.minecraft.server.%s.MapIcon", "net.minecraft.world.level.saveddata.maps.MapIcon").getDeclaredClasses()[0];
+            nmsMapIconTypeEnums = nmsMapIconTypeClass.getEnumConstants();
+            nmsMapIconTypeRenderOnFrameField = Arrays.stream(nmsMapIconTypeClass.getDeclaredFields()).filter(each -> each.getType().equals(boolean.class)).findFirst().get();
         } catch (ReflectiveOperationException e) {
             e.printStackTrace();
         }
@@ -148,6 +167,103 @@ public class MapUtils {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static MapCursorCollection toMapCursorCollection(Collection<MapCursor> mapCursors) {
+        MapCursorCollection mapCursorCollection = new MapCursorCollection();
+        for (MapCursor mapCursor : mapCursors) {
+            mapCursorCollection.addCursor(mapCursor);
+        }
+        return mapCursorCollection;
+    }
+
+    public static RayTraceResult rayTraceItemFrame(Location start, Vector direction, double maxDistance) {
+        if (maxDistance < 0.0) {
+            return null;
+        } else {
+            Vector startPos = start.toVector();
+            Vector dir = direction.clone().normalize().multiply(maxDistance);
+            BoundingBox aabb = BoundingBox.of(startPos, startPos).expandDirectional(dir).expand(0.125);
+            Collection<Entity> entities = start.getWorld().getNearbyEntities(aabb, e -> e instanceof ItemFrame);
+            Entity nearestHitEntity = null;
+            RayTraceResult nearestHitResult = null;
+            double nearestDistanceSq = Double.MAX_VALUE;
+
+            for (Entity entity : entities) {
+                ItemFrame itemFrame = (ItemFrame) entity;
+                Vector facing = itemFrame.getFacing().getDirection().normalize();
+                Vector opposite = facing.clone().multiply(-1);
+                BoundingBox boundingBox = entity.getBoundingBox();
+                for (BlockFace blockFace : BlockFace.values()) {
+                    if (blockFace.isCartesian()) {
+                        Vector expansion = blockFace.getDirection().normalize();
+                        if (!expansion.equals(facing) && !expansion.equals(opposite)) {
+                            boundingBox.expandDirectional(expansion.multiply(0.125));
+                        }
+                    }
+                }
+                RayTraceResult hitResult = boundingBox.rayTrace(startPos, direction, maxDistance);
+                if (hitResult != null) {
+                    double distanceSq = startPos.distanceSquared(hitResult.getHitPosition());
+                    if (distanceSq < nearestDistanceSq) {
+                        nearestHitEntity = entity;
+                        nearestHitResult = hitResult;
+                        nearestDistanceSq = distanceSq;
+                    }
+                }
+            }
+
+            return nearestHitEntity == null ? null : new RayTraceResult(nearestHitResult.getHitPosition(), nearestHitEntity, nearestHitResult.getHitBlockFace());
+        }
+    }
+
+    public static IntIntPair getTargetPixelOnItemFrame(Vector center, Vector facing, Vector position, Rotation rotation) {
+        Vector offset = position.clone().subtract(center);
+        if (facing.getBlockX() != 0) {
+            offset.setX(0);
+        } else if (facing.getBlockY() != 0) {
+            offset.setY(0);
+        } else {
+            offset.setZ(0);
+        }
+        offset.rotateAroundAxis(facing, Math.toRadians(rotation.ordinal() * 90));
+        int x;
+        int y;
+        if (facing.getBlockX() != 0) {
+            x = (int) Math.round(offset.getZ() * 256);
+            if (facing.getBlockX() > 0) {
+                x = -x;
+            }
+            y = (int) Math.round(offset.getY() * -256);
+        } else if (facing.getBlockY() != 0) {
+            x = (int) Math.round(offset.getX() * 256);
+            y = (int) Math.round(offset.getZ() * 256);
+            if (facing.getBlockY() < 0) {
+                y = -y;
+            }
+        } else {
+            x = (int) Math.round(offset.getX() * -256);
+            if (facing.getBlockZ() > 0) {
+                x = -x;
+            }
+            y = (int) Math.round(offset.getY() * -256);
+        }
+        return IntIntPair.of(Math.min(Math.max(x, -128), 128), Math.min(Math.max(y, -128), 128));
+    }
+
+    public static boolean isRenderOnFrame(MapCursor.Type type) {
+        int id = type.getValue();
+        if (id < 0 || id >= nmsMapIconTypeEnums.length) {
+            return true;
+        }
+        Object nmsType = nmsMapIconTypeEnums[id];
+        nmsMapIconTypeRenderOnFrameField.setAccessible(true);
+        try {
+            return nmsMapIconTypeRenderOnFrameField.getBoolean(nmsType);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return true;
     }
 
 }

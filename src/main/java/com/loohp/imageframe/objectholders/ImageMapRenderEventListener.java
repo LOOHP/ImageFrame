@@ -20,29 +20,13 @@
 
 package com.loohp.imageframe.objectholders;
 
-import it.unimi.dsi.fastutil.ints.IntList;
-import org.bukkit.map.MapCursor;
+import org.bukkit.entity.Player;
+import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapView;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+@FunctionalInterface
+public interface ImageMapRenderEventListener {
 
-public abstract class URLImageMap extends ImageMap {
-
-    protected String url;
-
-    public URLImageMap(ImageMapManager manager, int imageIndex, String name, String url, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
-        super(manager, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, creator, creationTime);
-        this.url = url;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
+    void accept(ImageMapManager manager, ImageMap imageMap, MapView map, MapCanvas canvas, Player player);
 
 }

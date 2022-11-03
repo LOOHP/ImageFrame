@@ -21,6 +21,12 @@ permissions:
   imageframe.select:
     default: true
     description: Allow players to select item frames
+  imageframe.marker:
+    default: true
+    description: Allow players to add and remove markers on image maps
+  imageframe.marker.unlimited:
+    default: true
+    description: Allow players to add unlimited markers on image maps
   imageframe.refresh:
     default: op
     description: Allow players to refresh image maps
@@ -54,6 +60,9 @@ permissions:
   imageframe.adminget:
     default: op
     description: Allow players to get any image map with its image id
+  imageframe.adminmarker:
+    default: true
+    description: Allow players to add and remove markers on any image maps
   imageframe.update:
     default: op
     description: Allows you receive update messages

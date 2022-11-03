@@ -26,7 +26,9 @@ import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
+import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.updater.Updater;
+import com.loohp.imageframe.utils.ChatColorUtils;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -81,6 +83,15 @@ public class ImageFrame extends JavaPlugin {
     public static String messageSelectionSuccess;
     public static String messageSelectionNoSelection;
     public static String messageSelectionIncorrectSize;
+    public static String messageMarkersAddBegin;
+    public static String messageMarkersAddConfirm;
+    public static String messageMarkersRemove;
+    public static String messageMarkersClear;
+    public static String messageMarkersCancel;
+    public static String messageMarkersDuplicateName;
+    public static String messageMarkersNotAMarker;
+    public static String messageMarkersNotRenderOnFrameWarning;
+    public static String messageMarkersLimitReached;
 
     public static SimpleDateFormat dateFormat;
 
@@ -90,9 +101,11 @@ public class ImageFrame extends JavaPlugin {
     public static boolean restrictImageUrlEnabled;
     public static List<String> restrictImageUrls;
     public static Object2IntMap<String> playerCreationLimit;
+    public static int mapMarkerLimit;
 
     public static ImageMapManager imageMapManager;
     public static ItemFrameSelectionManager itemFrameSelectionManager;
+    public static MapMarkerEditManager mapMarkerEditManager;
 
     public static boolean isURLAllowed(String url) {
         if (!restrictImageUrlEnabled) {
@@ -152,6 +165,7 @@ public class ImageFrame extends JavaPlugin {
 
         imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
         itemFrameSelectionManager = new ItemFrameSelectionManager();
+        mapMarkerEditManager = new MapMarkerEditManager();
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
@@ -159,11 +173,14 @@ public class ImageFrame extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (imageMapManager != null) {
-            imageMapManager.close();
+        if (mapMarkerEditManager != null) {
+            mapMarkerEditManager.close();
         }
         if (itemFrameSelectionManager != null) {
             itemFrameSelectionManager.close();
+        }
+        if (imageMapManager != null) {
+            imageMapManager.close();
         }
         getServer().getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageFrame has been Disabled!");
     }
@@ -173,36 +190,45 @@ public class ImageFrame extends JavaPlugin {
         Config config = Config.getConfig(CONFIG_ID);
         config.reload();
 
-        messageReloaded = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Reloaded"));
-        messageImageMapCreated = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapCreated"));
-        messageImageMapRefreshed = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
-        messageImageMapDeleted = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
-        messageImageMapRenamed = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRenamed"));
-        messageUnableToLoadMap = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
-        messageNotAnImageMap = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
-        messageURLImageMapInfo = config.getConfiguration().getStringList("Messages.URLImageMapInfo").stream().map(each -> ChatColor.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
-        messageNoPermission = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoPermission"));
-        messageNoConsole = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoConsole"));
-        messageInvalidUsage = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidUsage"));
-        messageNotEnoughMaps = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughMaps"));
-        messageURLRestricted = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.URLRestricted"));
-        messagePlayerCreationLimitReached = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.PlayerCreationLimitReached"));
-        messageOversize = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Oversize"));
-        messageDuplicateMapName = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.DuplicateMapName"));
-        messageMapLookup = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.MapLookup"));
-        messageSelectionBegin = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Begin"));
-        messageSelectionClear = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Clear"));
-        messageSelectionCorner1 = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Corner1"));
-        messageSelectionCorner2 = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Corner2"));
-        messageSelectionInvalid = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Invalid"));
-        messageSelectionOversize = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Oversize"));
-        messageSelectionSuccess = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Success"));
-        messageSelectionNoSelection = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.NoSelection"));
-        messageSelectionIncorrectSize = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.IncorrectSize"));
+        messageReloaded = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Reloaded"));
+        messageImageMapCreated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapCreated"));
+        messageImageMapRefreshed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
+        messageImageMapDeleted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
+        messageImageMapRenamed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRenamed"));
+        messageUnableToLoadMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
+        messageNotAnImageMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
+        messageURLImageMapInfo = config.getConfiguration().getStringList("Messages.URLImageMapInfo").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
+        messageNoPermission = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoPermission"));
+        messageNoConsole = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoConsole"));
+        messageInvalidUsage = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidUsage"));
+        messageNotEnoughMaps = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughMaps"));
+        messageURLRestricted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.URLRestricted"));
+        messagePlayerCreationLimitReached = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.PlayerCreationLimitReached"));
+        messageOversize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Oversize"));
+        messageDuplicateMapName = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.DuplicateMapName"));
+        messageMapLookup = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.MapLookup"));
+        messageSelectionBegin = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Begin"));
+        messageSelectionClear = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Clear"));
+        messageSelectionCorner1 = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Corner1"));
+        messageSelectionCorner2 = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Corner2"));
+        messageSelectionInvalid = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Invalid"));
+        messageSelectionOversize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Oversize"));
+        messageSelectionSuccess = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Success"));
+        messageSelectionNoSelection = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.NoSelection"));
+        messageSelectionIncorrectSize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.IncorrectSize"));
+        messageMarkersAddBegin = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.AddBegin"));
+        messageMarkersAddConfirm = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.AddConfirm"));
+        messageMarkersRemove = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.Remove"));
+        messageMarkersClear = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.Clear"));
+        messageMarkersCancel = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.Cancel"));
+        messageMarkersDuplicateName = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.DuplicateName"));
+        messageMarkersNotAMarker = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.NotAMarker"));
+        messageMarkersNotRenderOnFrameWarning = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.NotRenderOnFrameWarning"));
+        messageMarkersLimitReached = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.LimitReached"));
 
         dateFormat = new SimpleDateFormat(config.getConfiguration().getString("Messages.DateFormat"));
 
-        mapItemFormat = ChatColor.translateAlternateColorCodes('&', config.getConfiguration().getString("Settings.MapItemFormat"));
+        mapItemFormat = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Settings.MapItemFormat"));
         requireEmptyMaps = config.getConfiguration().getBoolean("Settings.RequireEmptyMaps");
         mapMaxSize = config.getConfiguration().getInt("Settings.MaxSize");
         restrictImageUrlEnabled = config.getConfiguration().getBoolean("Settings.RestrictImageUrl.Enabled");
@@ -211,6 +237,7 @@ public class ImageFrame extends JavaPlugin {
         for (String group : config.getConfiguration().getConfigurationSection("Settings.PlayerCreationLimit").getKeys(false)) {
             playerCreationLimit.put(group, config.getConfiguration().getInt("Settings.PlayerCreationLimit." + group));
         }
+        mapMarkerLimit = config.getConfiguration().getInt("Settings.MapMarkerLimit");
 
         if (updaterTaskID >= 0) {
             Bukkit.getScheduler().cancelTask(updaterTaskID);

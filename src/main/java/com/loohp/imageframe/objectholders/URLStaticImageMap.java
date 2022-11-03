@@ -31,6 +31,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
+import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
@@ -44,7 +45,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class URLStaticImageMap extends URLImageMap {
 
@@ -53,6 +56,7 @@ public class URLStaticImageMap extends URLImageMap {
         int mapsCount = width * height;
         List<MapView> mapViews = new ArrayList<>(mapsCount);
         IntList mapIds = new IntArrayList(mapsCount);
+        List<Map<String, MapCursor>> markers = new ArrayList<>(mapsCount);
         for (int i = 0; i < mapsCount; i++) {
             MapView mapView = Bukkit.createMap(world);
             for (MapRenderer renderer : mapView.getRenderers()) {
@@ -60,8 +64,9 @@ public class URLStaticImageMap extends URLImageMap {
             }
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
+            markers.add(new ConcurrentHashMap<>());
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, width, height, creator, System.currentTimeMillis());
+        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
             mapView.addRenderer(new URLStaticImageMapRenderer(map, i));
@@ -86,6 +91,7 @@ public class URLStaticImageMap extends URLImageMap {
         List<MapView> mapViews = new ArrayList<>(mapDataJson.size());
         IntList mapIds = new IntArrayList(mapDataJson.size());
         BufferedImage[] cachedImages = new BufferedImage[mapDataJson.size()];
+        List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         int i = 0;
         for (JsonElement dataJson : mapDataJson) {
             JsonObject jsonObject = dataJson.getAsJsonObject();
@@ -93,9 +99,25 @@ public class URLStaticImageMap extends URLImageMap {
             mapIds.add(mapId);
             mapViews.add(Bukkit.getMap(mapId));
             cachedImages[i] = ImageIO.read(new File(folder, jsonObject.get("image").getAsString()));
+            Map<String, MapCursor> mapCursors = new ConcurrentHashMap<>();
+            if (jsonObject.has("markers")) {
+                JsonArray markerArray = jsonObject.get("markers").getAsJsonArray();
+                for (JsonElement element : markerArray) {
+                    JsonObject markerData = element.getAsJsonObject();
+                    String markerName = markerData.get("name").getAsString();
+                    byte x = markerData.get("x").getAsByte();
+                    byte y = markerData.get("y").getAsByte();
+                    MapCursor.Type type = MapCursor.Type.valueOf(markerData.get("type").getAsString().toUpperCase());
+                    byte direction = markerData.get("direction").getAsByte();
+                    boolean visible = markerData.get("visible").getAsBoolean();
+                    JsonElement caption = markerData.get("caption");
+                    mapCursors.put(markerName, new MapCursor(x, y, direction, type, visible, caption.isJsonNull() ? null : caption.getAsString()));
+                }
+            }
+            markers.add(mapCursors);
             i++;
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, width, height, creator, creationTime);
+        URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, creationTime);
         for (int u = 0; u < mapViews.size(); u++) {
             MapView mapView = mapViews.get(u);
             for (MapRenderer renderer : mapView.getRenderers()) {
@@ -108,8 +130,8 @@ public class URLStaticImageMap extends URLImageMap {
 
     private final BufferedImage[] cachedImages;
 
-    private URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
-        super(manager, imageIndex, name, url, mapViews, mapIds, width, height, creator, creationTime);
+    private URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
+        super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, creationTime);
         this.cachedImages = cachedImages;
     }
 
@@ -147,6 +169,20 @@ public class URLStaticImageMap extends URLImageMap {
             JsonObject dataJson = new JsonObject();
             dataJson.addProperty("mapid", mapIds.getInt(i));
             dataJson.addProperty("image", i + ".png");
+            JsonArray markerArray = new JsonArray();
+            for (Map.Entry<String, MapCursor> entry : mapMarkers.get(i).entrySet()) {
+                MapCursor marker = entry.getValue();
+                JsonObject markerData = new JsonObject();
+                markerData.addProperty("name", entry.getKey());
+                markerData.addProperty("x", marker.getX());
+                markerData.addProperty("y", marker.getY());
+                markerData.addProperty("type", marker.getType().name());
+                markerData.addProperty("direction", marker.getDirection());
+                markerData.addProperty("visible", marker.isVisible());
+                markerData.addProperty("caption", marker.getCaption());
+                markerArray.add(markerData);
+            }
+            dataJson.add("markers", markerArray);
             mapDataJson.add(dataJson);
         }
         json.add("mapdata", mapDataJson);
@@ -159,21 +195,23 @@ public class URLStaticImageMap extends URLImageMap {
         }
     }
 
-    public static class URLStaticImageMapRenderer extends MapRenderer {
+    public static class URLStaticImageMapRenderer extends ImageMapRenderer {
 
         private final URLStaticImageMap parent;
         private final int index;
 
         public URLStaticImageMapRenderer(URLStaticImageMap parent, int index) {
+            super(parent.getManager(), parent);
             this.parent = parent;
             this.index = index;
         }
 
         @Override
-        public void render(MapView map, MapCanvas canvas, Player player) {
+        public void renderMap(MapView map, MapCanvas canvas, Player player) {
             if (parent.cachedImages[index] != null) {
                 canvas.drawImage(0, 0, parent.cachedImages[index]);
             }
+            canvas.setCursors(MapUtils.toMapCursorCollection(parent.getMapMarkers().get(index).values()));
         }
     }
 

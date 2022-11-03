@@ -32,6 +32,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
+import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
@@ -46,7 +47,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class URLAnimatedImageMap extends URLImageMap {
 
@@ -57,6 +60,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         int mapsCount = width * height;
         List<MapView> mapViews = new ArrayList<>(mapsCount);
         IntList mapIds = new IntArrayList(mapsCount);
+        List<Map<String, MapCursor>> markers = new ArrayList<>(mapsCount);
         for (int i = 0; i < mapsCount; i++) {
             MapView mapView = Bukkit.createMap(world);
             for (MapRenderer renderer : mapView.getRenderers()) {
@@ -64,8 +68,9 @@ public class URLAnimatedImageMap extends URLImageMap {
             }
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
+            markers.add(new ConcurrentHashMap<>());
         }
-        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new BufferedImage[mapsCount][], mapViews, mapIds, width, height, creator, System.currentTimeMillis());
+        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new BufferedImage[mapsCount][], mapViews, mapIds, markers, width, height, creator, System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
             mapView.addRenderer(new URLAnimatedImageMapRenderer(map, i));
@@ -90,6 +95,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         List<MapView> mapViews = new ArrayList<>(mapDataJson.size());
         IntList mapIds = new IntArrayList(mapDataJson.size());
         BufferedImage[][] cachedImages = new BufferedImage[mapDataJson.size()][];
+        List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         int i = 0;
         for (JsonElement dataJson : mapDataJson) {
             JsonObject jsonObject = dataJson.getAsJsonObject();
@@ -102,9 +108,25 @@ public class URLAnimatedImageMap extends URLImageMap {
             for (JsonElement element : framesArray) {
                 images[u++] = ImageIO.read(new File(folder, element.getAsString()));
             }
+            Map<String, MapCursor> mapCursors = new ConcurrentHashMap<>();
+            if (jsonObject.has("markers")) {
+                JsonArray markerArray = jsonObject.get("markers").getAsJsonArray();
+                for (JsonElement element : markerArray) {
+                    JsonObject markerData = element.getAsJsonObject();
+                    String markerName = markerData.get("name").getAsString();
+                    byte x = markerData.get("x").getAsByte();
+                    byte y = markerData.get("y").getAsByte();
+                    MapCursor.Type type = MapCursor.Type.valueOf(markerData.get("type").getAsString().toUpperCase());
+                    byte direction = markerData.get("direction").getAsByte();
+                    boolean visible = markerData.get("visible").getAsBoolean();
+                    JsonElement caption = markerData.get("caption");
+                    mapCursors.put(markerName, new MapCursor(x, y, direction, type, visible, caption.isJsonNull() ? null : caption.getAsString()));
+                }
+            }
+            markers.add(mapCursors);
             cachedImages[i++] = images;
         }
-        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, width, height, creator, creationTime);
+        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, creationTime);
         for (int u = 0; u < mapViews.size(); u++) {
             MapView mapView = mapViews.get(u);
             for (MapRenderer renderer : mapView.getRenderers()) {
@@ -119,8 +141,8 @@ public class URLAnimatedImageMap extends URLImageMap {
 
     private byte[][][] cachedColors;
 
-    private URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[][] cachedImages, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
-        super(manager, imageIndex, name, url, mapViews, mapIds, width, height, creator, creationTime);
+    private URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[][] cachedImages, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
+        super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, creationTime);
         this.cachedImages = cachedImages;
         cacheColors();
     }
@@ -209,6 +231,20 @@ public class URLAnimatedImageMap extends URLImageMap {
                 framesArray.add(u++ + ".png");
             }
             dataJson.add("images", framesArray);
+            JsonArray markerArray = new JsonArray();
+            for (Map.Entry<String, MapCursor> entry : mapMarkers.get(i).entrySet()) {
+                MapCursor marker = entry.getValue();
+                JsonObject markerData = new JsonObject();
+                markerData.addProperty("name", entry.getKey());
+                markerData.addProperty("x", marker.getX());
+                markerData.addProperty("y", marker.getY());
+                markerData.addProperty("type", marker.getType().name());
+                markerData.addProperty("direction", marker.getDirection());
+                markerData.addProperty("visible", marker.isVisible());
+                markerData.addProperty("caption", marker.getCaption());
+                markerArray.add(markerData);
+            }
+            dataJson.add("markers", markerArray);
             mapDataJson.add(dataJson);
         }
         json.add("mapdata", mapDataJson);
@@ -224,22 +260,24 @@ public class URLAnimatedImageMap extends URLImageMap {
         }
     }
 
-    public static class URLAnimatedImageMapRenderer extends MapRenderer {
+    public static class URLAnimatedImageMapRenderer extends ImageMapRenderer {
 
         private final URLAnimatedImageMap parent;
         private final int index;
 
         public URLAnimatedImageMapRenderer(URLAnimatedImageMap parent, int index) {
+            super(parent.getManager(), parent);
             this.parent = parent;
             this.index = index;
         }
 
         @Override
-        public void render(MapView map, MapCanvas canvas, Player player) {
+        public void renderMap(MapView map, MapCanvas canvas, Player player) {
             byte[] colors = parent.getRawAnimationColors(parent.getManager().getCurrentAnimationTick(), index);
             for (int i = 0; i < colors.length; i++) {
                 canvas.setPixel(i % MapUtils.MAP_WIDTH, i / MapUtils.MAP_WIDTH, colors[i]);
             }
+            canvas.setCursors(MapUtils.toMapCursorCollection(parent.getMapMarkers().get(index).values()));
         }
     }
 

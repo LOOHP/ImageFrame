@@ -25,6 +25,7 @@ import com.loohp.imageframe.utils.FileUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapView;
 
 import java.io.File;
@@ -36,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -46,12 +48,14 @@ public class ImageMapManager implements AutoCloseable {
     private final File dataFolder;
     private final AtomicInteger tickCounter;
     private final int taskId;
+    private final List<ImageMapRenderEventListener> renderEventListeners;
 
     public ImageMapManager(File dataFolder) {
         this.maps = new ConcurrentHashMap<>();
         this.mapIndexCounter = new AtomicInteger(0);
         this.dataFolder = dataFolder;
         this.tickCounter = new AtomicInteger(0);
+        this.renderEventListeners = new CopyOnWriteArrayList<>();
         this.taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(ImageFrame.plugin, () -> animationTask(), 0, 1).getTaskId();
     }
 
@@ -75,6 +79,22 @@ public class ImageMapManager implements AutoCloseable {
     @Override
     public void close() {
         Bukkit.getScheduler().cancelTask(taskId);
+    }
+
+    public void appendRenderEventListener(ImageMapRenderEventListener listener) {
+        renderEventListeners.add(listener);
+    }
+
+    public void prependRenderEventListener(ImageMapRenderEventListener listener) {
+        renderEventListeners.add(0, listener);
+    }
+
+    public void removeRenderEventListener(ImageMapRenderEventListener listener) {
+        renderEventListeners.remove(listener);
+    }
+
+    protected void callRenderEventListener(ImageMapManager manager, ImageMap imageMap, MapView map, MapCanvas canvas, Player player) {
+        renderEventListeners.forEach(each -> each.accept(manager, imageMap, map, canvas, player));
     }
 
     public synchronized void addMap(ImageMap map) throws Exception {

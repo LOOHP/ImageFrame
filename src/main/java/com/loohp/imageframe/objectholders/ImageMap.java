@@ -34,6 +34,8 @@ import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.map.MapCanvas;
+import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 import org.bukkit.util.Vector;
@@ -59,7 +61,7 @@ public abstract class ImageMap {
     public static final UUID CONSOLE_CREATOR = new UUID(0, 0);
     public static final String CONSOLE_CREATOR_NAME = "Console";
     public static final String UNKNOWN_CREATOR_NAME = "???";
-    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
     public static ImageMap load(ImageMapManager manager, File folder) throws Exception {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(new File(folder, "data.json").toPath()), StandardCharsets.UTF_8))) {
@@ -75,20 +77,28 @@ public abstract class ImageMap {
     protected String name;
     protected final List<MapView> mapViews;
     protected final IntList mapIds;
+    protected final List<Map<String, MapCursor>> mapMarkers;
     protected final int width;
     protected final int height;
     protected final UUID creator;
     protected final long creationTime;
 
-    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, IntList mapIds, int width, int height, UUID creator, long creationTime) {
+    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
         if (mapViews.size() != width * height) {
             throw new IllegalArgumentException("mapViews size does not equal width * height");
+        }
+        if (mapViews.size() != mapMarkers.size()) {
+            throw new IllegalArgumentException("mapViews size does not equal mapMarkers size");
+        }
+        if (mapViews.size() != mapIds.size()) {
+            throw new IllegalArgumentException("mapViews size does not equal mapIds size");
         }
         this.manager = manager;
         this.imageIndex = imageIndex;
         this.name = name;
         this.mapViews = Collections.unmodifiableList(mapViews);
         this.mapIds = IntLists.unmodifiable(mapIds);
+        this.mapMarkers = Collections.unmodifiableList(mapMarkers);
         this.width = width;
         this.height = height;
         this.creator = creator;
@@ -241,6 +251,18 @@ public abstract class ImageMap {
         return mapViews.get(mapIds.indexOf(mapId));
     }
 
+    public List<Map<String, MapCursor>> getMapMarkers() {
+        return mapMarkers;
+    }
+
+    public Map<String, MapCursor> getMapMarkers(MapView mapView) {
+        return mapMarkers.get(mapViews.indexOf(mapView));
+    }
+
+    public MapCursor getMapMarker(String name) {
+        return mapMarkers.stream().flatMap(each -> each.entrySet().stream()).filter(each -> each.getKey().equalsIgnoreCase(name)).findFirst().map(each -> each.getValue()).orElse(null);
+    }
+
     public int getWidth() {
         return width;
     }
@@ -248,4 +270,25 @@ public abstract class ImageMap {
     public int getHeight() {
         return height;
     }
+
+    public static abstract class ImageMapRenderer extends MapRenderer {
+
+        private final ImageMapManager manager;
+        private final ImageMap imageMap;
+
+        public ImageMapRenderer(ImageMapManager manager, ImageMap imageMap) {
+            this.manager = manager;
+            this.imageMap = imageMap;
+        }
+
+        @Override
+        public final void render(MapView map, MapCanvas canvas, Player player) {
+            renderMap(map, canvas, player);
+            manager.callRenderEventListener(manager, imageMap, map, canvas, player);
+        }
+
+        public abstract void renderMap(MapView map, MapCanvas canvas, Player player);
+
+    }
+
 }

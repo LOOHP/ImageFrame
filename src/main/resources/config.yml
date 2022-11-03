@@ -12,6 +12,7 @@ Messages:
     - "&eMap Size: {Width} x {Height}"
     - "&dCreator: {CreatorName} ({CreatorUUID})"
     - "&aTime Created: {TimeCreated}"
+    - "&bMarkers: {Markers}"
     - "&eURL: {URL}"
   NoPermission: "&cYou do not have permission to do that!"
   NoConsole: "&cThis command can only be ran by players!"
@@ -32,6 +33,16 @@ Messages:
     Success: "&aSelected {Width} x {Height} Item Frames! &eIf any of them are removed/replaced, you will need to select them again."
     NoSelection: "&cYou don't have a valid selection yet."
     IncorrectSize: "&cYour selection's size does not match, {Width} x {Height} required."
+  Markers:
+    AddBegin: '&aRight click on an Item Frame containing the map "{Name}" to place marker! &bRun "/imageframe marker cancel" to cancel placement'
+    AddConfirm: "&aMarker placed!"
+    Remove: "&eMarker removed!"
+    Clear: "&eMarkers cleared!"
+    Cancel: "&eMarker placement cancelled!"
+    DuplicateName: "&cThere is already a marker with that name!"
+    NotAMarker: "&cThat is not a valid marker"
+    NotRenderOnFrameWarning: "&eWarning: This marker type does not render on Item Frames!"
+    LimitReached: "&cYou can only create <Limit> markers on one map!"
   #Date format used where a time based variable is displayed
   DateFormat: "dd/MM/yyyy HH:mm:ss zzz"
 
@@ -64,6 +75,8 @@ Settings:
     default: 10
     vip: 15
     moderator: 20
+  #Max amount of markers on a individual map
+  MapMarkerLimit: 20
 
 #Enable update notifications for admins
 Updater: true
