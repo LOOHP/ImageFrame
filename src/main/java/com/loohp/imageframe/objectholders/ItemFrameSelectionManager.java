@@ -233,6 +233,9 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
         IntSummaryStatistics statistics = itemFrames.stream().mapToInt(heightFunction).summaryStatistics();
         int height = statistics.getMax() - statistics.getMin() + 1;
         int width = itemFrames.size() / height;
+        if (itemFrames.size() != width * height) {
+            return null;
+        }
         return SelectedItemFrameResult.result(itemFrames, width, height, rotation);
     }
 
