@@ -20,6 +20,13 @@
 
 package com.loohp.imageframe.utils;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.wrappers.WrappedChatComponent;
+import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.objectholders.ImageMap;
+import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.IntIntPair;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -34,6 +41,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapCursorCollection;
+import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
@@ -41,12 +49,18 @@ import org.bukkit.util.Vector;
 
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class MapUtils {
@@ -64,6 +78,10 @@ public class MapUtils {
     private static Class<?> nmsMapIconTypeClass;
     private static Object[] nmsMapIconTypeEnums;
     private static Field nmsMapIconTypeRenderOnFrameField;
+    private static Class<?> nmsMapIconClass;
+    private static Constructor<?> nmsMapIconConstructor;
+    private static Class<?> nmsWorldMapBClass;
+    private static Constructor<?> nmsWorldMapBClassConstructor;
 
     static {
         try {
@@ -85,8 +103,69 @@ public class MapUtils {
             nmsMapIconTypeClass = NMSUtils.getNMSClass("net.minecraft.server.%s.MapIcon", "net.minecraft.world.level.saveddata.maps.MapIcon").getDeclaredClasses()[0];
             nmsMapIconTypeEnums = nmsMapIconTypeClass.getEnumConstants();
             nmsMapIconTypeRenderOnFrameField = Arrays.stream(nmsMapIconTypeClass.getDeclaredFields()).filter(each -> each.getType().equals(boolean.class)).findFirst().get();
+
+            nmsMapIconClass = NMSUtils.getNMSClass("net.minecraft.server.%s.MapIcon", "net.minecraft.world.level.saveddata.maps.MapIcon");
+            nmsMapIconConstructor = nmsMapIconClass.getConstructors()[0];
+            nmsWorldMapClass = NMSUtils.getNMSClass("net.minecraft.server.%s.WorldMap", "net.minecraft.world.level.saveddata.maps.WorldMap");
+            if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
+                //noinspection OptionalGetWithoutIsPresent
+                nmsWorldMapBClass = Arrays.stream(nmsWorldMapClass.getClasses()).filter(each -> each.getName().endsWith("$b")).findFirst().get();
+                nmsWorldMapBClassConstructor = nmsWorldMapBClass.getConstructor(int.class, int.class, int.class, int.class, byte[].class);
+            }
         } catch (ReflectiveOperationException e) {
             e.printStackTrace();
+        }
+    }
+
+    public static void sendImageMap(MapView mapView, Collection<? extends Player> players) {
+        List<MapRenderer> renderers = mapView.getRenderers();
+        if (renderers.isEmpty()) {
+            throw new IllegalArgumentException("mapView is not from an image map");
+        }
+        Optional<MapRenderer> optMapRenderer = renderers.stream().filter(each -> each instanceof ImageMap.ImageMapRenderer).findFirst();
+        if (!optMapRenderer.isPresent()) {
+            throw new IllegalArgumentException("mapView is not from an image map");
+        }
+        ImageMap.ImageMapRenderer imageMapManager = (ImageMap.ImageMapRenderer) optMapRenderer.get();
+
+        for (Player player : players) {
+            try {
+                Pair<byte[], Collection<MapCursor>> renderData = imageMapManager.renderPacketData(mapView, player);
+                byte[] colors = renderData.left();
+                Collection<MapCursor> cursors = renderData.right();
+
+                PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.MAP);
+                if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
+                    packet.getIntegers().write(0, mapView.getId());
+                    packet.getBytes().write(0, (byte) 0);
+                    packet.getBooleans().write(0, false);
+                    List<Object> mapIcons = new ArrayList<>();
+                    for (MapCursor mapCursor : cursors) {
+                        mapIcons.add(toNMSMapIcon(mapCursor));
+                    }
+                    packet.getModifier().write(3, mapIcons);
+                    packet.getModifier().write(4, nmsWorldMapBClassConstructor.newInstance(0, 0, 128, 128, colors));
+                } else {
+                    packet.getIntegers().write(0, mapView.getId());
+                    packet.getBytes().write(0, (byte) 0);
+                    packet.getBooleans().write(0, false);
+                    packet.getBooleans().write(1, false);
+                    Object mapIcons = Array.newInstance(nmsMapIconClass, cursors.size());
+                    int i = 0;
+                    for (MapCursor mapCursor : cursors) {
+                        Array.set(mapIcons, i++, toNMSMapIcon(mapCursor));
+                    }
+                    packet.getModifier().write(4, Array.newInstance(nmsMapIconClass, 0));
+                    packet.getIntegers().write(1, 0);
+                    packet.getIntegers().write(2, 0);
+                    packet.getIntegers().write(3, 128);
+                    packet.getIntegers().write(4, 128);
+                    packet.getByteArrays().write(0, colors);
+                }
+                ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
+            } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -248,15 +327,32 @@ public class MapUtils {
             }
             y = (int) Math.round(offset.getY() * -256);
         }
-        return IntIntPair.of(Math.min(Math.max(x, -128), 128), Math.min(Math.max(y, -128), 128));
+        return IntIntPair.of(Math.min(Math.max(x, Byte.MIN_VALUE), Byte.MAX_VALUE), Math.min(Math.max(y, Byte.MIN_VALUE), Byte.MAX_VALUE));
+    }
+
+    public static Object toNMSMapIcon(MapCursor mapCursor) {
+        try {
+            Object iChat = mapCursor.getCaption() == null ? null : WrappedChatComponent.fromLegacyText(mapCursor.getCaption()).getHandle();
+            return nmsMapIconConstructor.newInstance(toNMSMapIconType(mapCursor.getType()), mapCursor.getX(), mapCursor.getY(), mapCursor.getDirection(), iChat);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static Object toNMSMapIconType(MapCursor.Type type) {
+        int id = type.getValue();
+        if (id < 0 || id >= nmsMapIconTypeEnums.length) {
+            return null;
+        }
+        return nmsMapIconTypeEnums[id];
     }
 
     public static boolean isRenderOnFrame(MapCursor.Type type) {
-        int id = type.getValue();
-        if (id < 0 || id >= nmsMapIconTypeEnums.length) {
+        Object nmsType = toNMSMapIconType(type);
+        if (nmsType == null) {
             return true;
         }
-        Object nmsType = nmsMapIconTypeEnums[id];
         nmsMapIconTypeRenderOnFrameField.setAccessible(true);
         try {
             return nmsMapIconTypeRenderOnFrameField.getBoolean(nmsType);

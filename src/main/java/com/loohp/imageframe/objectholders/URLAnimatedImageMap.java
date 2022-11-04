@@ -28,10 +28,10 @@ import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
@@ -46,14 +46,13 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class URLAnimatedImageMap extends URLImageMap {
-
-    private static final byte[] EMPTY_COLORS = new byte[MapUtils.COLOR_ARRAY_LENGTH];
 
     public static URLAnimatedImageMap create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
         World world = Bukkit.getWorlds().get(0);
@@ -202,7 +201,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     @Override
     public byte[] getRawAnimationColors(int currentTick, int index) {
         if (cachedColors == null) {
-            return EMPTY_COLORS;
+            return null;
         }
         byte[][] colors = cachedColors[index];
         return colors[currentTick % colors.length];
@@ -263,21 +262,17 @@ public class URLAnimatedImageMap extends URLImageMap {
     public static class URLAnimatedImageMapRenderer extends ImageMapRenderer {
 
         private final URLAnimatedImageMap parent;
-        private final int index;
 
         public URLAnimatedImageMapRenderer(URLAnimatedImageMap parent, int index) {
-            super(parent.getManager(), parent);
+            super(parent.getManager(), parent, index);
             this.parent = parent;
-            this.index = index;
         }
 
         @Override
-        public void renderMap(MapView map, MapCanvas canvas, Player player) {
+        public ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
             byte[] colors = parent.getRawAnimationColors(parent.getManager().getCurrentAnimationTick(), index);
-            for (int i = 0; i < colors.length; i++) {
-                canvas.setPixel(i % MapUtils.MAP_WIDTH, i / MapUtils.MAP_WIDTH, colors[i]);
-            }
-            canvas.setCursors(MapUtils.toMapCursorCollection(parent.getMapMarkers().get(index).values()));
+            Collection<MapCursor> cursors = parent.getMapMarkers().get(index).values();
+            return new ObjectObjectMutablePair<>(colors, cursors);
         }
     }
 

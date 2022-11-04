@@ -25,8 +25,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.MapUtils;
+import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
+import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Rotation;
@@ -83,6 +85,8 @@ public abstract class ImageMap {
     protected final UUID creator;
     protected final long creationTime;
 
+    private boolean isValid;
+
     public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
         if (mapViews.size() != width * height) {
             throw new IllegalArgumentException("mapViews size does not equal width * height");
@@ -103,6 +107,8 @@ public abstract class ImageMap {
         this.height = height;
         this.creator = creator;
         this.creationTime = creationTime;
+
+        this.isValid = true;
     }
 
     public ImageMapManager getManager() {
@@ -120,6 +126,18 @@ public abstract class ImageMap {
     public void rename(String name) throws Exception {
         this.name = name;
         save();
+    }
+
+    public IntList getMapIds() {
+        return mapIds;
+    }
+
+    protected void markInvalid() {
+        this.isValid = false;
+    }
+
+    public boolean isValid() {
+        return isValid;
     }
 
     public void stop() {
@@ -142,7 +160,7 @@ public abstract class ImageMap {
 
     public void send(Collection<? extends Player> players) {
         for (MapView mapView : mapViews) {
-            players.forEach(p -> p.sendMap(mapView));
+            MapUtils.sendImageMap(mapView, players);
         }
     }
 
@@ -273,21 +291,34 @@ public abstract class ImageMap {
 
     public static abstract class ImageMapRenderer extends MapRenderer {
 
-        private final ImageMapManager manager;
-        private final ImageMap imageMap;
+        protected final ImageMapManager manager;
+        protected final ImageMap imageMap;
+        protected final int index;
 
-        public ImageMapRenderer(ImageMapManager manager, ImageMap imageMap) {
+        public ImageMapRenderer(ImageMapManager manager, ImageMap imageMap, int index) {
             this.manager = manager;
             this.imageMap = imageMap;
+            this.index = index;
         }
 
         @Override
-        public final void render(MapView map, MapCanvas canvas, Player player) {
-            renderMap(map, canvas, player);
-            manager.callRenderEventListener(manager, imageMap, map, canvas, player);
+        public final void render(MapView mapView, MapCanvas canvas, Player player) {
+            ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
+            manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
+            byte[] colors = renderData.left();
+            for (int i = 0; i < colors.length; i++) {
+                canvas.setPixel(i % MapUtils.MAP_WIDTH, i / MapUtils.MAP_WIDTH, colors[i]);
+            }
+            canvas.setCursors(MapUtils.toMapCursorCollection(renderData.right()));
         }
 
-        public abstract void renderMap(MapView map, MapCanvas canvas, Player player);
+        public final Pair<byte[], Collection<MapCursor>> renderPacketData(MapView mapView, Player player) {
+            ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
+            manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
+            return renderData;
+        }
+
+        public abstract ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player);
 
     }
 

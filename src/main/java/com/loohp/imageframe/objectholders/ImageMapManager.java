@@ -22,10 +22,11 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.FileUtils;
+import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.map.MapCanvas;
+import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
 import java.io.File;
@@ -64,7 +65,7 @@ public class ImageMapManager implements AutoCloseable {
     }
 
     private void animationTask() {
-        tickCounter.getAndIncrement();
+        int tick = tickCounter.incrementAndGet();
         for (ImageMap imageMap : maps.values()) {
             if (imageMap.requiresAnimationService()) {
                 imageMap.send(imageMap.getViewers());
@@ -93,8 +94,8 @@ public class ImageMapManager implements AutoCloseable {
         renderEventListeners.remove(listener);
     }
 
-    protected void callRenderEventListener(ImageMapManager manager, ImageMap imageMap, MapView map, MapCanvas canvas, Player player) {
-        renderEventListeners.forEach(each -> each.accept(manager, imageMap, map, canvas, player));
+    protected void callRenderEventListener(ImageMapManager manager, ImageMap imageMap, MapView map, Player player, ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderData) {
+        renderEventListeners.forEach(each -> each.accept(manager, imageMap, map, player, renderData));
     }
 
     public synchronized void addMap(ImageMap map) throws Exception {
@@ -148,6 +149,7 @@ public class ImageMapManager implements AutoCloseable {
         if (imageMap == null) {
             return;
         }
+        imageMap.markInvalid();
         dataFolder.mkdirs();
         File folder = new File(dataFolder, String.valueOf(imageIndex));
         if (folder.exists() && folder.isDirectory()) {

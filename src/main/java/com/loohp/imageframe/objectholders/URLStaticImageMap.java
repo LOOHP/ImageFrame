@@ -27,11 +27,12 @@ import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapCursor;
+import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
@@ -44,6 +45,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -130,9 +132,26 @@ public class URLStaticImageMap extends URLImageMap {
 
     private final BufferedImage[] cachedImages;
 
+    private byte[][] cachedColors;
+
     private URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
         super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, creationTime);
         this.cachedImages = cachedImages;
+        cacheColors();
+    }
+
+    public void cacheColors() {
+        if (cachedImages == null) {
+            return;
+        }
+        if (cachedImages[0] == null) {
+            return;
+        }
+        cachedColors = new byte[cachedImages.length][];
+        int i = 0;
+        for (BufferedImage image : cachedImages) {
+            cachedColors[i++] = MapPalette.imageToBytes(image);
+        }
     }
 
     @Override
@@ -148,6 +167,7 @@ public class URLStaticImageMap extends URLImageMap {
                 cachedImages[i++] = MapUtils.getSubImage(image, x, y);
             }
         }
+        cacheColors();
         send(getViewers());
     }
 
@@ -198,20 +218,25 @@ public class URLStaticImageMap extends URLImageMap {
     public static class URLStaticImageMapRenderer extends ImageMapRenderer {
 
         private final URLStaticImageMap parent;
-        private final int index;
 
         public URLStaticImageMapRenderer(URLStaticImageMap parent, int index) {
-            super(parent.getManager(), parent);
+            super(parent.getManager(), parent, index);
             this.parent = parent;
-            this.index = index;
         }
 
+
         @Override
-        public void renderMap(MapView map, MapCanvas canvas, Player player) {
-            if (parent.cachedImages[index] != null) {
-                canvas.drawImage(0, 0, parent.cachedImages[index]);
+        public ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
+            byte[] colors;
+            if (parent.cachedColors != null && parent.cachedColors[index] != null) {
+                colors = parent.cachedColors[index];
+            } else if (parent.cachedImages[index] != null) {
+                colors = MapPalette.imageToBytes(parent.cachedImages[index]);
+            } else {
+                colors = null;
             }
-            canvas.setCursors(MapUtils.toMapCursorCollection(parent.getMapMarkers().get(index).values()));
+            Collection<MapCursor> cursors = parent.getMapMarkers().get(index).values();
+            return new ObjectObjectMutablePair<>(colors, cursors);
         }
     }
 

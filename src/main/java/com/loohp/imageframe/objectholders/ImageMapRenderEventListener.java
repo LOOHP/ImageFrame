@@ -20,13 +20,16 @@
 
 package com.loohp.imageframe.objectholders;
 
+import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import org.bukkit.entity.Player;
-import org.bukkit.map.MapCanvas;
+import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
+
+import java.util.Collection;
 
 @FunctionalInterface
 public interface ImageMapRenderEventListener {
 
-    void accept(ImageMapManager manager, ImageMap imageMap, MapView map, MapCanvas canvas, Player player);
+    void accept(ImageMapManager manager, ImageMap imageMap, MapView map, Player player, ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderData);
 
 }

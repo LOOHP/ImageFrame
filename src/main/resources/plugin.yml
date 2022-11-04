@@ -5,6 +5,7 @@ api-version: 1.19
 prefix: ImageFrame
 authors: [LOOHP]
 description: Put images on maps and walls!
+depend: [ProtocolLib]
 
 commands:
   imageframe:

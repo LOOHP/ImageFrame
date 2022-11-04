@@ -29,11 +29,15 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -43,6 +47,9 @@ import org.bukkit.map.MapView;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -54,12 +61,18 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
 
     public MapMarkerEditManager() {
         this.activeEditing = new ConcurrentHashMap<>();
-        this.renderEventListener = (manager, imageMap, map, canvas, player) -> {
+        this.renderEventListener = (manager, imageMap, map, player, renderData) -> {
+            Collection<MapCursor> cursors = renderData.right();
+            List<MapCursor> additionCursors = new LinkedList<>();
             for (MapMarkerEditData data : activeEditing.values()) {
                 MapView targetMap = data.getCurrentTargetMap();
                 if (targetMap != null && targetMap.equals(map) && data.getImageMap().equals(imageMap)) {
-                    canvas.getCursors().addCursor(data.getMapCursor());
+                    additionCursors.add(data.getMapCursor());
                 }
+            }
+            if (!additionCursors.isEmpty()) {
+                additionCursors.addAll(cursors);
+                renderData.right(additionCursors);
             }
         };
         ImageFrame.imageMapManager.appendRenderEventListener(renderEventListener);
@@ -108,6 +121,10 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             }
             MapMarkerEditData editData = entry.getValue();
             ImageMap imageMap = editData.getImageMap();
+            if (!imageMap.isValid()) {
+                leaveActiveEditing(player);
+                continue;
+            }
             if (!imageMap.getMapViews().contains(mapView)) {
                 continue;
             }
@@ -140,6 +157,17 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEntityEvent event) {
+        handlePlayerInteract(event);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction().equals(Action.RIGHT_CLICK_AIR) || event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+            handlePlayerInteract(event);
+        }
+    }
+
+    public <T extends PlayerEvent & Cancellable> void handlePlayerInteract(T event) {
         Player player = event.getPlayer();
         MapMarkerEditData editData = activeEditing.get(player);
         if (editData == null) {

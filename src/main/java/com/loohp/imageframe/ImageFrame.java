@@ -29,6 +29,7 @@ import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
+import com.loohp.imageframe.utils.MCVersion;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -51,6 +52,8 @@ public class ImageFrame extends JavaPlugin {
     public static final String CONFIG_ID = "config";
 
     public static ImageFrame plugin;
+
+    public static MCVersion version;
 
     public Metrics metrics;
 
@@ -139,6 +142,12 @@ public class ImageFrame extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
+
+        version = MCVersion.fromPackageName(getServer().getClass().getPackage().getName());
+
+        if (!version.isSupported()) {
+            getServer().getConsoleSender().sendMessage(ChatColor.RED + "[InteractiveChat] This version of minecraft is unsupported! (" + version.toString() + ")");
+        }
 
         metrics = new Metrics(this, BSTATS_PLUGIN_ID);
         Charts.setup(metrics);
