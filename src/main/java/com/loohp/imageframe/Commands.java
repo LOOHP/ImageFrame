@@ -197,6 +197,93 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
+        } else if (args[0].equalsIgnoreCase("clone")) {
+            if (sender.hasPermission("imageframe.clone")) {
+                if (sender instanceof Player) {
+                    if (args.length == 3 || args.length == 4) {
+                        try {
+                            Player player = (Player) sender;
+
+                            ItemFrameSelectionManager.SelectedItemFrameResult selection;
+                            if (args.length > 3 && args[3].equalsIgnoreCase("selection")) {
+                                selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
+                                if (selection == null) {
+                                    player.sendMessage(ImageFrame.messageSelectionNoSelection);
+                                    return true;
+                                }
+                            } else {
+                                selection = null;
+                            }
+                            ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[1]);
+                            if (imageMap == null) {
+                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                                return true;
+                            }
+                            int limit = ImageFrame.getPlayerCreationLimit(player);
+                            Set<ImageMap> existingMaps = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId());
+                            if (limit >= 0 && existingMaps.size() >= limit) {
+                                sender.sendMessage(ImageFrame.messagePlayerCreationLimitReached.replace("{Limit}", limit + ""));
+                                return true;
+                            }
+                            if (existingMaps.stream().anyMatch(each -> each.getName().equalsIgnoreCase(args[2]))) {
+                                sender.sendMessage(ImageFrame.messageDuplicateMapName);
+                                return true;
+                            }
+                            int takenMaps;
+                            if (ImageFrame.requireEmptyMaps) {
+                                if ((takenMaps = MapUtils.removeEmptyMaps(player, imageMap.getWidth() * imageMap.getHeight(), true)) < 0) {
+                                    sender.sendMessage(ImageFrame.messageNotEnoughMaps.replace("{Amount}", (imageMap.getWidth() * imageMap.getHeight()) + ""));
+                                    return true;
+                                }
+                            } else {
+                                takenMaps = 0;
+                            }
+                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                try {
+                                    ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
+                                    ImageFrame.imageMapManager.addMap(newImageMap);
+                                    if (selection == null) {
+                                        newImageMap.giveMaps(Collections.singleton((Player) sender), ImageFrame.mapItemFormat);
+                                    } else {
+                                        newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
+                                            Player p = (Player) sender;
+                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(item);
+                                            for (ItemStack stack : result.values()) {
+                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                            }
+                                        }, ImageFrame.mapItemFormat);
+                                    }
+                                    sender.sendMessage(ImageFrame.messageImageMapCreated);
+                                } catch (Exception e) {
+                                    sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                                    e.printStackTrace();
+                                    if (takenMaps > 0) {
+                                        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                                            Player p = (Player) sender;
+                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(new ItemStack(Material.MAP, takenMaps));
+                                            for (ItemStack stack : result.values()) {
+                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        } catch (NumberFormatException e) {
+                            sender.sendMessage(ImageFrame.messageInvalidUsage);
+                        } catch (Exception e) {
+                            sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                            e.printStackTrace();
+                        }
+                    } else {
+                        sender.sendMessage(ImageFrame.messageInvalidUsage);
+                    }
+                } else {
+                    sender.sendMessage(ImageFrame.messageNoConsole);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
         } else if (args[0].equalsIgnoreCase("select")) {
             if (sender.hasPermission("imageframe.select")) {
                 if (sender instanceof Player) {
@@ -403,7 +490,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                     Player player = (Player) sender;
                     MapView mapView;
                     if (args.length > 1) {
-                        mapView = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[1]).getMapViews().get(0);
+                        ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[1]);
+                        if (imageMap == null) {
+                            sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                            return true;
+                        }
+                        mapView = imageMap.getMapViews().get(0);
                     } else {
                         mapView = MapUtils.getPlayerMapView(player);
                     }
@@ -437,28 +529,30 @@ public class Commands implements CommandExecutor, TabCompleter {
             return true;
         } else if (args[0].equalsIgnoreCase("list")) {
             if (sender.hasPermission("imageframe.list")) {
-                OfflinePlayer player = null;
-                if (args.length > 1) {
-                    player = Bukkit.getOfflinePlayer(args[1]);
-                } else if (sender instanceof Player) {
-                    player = (Player) sender;
-                }
-                if (player == null) {
-                    sender.sendMessage(ImageFrame.messageNoConsole);
-                } else {
-                    if (!player.equals(sender) && !sender.hasPermission("imageframe.list.others")) {
-                        sender.sendMessage(ImageFrame.messageNoPermission);
-                    } else {
-                        String prefix = ImageFrame.messageMapLookup
-                                .replace("{CreatorName}", player.getName() == null ? "" : player.getName())
-                                .replace("{CreatorUUID}", player.getUniqueId().toString());
-                        String message = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), Comparator.comparing(each -> each.getCreationTime()))
-                                .stream()
-                                .map(each -> each.getName())
-                                .collect(Collectors.joining(", ", prefix + " [", "]"));
-                        sender.sendMessage(message);
+                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                    OfflinePlayer player = null;
+                    if (args.length > 1) {
+                        player = Bukkit.getOfflinePlayer(args[1]);
+                    } else if (sender instanceof Player) {
+                        player = (Player) sender;
                     }
-                }
+                    if (player == null) {
+                        sender.sendMessage(ImageFrame.messageNoConsole);
+                    } else {
+                        if (!player.equals(sender) && !sender.hasPermission("imageframe.list.others")) {
+                            sender.sendMessage(ImageFrame.messageNoPermission);
+                        } else {
+                            String prefix = ImageFrame.messageMapLookup
+                                    .replace("{CreatorName}", player.getName() == null ? "" : player.getName())
+                                    .replace("{CreatorUUID}", player.getUniqueId().toString());
+                            String message = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), Comparator.comparing(each -> each.getCreationTime()))
+                                    .stream()
+                                    .map(each -> each.getName())
+                                    .collect(Collectors.joining(", ", prefix + " [", "]"));
+                            sender.sendMessage(message);
+                        }
+                    }
+                });
             } else {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
@@ -577,6 +671,93 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 } else {
                     sender.sendMessage(ImageFrame.messageInvalidUsage);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
+        } else if (args[0].equalsIgnoreCase("adminclone")) {
+            if (sender.hasPermission("imageframe.adminclone")) {
+                if (sender instanceof Player) {
+                    if (args.length == 3 || args.length == 4) {
+                        try {
+                            Player player = (Player) sender;
+
+                            ItemFrameSelectionManager.SelectedItemFrameResult selection;
+                            if (args[3].equalsIgnoreCase("selection")) {
+                                selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
+                                if (selection == null) {
+                                    player.sendMessage(ImageFrame.messageSelectionNoSelection);
+                                    return true;
+                                }
+                            } else {
+                                selection = null;
+                            }
+                            ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(Integer.parseInt(args[1]));
+                            if (imageMap == null) {
+                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                                return true;
+                            }
+                            int limit = ImageFrame.getPlayerCreationLimit(player);
+                            Set<ImageMap> existingMaps = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId());
+                            if (limit >= 0 && existingMaps.size() >= limit) {
+                                sender.sendMessage(ImageFrame.messagePlayerCreationLimitReached.replace("{Limit}", limit + ""));
+                                return true;
+                            }
+                            if (existingMaps.stream().anyMatch(each -> each.getName().equalsIgnoreCase(args[2]))) {
+                                sender.sendMessage(ImageFrame.messageDuplicateMapName);
+                                return true;
+                            }
+                            int takenMaps;
+                            if (ImageFrame.requireEmptyMaps) {
+                                if ((takenMaps = MapUtils.removeEmptyMaps(player, imageMap.getWidth() * imageMap.getHeight(), true)) < 0) {
+                                    sender.sendMessage(ImageFrame.messageNotEnoughMaps.replace("{Amount}", (imageMap.getWidth() * imageMap.getHeight()) + ""));
+                                    return true;
+                                }
+                            } else {
+                                takenMaps = 0;
+                            }
+                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                try {
+                                    ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
+                                    ImageFrame.imageMapManager.addMap(newImageMap);
+                                    if (selection == null) {
+                                        newImageMap.giveMaps(Collections.singleton((Player) sender), ImageFrame.mapItemFormat);
+                                    } else {
+                                        newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
+                                            Player p = (Player) sender;
+                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(item);
+                                            for (ItemStack stack : result.values()) {
+                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                            }
+                                        }, ImageFrame.mapItemFormat);
+                                    }
+                                    sender.sendMessage(ImageFrame.messageImageMapCreated);
+                                } catch (Exception e) {
+                                    sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                                    e.printStackTrace();
+                                    if (takenMaps > 0) {
+                                        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                                            Player p = (Player) sender;
+                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(new ItemStack(Material.MAP, takenMaps));
+                                            for (ItemStack stack : result.values()) {
+                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        } catch (NumberFormatException e) {
+                            sender.sendMessage(ImageFrame.messageInvalidUsage);
+                        } catch (Exception e) {
+                            sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                            e.printStackTrace();
+                        }
+                    } else {
+                        sender.sendMessage(ImageFrame.messageInvalidUsage);
+                    }
+                } else {
+                    sender.sendMessage(ImageFrame.messageNoConsole);
                 }
             } else {
                 sender.sendMessage(ImageFrame.messageNoPermission);
@@ -795,6 +976,35 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
+        } else if (args[0].equalsIgnoreCase("adminsetcreator")) {
+            if (sender.hasPermission("imageframe.adminsetcreator")) {
+                if (args.length > 2) {
+                    try {
+                        int imageId = Integer.parseInt(args[1]);
+                        ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(imageId);
+                        if (imageMap == null) {
+                            sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                        } else {
+                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                try {
+                                    OfflinePlayer player = Bukkit.getOfflinePlayer(args[2]);
+                                    imageMap.changeCreator(player.getUniqueId());
+                                    sender.sendMessage(ImageFrame.messageImageMapUpdated);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                        }
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(ImageFrame.messageInvalidUsage);
+                    }
+                } else {
+                    sender.sendMessage(ImageFrame.messageInvalidUsage);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
         }
 
         sender.sendMessage(ChatColorUtils.translateAlternateColorCodes('&', Bukkit.spigot().getConfig().getString("messages.unknown-command")));
@@ -812,6 +1022,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.create")) {
                     tab.add("create");
+                }
+                if (sender.hasPermission("imageframe.clone")) {
+                    tab.add("clone");
                 }
                 if (sender.hasPermission("imageframe.select")) {
                     tab.add("select");
@@ -834,6 +1047,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.get")) {
                     tab.add("get");
                 }
+                if (sender.hasPermission("imageframe.adminclone")) {
+                    tab.add("adminclone");
+                }
                 if (sender.hasPermission("imageframe.adminrename")) {
                     tab.add("adminrename");
                 }
@@ -855,6 +1071,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.adminmarker")) {
                     tab.add("adminmarker");
                 }
+                if (sender.hasPermission("imageframe.adminsetcreator")) {
+                    tab.add("adminsetcreator");
+                }
                 return tab;
             case 1:
                 if (sender.hasPermission("imageframe.reload")) {
@@ -865,6 +1084,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.create")) {
                     if ("create".startsWith(args[0].toLowerCase())) {
                         tab.add("create");
+                    }
+                }
+                if (sender.hasPermission("imageframe.clone")) {
+                    if ("clone".startsWith(args[0].toLowerCase())) {
+                        tab.add("clone");
                     }
                 }
                 if (sender.hasPermission("imageframe.select")) {
@@ -902,6 +1126,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("get");
                     }
                 }
+                if (sender.hasPermission("imageframe.adminclone")) {
+                    if ("adminclone".startsWith(args[0].toLowerCase())) {
+                        tab.add("adminclone");
+                    }
+                }
                 if (sender.hasPermission("imageframe.adminrename")) {
                     if ("adminrename".startsWith(args[0].toLowerCase())) {
                         tab.add("adminrename");
@@ -937,11 +1166,27 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("adminmarker");
                     }
                 }
+                if (sender.hasPermission("imageframe.adminsetcreator")) {
+                    if ("adminsetcreator".startsWith(args[0].toLowerCase())) {
+                        tab.add("adminsetcreator");
+                    }
+                }
                 return tab;
             case 2:
                 if (sender.hasPermission("imageframe.create")) {
                     if ("create".equalsIgnoreCase(args[0])) {
                         tab.add("<name>");
+                    }
+                }
+                if (sender.hasPermission("imageframe.clone")) {
+                    if ("clone".equalsIgnoreCase(args[0])) {
+                        if (sender instanceof Player) {
+                            for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
+                                if (imageMap.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
+                                    tab.add(imageMap.getName());
+                                }
+                            }
+                        }
                     }
                 }
                 if (sender.hasPermission("imageframe.refresh")) {
@@ -1002,6 +1247,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.refresh")) {
+                    if ("refresh".equalsIgnoreCase(args[0])) {
+                        tab.add("<image-id>");
+                    }
+                }
                 if (sender.hasPermission("imageframe.adminrename")) {
                     if ("adminrename".equalsIgnoreCase(args[0])) {
                         tab.add("<image-id>");
@@ -1053,11 +1303,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.adminsetcreator")) {
+                    if ("adminsetcreator".equalsIgnoreCase(args[0])) {
+                        tab.add("<image-id>");
+                    }
+                }
                 return tab;
             case 3:
                 if (sender.hasPermission("imageframe.create")) {
                     if ("create".equalsIgnoreCase(args[0])) {
                         tab.add("<url>");
+                    }
+                }
+                if (sender.hasPermission("imageframe.clone")) {
+                    if ("clone".equalsIgnoreCase(args[0])) {
+                        tab.add("<new-name>");
                     }
                 }
                 if (sender.hasPermission("imageframe.get")) {
@@ -1069,6 +1329,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.rename")) {
                     if ("rename".equalsIgnoreCase(args[0])) {
+                        tab.add("<new-name>");
+                    }
+                }
+                if (sender.hasPermission("imageframe.adminclone")) {
+                    if ("adminclone".equalsIgnoreCase(args[0])) {
                         tab.add("<new-name>");
                     }
                 }
@@ -1130,6 +1395,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         if ("clear".equalsIgnoreCase(args[1])) {
                             tab.add("<image-id>");
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.adminsetcreator")) {
+                    if ("adminsetcreator".equalsIgnoreCase(args[0])) {
+                        for (Player player : Bukkit.getOnlinePlayers()) {
+                            if (player.getName().toLowerCase().startsWith(args[2].toLowerCase())) {
+                                tab.add(player.getName());
+                            }
                         }
                     }
                 }

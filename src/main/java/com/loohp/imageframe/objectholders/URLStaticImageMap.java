@@ -155,6 +155,11 @@ public class URLStaticImageMap extends URLImageMap {
     }
 
     @Override
+    public ImageMap deepClone(String name, UUID creator) throws Exception {
+        return create(manager, name, url, width, height, creator);
+    }
+
+    @Override
     public void update() throws Exception {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(HTTPRequestUtils.download(url)));
         if (image == null) {

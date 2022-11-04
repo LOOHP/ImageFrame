@@ -82,7 +82,7 @@ public abstract class ImageMap {
     protected final List<Map<String, MapCursor>> mapMarkers;
     protected final int width;
     protected final int height;
-    protected final UUID creator;
+    protected UUID creator;
     protected final long creationTime;
 
     private boolean isValid;
@@ -155,6 +155,8 @@ public abstract class ImageMap {
     public byte[] getRawAnimationColors(int currentTick, int index) {
         throw new UnsupportedOperationException("this map does not requires animation");
     }
+
+    public abstract ImageMap deepClone(String name, UUID creator) throws Exception;
 
     public abstract void update() throws Exception;
 
@@ -247,6 +249,11 @@ public abstract class ImageMap {
 
     public UUID getCreator() {
         return creator;
+    }
+
+    public void changeCreator(UUID creator) throws Exception {
+        this.creator = creator;
+        save();
     }
 
     public String getCreatorName() {

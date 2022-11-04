@@ -65,6 +65,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageImageMapRefreshed;
     public static String messageImageMapDeleted;
     public static String messageImageMapRenamed;
+    public static String messageImageMapUpdated;
     public static String messageUnableToLoadMap;
     public static String messageNotAnImageMap;
     public static List<String> messageURLImageMapInfo;
@@ -204,6 +205,7 @@ public class ImageFrame extends JavaPlugin {
         messageImageMapRefreshed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
         messageImageMapDeleted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
         messageImageMapRenamed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRenamed"));
+        messageImageMapUpdated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapUpdated"));
         messageUnableToLoadMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
         messageNotAnImageMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
         messageURLImageMapInfo = config.getConfiguration().getStringList("Messages.URLImageMapInfo").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());

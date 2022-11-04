@@ -3,7 +3,8 @@ Messages:
   ImageMapCreated: "&aImageMap has been created!"
   ImageMapRefreshed: "&aImageMap has been refreshed!"
   ImageMapDeleted: "&eImageMap had been deleted!"
-  ImageMapRenamed: "&aImageMap had been Renamed!"
+  ImageMapRenamed: "&aImageMap had been renamed!"
+  ImageMapUpdated: "&aImageMap had been updated!"
   UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image."
   NotAnImageMap: "&cThat is not an ImageMap"
   URLImageMapInfo:

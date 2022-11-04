@@ -208,6 +208,11 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
+    public ImageMap deepClone(String name, UUID creator) throws Exception {
+        return create(manager, name, url, width, height, creator);
+    }
+
+    @Override
     public void save() throws Exception {
         File folder = new File(manager.getDataFolder(), String.valueOf(imageIndex));
         folder.mkdirs();
