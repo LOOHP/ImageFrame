@@ -219,6 +219,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
                                 return true;
                             }
+                            if (selection != null) {
+                                if (imageMap.getWidth() != selection.getWidth() || imageMap.getHeight() != selection.getHeight()) {
+                                    sender.sendMessage(ImageFrame.messageSelectionIncorrectSize.replace("{Width}", imageMap.getWidth() + "").replace("{Height}", imageMap.getHeight() + ""));
+                                    return true;
+                                }
+                            }
                             int limit = ImageFrame.getPlayerCreationLimit(player);
                             Set<ImageMap> existingMaps = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId());
                             if (limit >= 0 && existingMaps.size() >= limit) {
@@ -697,6 +703,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (imageMap == null) {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
                                 return true;
+                            }
+                            if (selection != null) {
+                                if (imageMap.getWidth() != selection.getWidth() || imageMap.getHeight() != selection.getHeight()) {
+                                    sender.sendMessage(ImageFrame.messageSelectionIncorrectSize.replace("{Width}", imageMap.getWidth() + "").replace("{Height}", imageMap.getHeight() + ""));
+                                    return true;
+                                }
                             }
                             int limit = ImageFrame.getPlayerCreationLimit(player);
                             Set<ImageMap> existingMaps = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId());
@@ -1414,6 +1426,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (args[3].matches("(?i)[0-9]*")) {
                             tab.add("<width>");
                         }
+                        if ("selection".startsWith(args[3].toLowerCase())) {
+                            tab.add("selection");
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.clone")) {
+                    if ("clone".equalsIgnoreCase(args[0])) {
                         if ("selection".startsWith(args[3].toLowerCase())) {
                             tab.add("selection");
                         }

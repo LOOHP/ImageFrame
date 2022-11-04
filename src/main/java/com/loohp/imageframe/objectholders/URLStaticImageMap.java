@@ -156,7 +156,17 @@ public class URLStaticImageMap extends URLImageMap {
 
     @Override
     public ImageMap deepClone(String name, UUID creator) throws Exception {
-        return create(manager, name, url, width, height, creator);
+        URLStaticImageMap imageMap = create(manager, name, url, width, height, creator);
+        List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
+        int i = 0;
+        for (Map<String, MapCursor> map : getMapMarkers()) {
+            Map<String, MapCursor> newMap = newList.get(i++);
+            for (Map.Entry<String, MapCursor> entry : map.entrySet()) {
+                MapCursor mapCursor = entry.getValue();
+                newMap.put(entry.getKey(), new MapCursor(mapCursor.getX(), mapCursor.getY(), mapCursor.getDirection(), mapCursor.getType(), mapCursor.isVisible(), mapCursor.getCaption()));
+            }
+        }
+        return imageMap;
     }
 
     @Override
@@ -178,6 +188,9 @@ public class URLStaticImageMap extends URLImageMap {
 
     @Override
     public void save() throws Exception {
+        if (imageIndex < 0) {
+            throw new IllegalStateException("ImageMap with index < 0 cannot be saved");
+        }
         File folder = new File(manager.getDataFolder(), String.valueOf(imageIndex));
         folder.mkdirs();
         JsonObject json = new JsonObject();
