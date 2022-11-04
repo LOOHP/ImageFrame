@@ -26,10 +26,10 @@ permissions:
     default: true
     description: Allow players to add and remove markers on image maps
   imageframe.marker.unlimited:
-    default: true
+    default: op
     description: Allow players to add unlimited markers on image maps
   imageframe.refresh:
-    default: op
+    default: true
     description: Allow players to refresh image maps
   imageframe.rename:
     default: true
@@ -41,7 +41,7 @@ permissions:
     default: true
     description: Allow players to list all image maps they've created
   imageframe.list.others:
-    default: true
+    default: op
     description: Allow players to list all image maps a player have created
   imageframe.delete:
     default: true
@@ -50,10 +50,10 @@ permissions:
     default: true
     description: Allow players to get an image map they've created
   imageframe.adminrename:
-    default: true
+    default: op
     description: Allow players to rename image maps of any image id
   imageframe.admininfo:
-    default: true
+    default: op
     description: Allow players to view image map data of any image id
   imageframe.admindelete:
     default: op
@@ -62,7 +62,7 @@ permissions:
     default: op
     description: Allow players to get any image map with its image id
   imageframe.adminmarker:
-    default: true
+    default: op
     description: Allow players to add and remove markers on any image maps
   imageframe.update:
     default: op
