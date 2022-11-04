@@ -182,7 +182,6 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
         if (itemFrame == null) {
             return;
         }
-        Vector hitPosition = result.getHitPosition();
         ItemStack itemStack = itemFrame.getItem();
         if (itemStack == null || itemStack.getType().equals(Material.AIR)) {
             return;
