@@ -5,6 +5,7 @@ Messages:
   ImageMapDeleted: "&eImageMap had been deleted!"
   ImageMapRenamed: "&aImageMap had been renamed!"
   ImageMapUpdated: "&aImageMap had been updated!"
+  NotCreator: "&cYou did not create that ImageMap"
   UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image."
   NotAnImageMap: "&cThat is not an ImageMap"
   URLImageMapInfo:

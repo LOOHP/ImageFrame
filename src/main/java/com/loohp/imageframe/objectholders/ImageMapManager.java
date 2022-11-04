@@ -163,11 +163,11 @@ public class ImageMapManager implements AutoCloseable {
         dataFolder.mkdirs();
         for (File folder : dataFolder.listFiles()) {
             if (folder.isDirectory()) {
-                Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "Loading map " + folder.getName());
+                Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "Loading ImageMap ID " + folder.getName());
                 try {
                     addMap(ImageMap.load(this, folder));
                 } catch (Throwable e) {
-                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to load map in " + folder.getAbsolutePath());
+                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to load ImageMap data in " + folder.getAbsolutePath());
                     e.printStackTrace();
                 }
             }

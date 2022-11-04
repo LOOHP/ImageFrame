@@ -52,6 +52,9 @@ permissions:
   imageframe.get:
     default: true
     description: Allow players to get an image map they've created
+  imageframe.adminrefresh:
+    default: op
+    description: Allow players to refresh image maps
   imageframe.adminclone:
     default: op
     description: Allow players to make deep copies of any image map
