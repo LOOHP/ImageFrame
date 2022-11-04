@@ -24,7 +24,6 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.MapUtils;
 import it.unimi.dsi.fastutil.ints.IntIntPair;
 import org.bukkit.Bukkit;
-import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.ItemFrame;
@@ -174,7 +173,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             return;
         }
         Location location = player.getEyeLocation();
-        RayTraceResult result = player.getWorld().rayTrace(location, location.getDirection(), 5.0, FluidCollisionMode.NEVER, true, 0.125, e -> e instanceof ItemFrame);
+        RayTraceResult result = MapUtils.rayTraceItemFrame(location, location.getDirection(), 5.0);
         if (result == null) {
             return;
         }
