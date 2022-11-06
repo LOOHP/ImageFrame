@@ -20,15 +20,36 @@
 
 package com.loohp.imageframe.objectholders;
 
-import org.bukkit.entity.Player;
-import org.bukkit.map.MapCursor;
-import org.bukkit.map.MapView;
+import java.util.Objects;
 
-import java.util.Collection;
+public class Point2D {
 
-@FunctionalInterface
-public interface ImageMapRenderEventListener {
+    private final int x;
+    private final int y;
 
-    void accept(ImageMapManager manager, ImageMap imageMap, MapView map, Player player, MutablePair<byte[], Collection<MapCursor>> renderData);
+    public Point2D(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
 
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Point2D point2D = (Point2D) o;
+        return x == point2D.x && y == point2D.y;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y);
+    }
 }

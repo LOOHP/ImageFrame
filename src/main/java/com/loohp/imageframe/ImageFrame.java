@@ -31,8 +31,6 @@ import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.MCVersion;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
-import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -43,7 +41,9 @@ import javax.imageio.spi.IIORegistry;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ImageFrame extends JavaPlugin {
@@ -105,7 +105,7 @@ public class ImageFrame extends JavaPlugin {
     public static int mapMaxSize;
     public static boolean restrictImageUrlEnabled;
     public static List<String> restrictImageUrls;
-    public static Object2IntMap<String> playerCreationLimit;
+    public static Map<String, Integer> playerCreationLimit;
     public static int mapMarkerLimit;
 
     public static ImageMapManager imageMapManager;
@@ -125,9 +125,9 @@ public class ImageFrame extends JavaPlugin {
             return -1;
         }
         int limit = Integer.MIN_VALUE;
-        for (Object2IntMap.Entry<String> entry : playerCreationLimit.object2IntEntrySet()) {
+        for (Map.Entry<String, Integer> entry : playerCreationLimit.entrySet()) {
             if (player.hasPermission("imageframe.createlimit." + entry.getKey())) {
-                int value = entry.getIntValue();
+                int value = entry.getValue();
                 if (value < 0) {
                     return -1;
                 } else if (value > limit) {
@@ -246,7 +246,7 @@ public class ImageFrame extends JavaPlugin {
         mapMaxSize = config.getConfiguration().getInt("Settings.MaxSize");
         restrictImageUrlEnabled = config.getConfiguration().getBoolean("Settings.RestrictImageUrl.Enabled");
         restrictImageUrls = config.getConfiguration().getStringList("Settings.RestrictImageUrl.Whitelist");
-        playerCreationLimit = new Object2IntArrayMap<>();
+        playerCreationLimit = new HashMap<>();
         for (String group : config.getConfiguration().getConfigurationSection("Settings.PlayerCreationLimit").getKeys(false)) {
             playerCreationLimit.put(group, config.getConfiguration().getInt("Settings.PlayerCreationLimit." + group));
         }

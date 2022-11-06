@@ -25,9 +25,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.MapUtils;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -57,7 +54,7 @@ public class URLStaticImageMap extends URLImageMap {
         World world = Bukkit.getWorlds().get(0);
         int mapsCount = width * height;
         List<MapView> mapViews = new ArrayList<>(mapsCount);
-        IntList mapIds = new IntArrayList(mapsCount);
+        List<Integer> mapIds = new ArrayList<>(mapsCount);
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapsCount);
         for (int i = 0; i < mapsCount; i++) {
             MapView mapView = Bukkit.createMap(world);
@@ -91,7 +88,7 @@ public class URLStaticImageMap extends URLImageMap {
         UUID creator = UUID.fromString(json.get("creator").getAsString());
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
         List<MapView> mapViews = new ArrayList<>(mapDataJson.size());
-        IntList mapIds = new IntArrayList(mapDataJson.size());
+        List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
         BufferedImage[] cachedImages = new BufferedImage[mapDataJson.size()];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         int i = 0;
@@ -134,7 +131,7 @@ public class URLStaticImageMap extends URLImageMap {
 
     private byte[][] cachedColors;
 
-    private URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
+    private URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
         super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, creationTime);
         this.cachedImages = cachedImages;
         cacheColors();
@@ -205,7 +202,7 @@ public class URLStaticImageMap extends URLImageMap {
         JsonArray mapDataJson = new JsonArray();
         for (int i = 0; i < mapViews.size(); i++) {
             JsonObject dataJson = new JsonObject();
-            dataJson.addProperty("mapid", mapIds.getInt(i));
+            dataJson.addProperty("mapid", mapIds.get(i));
             dataJson.addProperty("image", i + ".png");
             JsonArray markerArray = new JsonArray();
             for (Map.Entry<String, MapCursor> entry : mapMarkers.get(i).entrySet()) {
@@ -244,7 +241,7 @@ public class URLStaticImageMap extends URLImageMap {
 
 
         @Override
-        public ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
+        public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
             byte[] colors;
             if (parent.cachedColors != null && parent.cachedColors[index] != null) {
                 colors = parent.cachedColors[index];
@@ -254,7 +251,7 @@ public class URLStaticImageMap extends URLImageMap {
                 colors = null;
             }
             Collection<MapCursor> cursors = parent.getMapMarkers().get(index).values();
-            return new ObjectObjectMutablePair<>(colors, cursors);
+            return new MutablePair<>(colors, cursors);
         }
     }
 

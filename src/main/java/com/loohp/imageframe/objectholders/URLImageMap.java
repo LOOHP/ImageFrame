@@ -20,7 +20,6 @@
 
 package com.loohp.imageframe.objectholders;
 
-import it.unimi.dsi.fastutil.ints.IntList;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
@@ -32,7 +31,7 @@ public abstract class URLImageMap extends ImageMap {
 
     protected String url;
 
-    public URLImageMap(ImageMapManager manager, int imageIndex, String name, String url, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
+    public URLImageMap(ImageMapManager manager, int imageIndex, String name, String url, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
         super(manager, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, creator, creationTime);
         this.url = url;
     }

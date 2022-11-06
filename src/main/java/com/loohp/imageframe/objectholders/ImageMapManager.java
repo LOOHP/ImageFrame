@@ -22,7 +22,6 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.FileUtils;
-import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -94,7 +93,7 @@ public class ImageMapManager implements AutoCloseable {
         renderEventListeners.remove(listener);
     }
 
-    protected void callRenderEventListener(ImageMapManager manager, ImageMap imageMap, MapView map, Player player, ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderData) {
+    protected void callRenderEventListener(ImageMapManager manager, ImageMap imageMap, MapView map, Player player, MutablePair<byte[], Collection<MapCursor>> renderData) {
         renderEventListeners.forEach(each -> each.accept(manager, imageMap, map, player, renderData));
     }
 

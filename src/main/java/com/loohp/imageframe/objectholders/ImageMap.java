@@ -25,10 +25,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.MapUtils;
-import it.unimi.dsi.fastutil.Pair;
-import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntLists;
-import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Rotation;
@@ -78,7 +74,7 @@ public abstract class ImageMap {
     protected int imageIndex;
     protected String name;
     protected final List<MapView> mapViews;
-    protected final IntList mapIds;
+    protected final List<Integer> mapIds;
     protected final List<Map<String, MapCursor>> mapMarkers;
     protected final int width;
     protected final int height;
@@ -87,7 +83,7 @@ public abstract class ImageMap {
 
     private boolean isValid;
 
-    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, IntList mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
+    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
         if (mapViews.size() != width * height) {
             throw new IllegalArgumentException("mapViews size does not equal width * height");
         }
@@ -101,7 +97,7 @@ public abstract class ImageMap {
         this.imageIndex = imageIndex;
         this.name = name;
         this.mapViews = Collections.unmodifiableList(mapViews);
-        this.mapIds = IntLists.unmodifiable(mapIds);
+        this.mapIds = Collections.unmodifiableList(mapIds);
         this.mapMarkers = Collections.unmodifiableList(mapMarkers);
         this.width = width;
         this.height = height;
@@ -128,7 +124,7 @@ public abstract class ImageMap {
         save();
     }
 
-    public IntList getMapIds() {
+    public List<Integer> getMapIds() {
         return mapIds;
     }
 
@@ -310,24 +306,24 @@ public abstract class ImageMap {
 
         @Override
         public final void render(MapView mapView, MapCanvas canvas, Player player) {
-            ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
+            MutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
             manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
-            byte[] colors = renderData.left();
+            byte[] colors = renderData.getFirst();
             if (colors != null) {
                 for (int i = 0; i < colors.length; i++) {
                     canvas.setPixel(i % MapUtils.MAP_WIDTH, i / MapUtils.MAP_WIDTH, colors[i]);
                 }
             }
-            canvas.setCursors(MapUtils.toMapCursorCollection(renderData.right()));
+            canvas.setCursors(MapUtils.toMapCursorCollection(renderData.getSecond()));
         }
 
-        public final Pair<byte[], Collection<MapCursor>> renderPacketData(MapView mapView, Player player) {
-            ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
+        public final MutablePair<byte[], Collection<MapCursor>> renderPacketData(MapView mapView, Player player) {
+            MutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
             manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
             return renderData;
         }
 
-        public abstract ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player);
+        public abstract MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player);
 
     }
 

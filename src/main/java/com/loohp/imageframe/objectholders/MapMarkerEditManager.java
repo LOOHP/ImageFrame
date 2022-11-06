@@ -22,7 +22,6 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.MapUtils;
-import it.unimi.dsi.fastutil.ints.IntIntPair;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -61,7 +60,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
     public MapMarkerEditManager() {
         this.activeEditing = new ConcurrentHashMap<>();
         this.renderEventListener = (manager, imageMap, map, player, renderData) -> {
-            Collection<MapCursor> cursors = renderData.right();
+            Collection<MapCursor> cursors = renderData.getSecond();
             List<MapCursor> additionCursors = new LinkedList<>();
             for (MapMarkerEditData data : activeEditing.values()) {
                 MapView targetMap = data.getCurrentTargetMap();
@@ -71,7 +70,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             }
             if (!additionCursors.isEmpty()) {
                 additionCursors.addAll(cursors);
-                renderData.right(additionCursors);
+                renderData.setSecond(additionCursors);
             }
         };
         ImageFrame.imageMapManager.appendRenderEventListener(renderEventListener);
@@ -127,10 +126,10 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             if (!imageMap.getMapViews().contains(mapView)) {
                 continue;
             }
-            IntIntPair target = MapUtils.getTargetPixelOnItemFrame(itemFrame.getLocation().toVector(), itemFrame.getFacing().getDirection(), hitPosition, itemFrame.getRotation());
+            Point2D target = MapUtils.getTargetPixelOnItemFrame(itemFrame.getLocation().toVector(), itemFrame.getFacing().getDirection(), hitPosition, itemFrame.getRotation());
             editData.setCurrentTargetMap(mapView);
-            editData.getMapCursor().setX((byte) target.leftInt());
-            editData.getMapCursor().setY((byte) target.rightInt());
+            editData.getMapCursor().setX((byte) target.getX());
+            editData.getMapCursor().setY((byte) target.getY());
             if (!imageMap.requiresAnimationService()) {
                 Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> imageMap.send(imageMap.getViewers()));
             }

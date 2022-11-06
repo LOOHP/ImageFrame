@@ -26,8 +26,8 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.ImageMap;
-import it.unimi.dsi.fastutil.Pair;
-import it.unimi.dsi.fastutil.ints.IntIntPair;
+import com.loohp.imageframe.objectholders.MutablePair;
+import com.loohp.imageframe.objectholders.Point2D;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -69,6 +69,7 @@ public class MapUtils {
     public static final int MAP_WIDTH = 128;
     public static final int COLOR_ARRAY_LENGTH = 16384;
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    public static final List<BlockFace> CARTESIAN_BLOCK_FACES = Collections.unmodifiableList(Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN));
 
     private static Class<?> craftMapViewClass;
     private static Field craftMapViewWorldMapField;
@@ -132,9 +133,9 @@ public class MapUtils {
 
         for (Player player : players) {
             try {
-                Pair<byte[], Collection<MapCursor>> renderData = imageMapManager.renderPacketData(mapView, player);
-                byte[] colors = renderData.left();
-                Collection<MapCursor> cursors = renderData.right();
+                MutablePair<byte[], Collection<MapCursor>> renderData = imageMapManager.renderPacketData(mapView, player);
+                byte[] colors = renderData.getFirst();
+                Collection<MapCursor> cursors = renderData.getSecond();
 
                 PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.MAP);
                 if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
@@ -293,12 +294,10 @@ public class MapUtils {
                 Vector facing = itemFrame.getFacing().getDirection().normalize();
                 Vector opposite = facing.clone().multiply(-1);
                 BoundingBox boundingBox = entity.getBoundingBox();
-                for (BlockFace blockFace : BlockFace.values()) {
-                    if (blockFace.isCartesian()) {
-                        Vector expansion = blockFace.getDirection().normalize();
-                        if (!expansion.equals(facing) && !expansion.equals(opposite)) {
-                            boundingBox.expandDirectional(expansion.multiply(0.125));
-                        }
+                for (BlockFace blockFace : CARTESIAN_BLOCK_FACES) {
+                    Vector expansion = blockFace.getDirection().normalize();
+                    if (!expansion.equals(facing) && !expansion.equals(opposite)) {
+                        boundingBox.expandDirectional(expansion.multiply(0.125));
                     }
                 }
                 RayTraceResult hitResult = boundingBox.rayTrace(startPos, direction, maxDistance);
@@ -316,7 +315,7 @@ public class MapUtils {
         }
     }
 
-    public static IntIntPair getTargetPixelOnItemFrame(Vector center, Vector facing, Vector position, Rotation rotation) {
+    public static Point2D getTargetPixelOnItemFrame(Vector center, Vector facing, Vector position, Rotation rotation) {
         Vector offset = position.clone().subtract(center);
         if (facing.getBlockX() != 0) {
             offset.setX(0);
@@ -347,7 +346,7 @@ public class MapUtils {
             }
             y = (int) Math.round(offset.getY() * -256);
         }
-        return IntIntPair.of(Math.min(Math.max(x, Byte.MIN_VALUE), Byte.MAX_VALUE), Math.min(Math.max(y, Byte.MIN_VALUE), Byte.MAX_VALUE));
+        return new Point2D(Math.min(Math.max(x, Byte.MIN_VALUE), Byte.MAX_VALUE), Math.min(Math.max(y, Byte.MIN_VALUE), Byte.MAX_VALUE));
     }
 
     public static Object toNMSMapIcon(MapCursor mapCursor) {
