@@ -29,6 +29,7 @@ import com.loohp.imageframe.objectholders.URLStaticImageMap;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.MapUtils;
+import com.loohp.imageframe.utils.PlayerUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -52,6 +53,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class Commands implements CommandExecutor, TabCompleter {
@@ -158,11 +160,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (selection == null) {
                                         imageMap.giveMaps(Collections.singleton((Player) sender), ImageFrame.mapItemFormat);
                                     } else {
+                                        AtomicBoolean flag = new AtomicBoolean(false);
                                         imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
+                                            ItemStack originalItem = frame.getItem();
+                                            if (originalItem != null && !originalItem.getType().equals(Material.AIR)) {
+                                                return false;
+                                            }
+                                            return PlayerUtils.isInteractionAllowed(player, frame);
+                                        }, (frame, item) -> {
                                             Player p = (Player) sender;
                                             HashMap<Integer, ItemStack> result = p.getInventory().addItem(item);
                                             for (ItemStack stack : result.values()) {
                                                 p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                            }
+                                            if (!flag.getAndSet(true)) {
+                                                sender.sendMessage(ImageFrame.messageItemFrameOccupied);
                                             }
                                         }, ImageFrame.mapItemFormat);
                                     }
@@ -249,13 +261,22 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
                                     ImageFrame.imageMapManager.addMap(newImageMap);
                                     if (selection == null) {
-                                        newImageMap.giveMaps(Collections.singleton((Player) sender), ImageFrame.mapItemFormat);
+                                        newImageMap.giveMaps(Collections.singleton(player), ImageFrame.mapItemFormat);
                                     } else {
+                                        AtomicBoolean flag = new AtomicBoolean(false);
                                         newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
-                                            Player p = (Player) sender;
-                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(item);
+                                            ItemStack originalItem = frame.getItem();
+                                            if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                                                return false;
+                                            }
+                                            return PlayerUtils.isInteractionAllowed(player, frame);
+                                        }, (frame, item) -> {
+                                            HashMap<Integer, ItemStack> result = player.getInventory().addItem(item);
                                             for (ItemStack stack : result.values()) {
-                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                                player.getWorld().dropItem(player.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                            }
+                                            if (!flag.getAndSet(true)) {
+                                                sender.sendMessage(ImageFrame.messageItemFrameOccupied);
                                             }
                                         }, ImageFrame.mapItemFormat);
                                     }
@@ -640,10 +661,20 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (selection == null) {
                                     imageMap.giveMaps(Collections.singleton(player), ImageFrame.mapItemFormat);
                                 } else {
+                                    AtomicBoolean flag = new AtomicBoolean(false);
                                     imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
+                                        ItemStack originalItem = frame.getItem();
+                                        if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                                            return false;
+                                        }
+                                        return PlayerUtils.isInteractionAllowed(player, frame);
+                                    }, (frame, item) -> {
                                         HashMap<Integer, ItemStack> result = player.getInventory().addItem(item);
                                         for (ItemStack stack : result.values()) {
                                             player.getWorld().dropItem(player.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                        }
+                                        if (!flag.getAndSet(true)) {
+                                            sender.sendMessage(ImageFrame.messageItemFrameOccupied);
                                         }
                                     }, ImageFrame.mapItemFormat);
                                 }
@@ -810,11 +841,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (selection == null) {
                                         newImageMap.giveMaps(Collections.singleton((Player) sender), ImageFrame.mapItemFormat);
                                     } else {
+                                        AtomicBoolean flag = new AtomicBoolean(false);
                                         newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
+                                            ItemStack originalItem = frame.getItem();
+                                            if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                                                return false;
+                                            }
+                                            return PlayerUtils.isInteractionAllowed(player, frame);
+                                        }, (frame, item) -> {
                                             Player p = (Player) sender;
                                             HashMap<Integer, ItemStack> result = p.getInventory().addItem(item);
                                             for (ItemStack stack : result.values()) {
                                                 p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                            }
+                                            if (!flag.getAndSet(true)) {
+                                                sender.sendMessage(ImageFrame.messageItemFrameOccupied);
                                             }
                                         }, ImageFrame.mapItemFormat);
                                     }
@@ -907,6 +948,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("imageframe.adminget")) {
                 if (args.length > 1) {
                     if (args.length > 2 && args[2].equalsIgnoreCase("selection") && sender instanceof Player) {
+                        Player player = (Player) sender;
                         ItemFrameSelectionManager.SelectedItemFrameResult selection;
                         selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection((Player) sender);
                         if (selection == null) {
@@ -919,7 +961,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (imageMap == null) {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
                             } else {
-                                imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {}, ImageFrame.mapItemFormat);
+                                AtomicBoolean flag = new AtomicBoolean(false);
+                                imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
+                                    ItemStack originalItem = frame.getItem();
+                                    if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                                        return false;
+                                    }
+                                    return PlayerUtils.isInteractionAllowed(player, frame);
+                                }, (frame, item) -> {
+                                    if (!flag.getAndSet(true)) {
+                                        sender.sendMessage(ImageFrame.messageItemFrameOccupied);
+                                    }
+                                }, ImageFrame.mapItemFormat);
                                 sender.sendMessage(ImageFrame.messageImageMapCreated);
                             }
                         } catch (NumberFormatException e) {
@@ -1291,6 +1344,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (imageMap.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
                                     tab.add(imageMap.getName());
                                 }
+                            }
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.select")) {
+                    if ("list".equalsIgnoreCase(args[0])) {
+                        for (Player player : Bukkit.getOnlinePlayers()) {
+                            if (player.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
+                                tab.add(player.getName());
                             }
                         }
                     }

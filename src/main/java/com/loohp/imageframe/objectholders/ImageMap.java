@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 
 public abstract class ImageMap {
 
@@ -193,7 +194,7 @@ public abstract class ImageMap {
         }
     }
 
-    public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat) {
+    public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiPredicate<ItemFrame, ItemStack> prePlaceCheck, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat) {
         if (itemFrames.size() != mapViews.size()) {
             throw new IllegalArgumentException("itemFrames size does not equal to mapView size");
         }
@@ -219,15 +220,15 @@ public abstract class ImageMap {
         Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
             for (Map.Entry<ItemFrame, ItemStack> entry : items.entrySet()) {
                 ItemFrame frame = entry.getKey();
+                ItemStack item = entry.getValue();
                 if (frame.isValid()) {
-                    ItemStack originalItem = frame.getItem();
-                    if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
-                        frame.setItem(entry.getValue(), false);
+                    if (prePlaceCheck.test(frame, item)) {
+                        frame.setItem(item, false);
                         frame.setRotation(rotation);
                         continue;
                     }
                 }
-                unableToPlaceAction.accept(frame, entry.getValue());
+                unableToPlaceAction.accept(frame, item);
             }
         });
     }

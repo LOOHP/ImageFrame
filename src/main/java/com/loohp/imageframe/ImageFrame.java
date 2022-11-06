@@ -79,6 +79,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageOversize;
     public static String messageDuplicateMapName;
     public static String messageMapLookup;
+    public static String messageItemFrameOccupied;
     public static String messageSelectionBegin;
     public static String messageSelectionClear;
     public static String messageSelectionCorner1;
@@ -220,6 +221,7 @@ public class ImageFrame extends JavaPlugin {
         messageOversize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Oversize"));
         messageDuplicateMapName = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.DuplicateMapName"));
         messageMapLookup = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.MapLookup"));
+        messageItemFrameOccupied = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ItemFrameOccupied"));
         messageSelectionBegin = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Begin"));
         messageSelectionClear = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Clear"));
         messageSelectionCorner1 = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Selection.Corner1"));

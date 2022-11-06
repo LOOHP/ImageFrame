@@ -25,6 +25,7 @@ Messages:
   PlayerCreationLimitReached: "&cYou can only create <Limit> maps at once! Delete some to create new ones"
   DuplicateMapName: "&cYou've already created an image map with that name!"
   MapLookup: "&bList of image maps by {CreatorName} ({CreatorUUID}):"
+  ItemFrameOccupied: "&cFailed to place some maps on selected ItemFrame, they are either destroyed, replaced, occupied or protected."
   Selection:
     Begin: "&bRight click an Item Frame to select corner 1 and 2"
     Clear: "&eLeaving selection mode"
