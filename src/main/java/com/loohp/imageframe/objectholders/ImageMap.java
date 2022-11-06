@@ -313,8 +313,10 @@ public abstract class ImageMap {
             ObjectObjectMutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
             manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
             byte[] colors = renderData.left();
-            for (int i = 0; i < colors.length; i++) {
-                canvas.setPixel(i % MapUtils.MAP_WIDTH, i / MapUtils.MAP_WIDTH, colors[i]);
+            if (colors != null) {
+                for (int i = 0; i < colors.length; i++) {
+                    canvas.setPixel(i % MapUtils.MAP_WIDTH, i / MapUtils.MAP_WIDTH, colors[i]);
+                }
             }
             canvas.setCursors(MapUtils.toMapCursorCollection(renderData.right()));
         }

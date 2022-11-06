@@ -204,6 +204,9 @@ public class URLAnimatedImageMap extends URLImageMap {
             return null;
         }
         byte[][] colors = cachedColors[index];
+        if (colors == null) {
+            return null;
+        }
         return colors[currentTick % colors.length];
     }
 

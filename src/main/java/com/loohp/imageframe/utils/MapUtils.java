@@ -57,6 +57,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,7 @@ public class MapUtils {
 
     public static final int MAP_WIDTH = 128;
     public static final int COLOR_ARRAY_LENGTH = 16384;
+    public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     private static Class<?> craftMapViewClass;
     private static Field craftMapViewWorldMapField;
@@ -139,28 +141,46 @@ public class MapUtils {
                     packet.getIntegers().write(0, mapView.getId());
                     packet.getBytes().write(0, (byte) 0);
                     packet.getBooleans().write(0, false);
-                    List<Object> mapIcons = new ArrayList<>();
-                    for (MapCursor mapCursor : cursors) {
-                        mapIcons.add(toNMSMapIcon(mapCursor));
+                    if (cursors == null) {
+                        packet.getModifier().write(3, Collections.emptyList());
+                    } else {
+                        List<Object> mapIcons = new ArrayList<>();
+                        for (MapCursor mapCursor : cursors) {
+                            mapIcons.add(toNMSMapIcon(mapCursor));
+                        }
+                        packet.getModifier().write(3, mapIcons);
                     }
-                    packet.getModifier().write(3, mapIcons);
-                    packet.getModifier().write(4, nmsWorldMapBClassConstructor.newInstance(0, 0, 128, 128, colors));
+                    if (colors == null) {
+                        packet.getModifier().write(4, null);
+                    } else {
+                        packet.getModifier().write(4, nmsWorldMapBClassConstructor.newInstance(0, 0, 128, 128, colors));
+                    }
                 } else {
                     packet.getIntegers().write(0, mapView.getId());
                     packet.getBytes().write(0, (byte) 0);
                     packet.getBooleans().write(0, false);
                     packet.getBooleans().write(1, false);
-                    Object mapIcons = Array.newInstance(nmsMapIconClass, cursors.size());
-                    int i = 0;
-                    for (MapCursor mapCursor : cursors) {
-                        Array.set(mapIcons, i++, toNMSMapIcon(mapCursor));
+                    if (cursors == null) {
+                        packet.getModifier().write(4, Array.newInstance(nmsMapIconClass, 0));
+                    } else {
+                        Object mapIcons = Array.newInstance(nmsMapIconClass, cursors.size());
+                        int i = 0;
+                        for (MapCursor mapCursor : cursors) {
+                            Array.set(mapIcons, i++, toNMSMapIcon(mapCursor));
+                        }
+                        packet.getModifier().write(4, mapIcons);
                     }
-                    packet.getModifier().write(4, Array.newInstance(nmsMapIconClass, 0));
                     packet.getIntegers().write(1, 0);
                     packet.getIntegers().write(2, 0);
-                    packet.getIntegers().write(3, 128);
-                    packet.getIntegers().write(4, 128);
-                    packet.getByteArrays().write(0, colors);
+                    if (colors == null) {
+                        packet.getIntegers().write(3, 0);
+                        packet.getIntegers().write(4, 0);
+                        packet.getByteArrays().write(0, EMPTY_BYTE_ARRAY);
+                    } else {
+                        packet.getIntegers().write(3, 128);
+                        packet.getIntegers().write(4, 128);
+                        packet.getByteArrays().write(0, colors);
+                    }
                 }
                 ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
             } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
