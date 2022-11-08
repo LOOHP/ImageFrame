@@ -163,7 +163,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
-    public void update() throws Exception {
+    public void update(boolean save) throws Exception {
         List<GifReader.ImageFrame> frames = GifReader.readGif(new ByteArrayInputStream(HTTPRequestUtils.download(url))).get();
         List<BufferedImage> images = new ArrayList<>();
         for (int currentTime = 0; ; currentTime += 50) {
@@ -188,6 +188,9 @@ public class URLAnimatedImageMap extends URLImageMap {
             index++;
         }
         cacheColors();
+        if (save) {
+            save();
+        }
     }
 
     @Override

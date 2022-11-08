@@ -155,7 +155,15 @@ public abstract class ImageMap {
 
     public abstract ImageMap deepClone(String name, UUID creator) throws Exception;
 
-    public abstract void update() throws Exception;
+    public abstract void update(boolean save) throws Exception;
+
+    public void update() throws Exception {
+        update(true);
+    }
+
+    public void send(Player player) {
+        send(Collections.singleton(player));
+    }
 
     public void send(Collection<? extends Player> players) {
         for (MapView mapView : mapViews) {

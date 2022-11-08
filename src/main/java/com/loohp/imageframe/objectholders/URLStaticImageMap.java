@@ -167,7 +167,7 @@ public class URLStaticImageMap extends URLImageMap {
     }
 
     @Override
-    public void update() throws Exception {
+    public void update(boolean save) throws Exception {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(HTTPRequestUtils.download(url)));
         if (image == null) {
             throw new RuntimeException("Unable to read image");
@@ -181,6 +181,9 @@ public class URLStaticImageMap extends URLImageMap {
         }
         cacheColors();
         send(getViewers());
+        if (save) {
+            save();
+        }
     }
 
     @Override
