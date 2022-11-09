@@ -108,8 +108,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     player.sendMessage(ImageFrame.messageSelectionNoSelection);
                                     return true;
                                 }
-                            } else {
+                            } else if (args.length == 5) {
                                 selection = null;
+                            } else {
+                                player.sendMessage(ImageFrame.messageInvalidUsage);
+                                return true;
                             }
 
                             int width;
