@@ -28,10 +28,12 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.objectholders.Point2D;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Rotation;
+import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemFrame;
@@ -63,6 +65,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 public class MapUtils {
 
@@ -379,6 +383,22 @@ public class MapUtils {
             e.printStackTrace();
         }
         return true;
+    }
+
+    public static Future<MapView> createMap(World world) {
+        if (Bukkit.isPrimaryThread()) {
+            return CompletableFuture.completedFuture(Bukkit.createMap(world));
+        } else {
+            return Bukkit.getScheduler().callSyncMethod(ImageFrame.plugin, () -> Bukkit.createMap(world));
+        }
+    }
+
+    public static Future<MapView> getMap(int id) {
+        if (Bukkit.isPrimaryThread()) {
+            return CompletableFuture.completedFuture(Bukkit.getMap(id));
+        } else {
+            return Bukkit.getScheduler().callSyncMethod(ImageFrame.plugin, () -> Bukkit.getMap(id));
+        }
     }
 
 }

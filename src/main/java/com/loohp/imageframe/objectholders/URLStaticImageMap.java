@@ -47,30 +47,40 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class URLStaticImageMap extends URLImageMap {
 
     public static URLStaticImageMap create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
         World world = Bukkit.getWorlds().get(0);
         int mapsCount = width * height;
-        List<MapView> mapViews = new ArrayList<>(mapsCount);
-        List<Integer> mapIds = new ArrayList<>(mapsCount);
+        List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapsCount);
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapsCount);
         for (int i = 0; i < mapsCount; i++) {
-            MapView mapView = Bukkit.createMap(world);
-            for (MapRenderer renderer : mapView.getRenderers()) {
-                mapView.removeRenderer(renderer);
-            }
-            mapViews.add(mapView);
-            mapIds.add(mapView.getId());
+            mapViewsFuture.add(MapUtils.createMap(world));
             markers.add(new ConcurrentHashMap<>());
+        }
+        List<MapView> mapViews = new ArrayList<>(mapsCount);
+        List<Integer> mapIds = new ArrayList<>(mapsCount);
+        for (Future<MapView> future : mapViewsFuture) {
+            try {
+                MapView mapView = future.get();
+                for (MapRenderer renderer : mapView.getRenderers()) {
+                    mapView.removeRenderer(renderer);
+                }
+                mapViews.add(mapView);
+                mapIds.add(mapView.getId());
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
         }
         URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
             mapView.addRenderer(new URLStaticImageMapRenderer(map, i));
         }
-        map.update();
+        map.update(false);
         return map;
     }
 
@@ -87,7 +97,7 @@ public class URLStaticImageMap extends URLImageMap {
         long creationTime = json.get("creationTime").getAsLong();
         UUID creator = UUID.fromString(json.get("creator").getAsString());
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
-        List<MapView> mapViews = new ArrayList<>(mapDataJson.size());
+        List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
         BufferedImage[] cachedImages = new BufferedImage[mapDataJson.size()];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
@@ -96,7 +106,7 @@ public class URLStaticImageMap extends URLImageMap {
             JsonObject jsonObject = dataJson.getAsJsonObject();
             int mapId = jsonObject.get("mapid").getAsInt();
             mapIds.add(mapId);
-            mapViews.add(Bukkit.getMap(mapId));
+            mapViewsFuture.add(MapUtils.getMap(mapId));
             cachedImages[i] = ImageIO.read(new File(folder, jsonObject.get("image").getAsString()));
             Map<String, MapCursor> mapCursors = new ConcurrentHashMap<>();
             if (jsonObject.has("markers")) {
@@ -115,6 +125,10 @@ public class URLStaticImageMap extends URLImageMap {
             }
             markers.add(mapCursors);
             i++;
+        }
+        List<MapView> mapViews = new ArrayList<>(mapViewsFuture.size());
+        for (Future<MapView> future : mapViewsFuture) {
+            mapViews.add(future.get());
         }
         URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, creationTime);
         for (int u = 0; u < mapViews.size(); u++) {

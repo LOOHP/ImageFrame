@@ -48,30 +48,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 
 public class URLAnimatedImageMap extends URLImageMap {
 
     public static URLAnimatedImageMap create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
         World world = Bukkit.getWorlds().get(0);
         int mapsCount = width * height;
-        List<MapView> mapViews = new ArrayList<>(mapsCount);
-        List<Integer> mapIds = new ArrayList<>(mapsCount);
+        List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapsCount);
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapsCount);
         for (int i = 0; i < mapsCount; i++) {
-            MapView mapView = Bukkit.createMap(world);
+            mapViewsFuture.add(MapUtils.createMap(world));
+            markers.add(new ConcurrentHashMap<>());
+        }
+        List<MapView> mapViews = new ArrayList<>(mapsCount);
+        List<Integer> mapIds = new ArrayList<>(mapsCount);
+        for (Future<MapView> future : mapViewsFuture) {
+            MapView mapView = future.get();
             for (MapRenderer renderer : mapView.getRenderers()) {
                 mapView.removeRenderer(renderer);
             }
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
-            markers.add(new ConcurrentHashMap<>());
         }
         URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new BufferedImage[mapsCount][], mapViews, mapIds, markers, width, height, creator, System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
             mapView.addRenderer(new URLAnimatedImageMapRenderer(map, i));
         }
-        map.update();
+        map.update(false);
         return map;
     }
 
@@ -88,7 +93,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         long creationTime = json.get("creationTime").getAsLong();
         UUID creator = UUID.fromString(json.get("creator").getAsString());
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
-        List<MapView> mapViews = new ArrayList<>(mapDataJson.size());
+        List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
         BufferedImage[][] cachedImages = new BufferedImage[mapDataJson.size()][];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
@@ -97,7 +102,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             JsonObject jsonObject = dataJson.getAsJsonObject();
             int mapId = jsonObject.get("mapid").getAsInt();
             mapIds.add(mapId);
-            mapViews.add(Bukkit.getMap(mapId));
+            mapViewsFuture.add(MapUtils.getMap(mapId));
             JsonArray framesArray = jsonObject.get("images").getAsJsonArray();
             BufferedImage[] images = new BufferedImage[framesArray.size()];
             int u = 0;
@@ -121,6 +126,10 @@ public class URLAnimatedImageMap extends URLImageMap {
             }
             markers.add(mapCursors);
             cachedImages[i++] = images;
+        }
+        List<MapView> mapViews = new ArrayList<>(mapViewsFuture.size());
+        for (Future<MapView> future : mapViewsFuture) {
+            mapViews.add(future.get());
         }
         URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, creationTime);
         for (int u = 0; u < mapViews.size(); u++) {
