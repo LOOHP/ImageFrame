@@ -39,6 +39,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
@@ -611,8 +612,22 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (imageMap == null) {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
                             } else {
-                                ImageFrame.imageMapManager.deleteMap(imageMap.getImageIndex());
-                                sender.sendMessage(ImageFrame.messageImageMapDeleted);
+                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                    ImageFrame.imageMapManager.deleteMap(imageMap.getImageIndex());
+                                    sender.sendMessage(ImageFrame.messageImageMapDeleted);
+                                    Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                                        Inventory inventory = player.getInventory();
+                                        for (int i = 0; i < inventory.getSize(); i++) {
+                                            ItemStack currentItem = inventory.getItem(i);
+                                            MapView currentMapView = MapUtils.getItemMapView(currentItem);
+                                            if (currentMapView != null) {
+                                                if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+                                                    inventory.setItem(i, new ItemStack(Material.MAP, currentItem.getAmount()));
+                                                }
+                                            }
+                                        }
+                                    });
+                                });
                             }
                         } catch (NumberFormatException e) {
                             sender.sendMessage(ImageFrame.messageInvalidUsage);
@@ -934,8 +949,24 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
                         } else {
-                            ImageFrame.imageMapManager.deleteMap(imageMap.getImageIndex());
-                            sender.sendMessage(ImageFrame.messageImageMapDeleted);
+                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                ImageFrame.imageMapManager.deleteMap(imageMap.getImageIndex());
+                                sender.sendMessage(ImageFrame.messageImageMapDeleted);
+                                Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                                    if (sender instanceof Player) {
+                                        Inventory inventory = ((Player) sender).getInventory();
+                                        for (int i = 0; i < inventory.getSize(); i++) {
+                                            ItemStack currentItem = inventory.getItem(i);
+                                            MapView currentMapView = MapUtils.getItemMapView(currentItem);
+                                            if (currentMapView != null) {
+                                                if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+                                                    inventory.setItem(i, new ItemStack(Material.MAP, currentItem.getAmount()));
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            });
                         }
                     } catch (NumberFormatException e) {
                         sender.sendMessage(ImageFrame.messageInvalidUsage);

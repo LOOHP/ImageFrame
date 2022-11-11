@@ -214,8 +214,7 @@ public class MapUtils {
         return source.getSubimage(x * MAP_WIDTH, y * MAP_WIDTH, MAP_WIDTH, MAP_WIDTH);
     }
 
-    public static MapView getPlayerMapView(Player player) {
-        ItemStack itemStack = player.getEquipment().getItemInHand();
+    public static MapView getItemMapView(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().equals(Material.AIR) || !itemStack.hasItemMeta()) {
             return null;
         }
@@ -224,6 +223,10 @@ public class MapUtils {
             return null;
         }
         return ((MapMeta) meta).getMapView();
+    }
+
+    public static MapView getPlayerMapView(Player player) {
+        return getItemMapView(player.getEquipment().getItemInHand());
     }
 
     public static int removeEmptyMaps(Player player, int count, boolean checkGameMode) {

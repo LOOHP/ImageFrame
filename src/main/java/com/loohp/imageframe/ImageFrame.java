@@ -22,6 +22,7 @@ package com.loohp.imageframe;
 
 import com.loohp.imageframe.config.Config;
 import com.loohp.imageframe.debug.Debug;
+import com.loohp.imageframe.listeners.Events;
 import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
 import com.loohp.imageframe.objectholders.ImageMapManager;
@@ -174,6 +175,7 @@ public class ImageFrame extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new Debug(), this);
         getServer().getPluginManager().registerEvents(new Updater(), this);
+        getServer().getPluginManager().registerEvents(new Events(), this);
 
         imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
         itemFrameSelectionManager = new ItemFrameSelectionManager();

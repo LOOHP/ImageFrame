@@ -20,6 +20,11 @@
 
 package com.loohp.imageframe.objectholders;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.FileUtils;
 import net.md_5.bungee.api.ChatColor;
@@ -28,7 +33,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
+import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -43,12 +56,15 @@ import java.util.stream.Collectors;
 
 public class ImageMapManager implements AutoCloseable {
 
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
+
     private final Map<Integer, ImageMap> maps;
     private final AtomicInteger mapIndexCounter;
     private final File dataFolder;
     private final AtomicInteger tickCounter;
     private final int taskId;
     private final List<ImageMapRenderEventListener> renderEventListeners;
+    private final Set<Integer> deletedMapIds;
 
     public ImageMapManager(File dataFolder) {
         this.maps = new ConcurrentHashMap<>();
@@ -56,6 +72,7 @@ public class ImageMapManager implements AutoCloseable {
         this.dataFolder = dataFolder;
         this.tickCounter = new AtomicInteger(0);
         this.renderEventListeners = new CopyOnWriteArrayList<>();
+        this.deletedMapIds = ConcurrentHashMap.newKeySet();
         this.taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(ImageFrame.plugin, () -> animationTask(), 0, 1).getTaskId();
     }
 
@@ -64,7 +81,7 @@ public class ImageMapManager implements AutoCloseable {
     }
 
     private void animationTask() {
-        int tick = tickCounter.incrementAndGet();
+        tickCounter.incrementAndGet();
         for (ImageMap imageMap : maps.values()) {
             if (imageMap.requiresAnimationService()) {
                 imageMap.send(imageMap.getViewers());
@@ -148,6 +165,7 @@ public class ImageMapManager implements AutoCloseable {
         if (imageMap == null) {
             return;
         }
+        imageMap.getMapViews().forEach(each -> deletedMapIds.add(each.getId()));
         imageMap.markInvalid();
         dataFolder.mkdirs();
         File folder = new File(dataFolder, String.valueOf(imageIndex));
@@ -155,21 +173,58 @@ public class ImageMapManager implements AutoCloseable {
             FileUtils.removeFolderRecursively(folder);
         }
         imageMap.stop();
+        saveDeletedMaps();
+    }
+
+    public boolean isMapDeleted(int mapId) {
+        return deletedMapIds.contains(mapId);
+    }
+
+    public boolean isMapDeleted(MapView mapView) {
+        return isMapDeleted(mapView.getId());
     }
 
     public synchronized void loadMaps() {
         maps.clear();
         dataFolder.mkdirs();
-        for (File folder : dataFolder.listFiles()) {
-            if (folder.isDirectory()) {
-                Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "Loading ImageMap ID " + folder.getName());
+        for (File file : dataFolder.listFiles()) {
+            if (file.isDirectory()) {
+                Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "Loading ImageMap ID " + file.getName());
                 try {
-                    addMap(ImageMap.load(this, folder));
+                    addMap(ImageMap.load(this, file));
                 } catch (Throwable e) {
-                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to load ImageMap data in " + folder.getAbsolutePath());
+                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to load ImageMap data in " + file.getAbsolutePath());
+                    e.printStackTrace();
+                }
+            } else if (file.getName().equalsIgnoreCase("deletedMaps.json")) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(file.toPath()), StandardCharsets.UTF_8))) {
+                    JsonObject json = GSON.fromJson(reader, JsonObject.class);
+                    JsonArray deletedMapIdsArray = json.get("mapids").getAsJsonArray();
+                    for (JsonElement element : deletedMapIdsArray) {
+                        deletedMapIds.add(element.getAsInt());
+                    }
+                } catch (IOException e) {
+                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to load ImageMapManager data in " + file.getAbsolutePath());
                     e.printStackTrace();
                 }
             }
+        }
+    }
+
+    public synchronized void saveDeletedMaps() {
+        File file = new File(dataFolder, "deletedMaps.json");
+        JsonObject json = new JsonObject();
+        JsonArray deletedMapIdsArray = new JsonArray(deletedMapIds.size());
+        for (int deletedMapId : deletedMapIds) {
+            deletedMapIdsArray.add(deletedMapId);
+        }
+        json.add("mapids", deletedMapIdsArray);
+        try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8))) {
+            pw.println(GSON.toJson(json));
+            pw.flush();
+        } catch (IOException e) {
+            Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to save ImageMapManager data in " + file.getAbsolutePath());
+            e.printStackTrace();
         }
     }
 
