@@ -153,6 +153,10 @@ public abstract class ImageMap {
         throw new UnsupportedOperationException("this map does not requires animation");
     }
 
+    public boolean trackDeletedMaps() {
+        return true;
+    }
+
     public abstract ImageMap deepClone(String name, UUID creator) throws Exception;
 
     public abstract void update(boolean save) throws Exception;
@@ -314,7 +318,7 @@ public abstract class ImageMap {
         }
 
         @Override
-        public final void render(MapView mapView, MapCanvas canvas, Player player) {
+        public void render(MapView mapView, MapCanvas canvas, Player player) {
             MutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
             manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
             byte[] colors = renderData.getFirst();
@@ -326,7 +330,7 @@ public abstract class ImageMap {
             canvas.setCursors(MapUtils.toMapCursorCollection(renderData.getSecond()));
         }
 
-        public final MutablePair<byte[], Collection<MapCursor>> renderPacketData(MapView mapView, Player player) {
+        public MutablePair<byte[], Collection<MapCursor>> renderPacketData(MapView mapView, Player player) {
             MutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
             manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
             return renderData;

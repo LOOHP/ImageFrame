@@ -141,11 +141,11 @@ public class URLStaticImageMap extends URLImageMap {
         return map;
     }
 
-    private final BufferedImage[] cachedImages;
+    protected final BufferedImage[] cachedImages;
 
-    private byte[][] cachedColors;
+    protected byte[][] cachedColors;
 
-    private URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
+    protected URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
         super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, creationTime);
         this.cachedImages = cachedImages;
         cacheColors();

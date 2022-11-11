@@ -165,7 +165,9 @@ public class ImageMapManager implements AutoCloseable {
         if (imageMap == null) {
             return;
         }
-        imageMap.getMapViews().forEach(each -> deletedMapIds.add(each.getId()));
+        if (imageMap.trackDeletedMaps()) {
+            imageMap.getMapViews().forEach(each -> deletedMapIds.add(each.getId()));
+        }
         imageMap.markInvalid();
         dataFolder.mkdirs();
         File folder = new File(dataFolder, String.valueOf(imageIndex));

@@ -99,6 +99,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageMarkersNotAMarker;
     public static String messageMarkersNotRenderOnFrameWarning;
     public static String messageMarkersLimitReached;
+    public static String messageInvalidOverlayMap;
 
     public static SimpleDateFormat dateFormat;
 
@@ -242,6 +243,7 @@ public class ImageFrame extends JavaPlugin {
         messageMarkersNotAMarker = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.NotAMarker"));
         messageMarkersNotRenderOnFrameWarning = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.NotRenderOnFrameWarning"));
         messageMarkersLimitReached = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.LimitReached"));
+        messageInvalidOverlayMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidOverlayMap"));
 
         dateFormat = new SimpleDateFormat(config.getConfiguration().getString("Messages.DateFormat"));
 

@@ -89,6 +89,11 @@ public class MapUtils {
     private static Constructor<?> nmsMapIconConstructor;
     private static Class<?> nmsWorldMapBClass;
     private static Constructor<?> nmsWorldMapBClassConstructor;
+    private static Class<?> craftPlayerClass;
+    private static Method craftMapViewRenderMethod;
+    private static Class<?> craftRenderDataClass;
+    private static Field craftRenderDataBufferField;
+    private static Field craftRenderDataCursorsField;
 
     static {
         try {
@@ -119,6 +124,11 @@ public class MapUtils {
                 nmsWorldMapBClass = Arrays.stream(nmsWorldMapClass.getClasses()).filter(each -> each.getName().endsWith("$b")).findFirst().get();
                 nmsWorldMapBClassConstructor = nmsWorldMapBClass.getConstructor(int.class, int.class, int.class, int.class, byte[].class);
             }
+            craftPlayerClass = NMSUtils.getNMSClass("org.bukkit.craftbukkit.%s.entity.CraftPlayer");
+            craftMapViewRenderMethod = craftMapViewClass.getMethod("render", craftPlayerClass);
+            craftRenderDataClass = NMSUtils.getNMSClass("org.bukkit.craftbukkit.%s.map.RenderData");
+            craftRenderDataBufferField = craftRenderDataClass.getField("buffer");
+            craftRenderDataCursorsField = craftRenderDataClass.getField("cursors");
         } catch (ReflectiveOperationException e) {
             e.printStackTrace();
         }
@@ -402,6 +412,21 @@ public class MapUtils {
         } else {
             return Bukkit.getScheduler().callSyncMethod(ImageFrame.plugin, () -> Bukkit.getMap(id));
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static MutablePair<byte[], ArrayList<MapCursor>> bukkitRenderMap(MapView mapView, Player player) {
+        try {
+            Object craftMapView = craftMapViewClass.cast(mapView);
+            Object craftPlayer = craftPlayerClass.cast(player);
+            Object craftRenderData = craftMapViewRenderMethod.invoke(craftMapView, craftPlayer);
+            byte[] buffer = (byte[]) craftRenderDataBufferField.get(craftRenderData);
+            ArrayList<MapCursor> cursors = (ArrayList<MapCursor>) craftRenderDataCursorsField.get(craftRenderData);
+            return new MutablePair<>(buffer, cursors);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return new MutablePair<>(new byte[COLOR_ARRAY_LENGTH], new ArrayList<>());
     }
 
 }

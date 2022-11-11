@@ -25,6 +25,7 @@ import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.URLAnimatedImageMap;
 import com.loohp.imageframe.objectholders.URLImageMap;
+import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
 import com.loohp.imageframe.objectholders.URLStaticImageMap;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
@@ -195,6 +196,87 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                         });
                                     }
+                                }
+                            });
+                        } catch (NumberFormatException e) {
+                            sender.sendMessage(ImageFrame.messageInvalidUsage);
+                        } catch (Exception e) {
+                            sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                            e.printStackTrace();
+                        }
+                    } else {
+                        sender.sendMessage(ImageFrame.messageInvalidUsage);
+                    }
+                } else {
+                    sender.sendMessage(ImageFrame.messageNoConsole);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
+        } else if (args[0].equalsIgnoreCase("overlay")) {
+            if (sender.hasPermission("imageframe.overlay")) {
+                if (sender instanceof Player) {
+                    if (args.length == 3 || args.length == 4) {
+                        try {
+                            Player player = (Player) sender;
+
+                            List<MapView> mapViews;
+                            int width;
+                            int height;
+                            if (args.length == 4 && args[3].equalsIgnoreCase("selection")) {
+                                ItemFrameSelectionManager.SelectedItemFrameResult selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
+                                if (selection == null) {
+                                    player.sendMessage(ImageFrame.messageSelectionNoSelection);
+                                    return true;
+                                } else {
+                                    mapViews = selection.getMapViews();
+                                    width = selection.getWidth();
+                                    height = selection.getHeight();
+                                }
+                            } else if (args.length == 3) {
+                                mapViews = Collections.singletonList(MapUtils.getPlayerMapView(player));
+                                width = 1;
+                                height = 1;
+                            } else {
+                                player.sendMessage(ImageFrame.messageInvalidUsage);
+                                return true;
+                            }
+                            if (mapViews.contains(null)) {
+                                player.sendMessage(ImageFrame.messageSelectionInvalid);
+                                return true;
+                            }
+                            if (mapViews.stream().anyMatch(each -> ImageFrame.imageMapManager.getFromMapView(each) != null) || mapViews.stream().distinct().count() < mapViews.size()) {
+                                player.sendMessage(ImageFrame.messageInvalidOverlayMap);
+                                return true;
+                            }
+
+                            if (width * height > ImageFrame.mapMaxSize) {
+                                sender.sendMessage(ImageFrame.messageOversize.replace("{MaxSize}", ImageFrame.mapMaxSize + ""));
+                                return true;
+                            }
+                            int limit = ImageFrame.getPlayerCreationLimit(player);
+                            Set<ImageMap> existingMaps = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId());
+                            if (limit >= 0 && existingMaps.size() >= limit) {
+                                sender.sendMessage(ImageFrame.messagePlayerCreationLimitReached.replace("{Limit}", limit + ""));
+                                return true;
+                            }
+                            if (existingMaps.stream().anyMatch(each -> each.getName().equalsIgnoreCase(args[1]))) {
+                                sender.sendMessage(ImageFrame.messageDuplicateMapName);
+                                return true;
+                            }
+                            if (!ImageFrame.isURLAllowed(args[2])) {
+                                sender.sendMessage(ImageFrame.messageURLRestricted);
+                                return true;
+                            }
+                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                try {
+                                    ImageMap imageMap = MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, args[1], args[2], mapViews, width, height, player.getUniqueId());
+                                    ImageFrame.imageMapManager.addMap(imageMap);
+                                    sender.sendMessage(ImageFrame.messageImageMapCreated);
+                                } catch (Exception e) {
+                                    sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                                    e.printStackTrace();
                                 }
                             });
                         } catch (NumberFormatException e) {
@@ -1196,6 +1278,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.create")) {
                     tab.add("create");
                 }
+                if (sender.hasPermission("imageframe.overlay")) {
+                    tab.add("overlay");
+                }
                 if (sender.hasPermission("imageframe.clone")) {
                     tab.add("clone");
                 }
@@ -1260,6 +1345,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.create")) {
                     if ("create".startsWith(args[0].toLowerCase())) {
                         tab.add("create");
+                    }
+                }
+                if (sender.hasPermission("imageframe.overlay")) {
+                    if ("overlay".startsWith(args[0].toLowerCase())) {
+                        tab.add("overlay");
                     }
                 }
                 if (sender.hasPermission("imageframe.clone")) {
@@ -1356,6 +1446,11 @@ public class Commands implements CommandExecutor, TabCompleter {
             case 2:
                 if (sender.hasPermission("imageframe.create")) {
                     if ("create".equalsIgnoreCase(args[0])) {
+                        tab.add("<name>");
+                    }
+                }
+                if (sender.hasPermission("imageframe.overlay")) {
+                    if ("overlay".equalsIgnoreCase(args[0])) {
                         tab.add("<name>");
                     }
                 }
@@ -1513,6 +1608,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("<url>");
                     }
                 }
+                if (sender.hasPermission("imageframe.overlay")) {
+                    if ("overlay".equalsIgnoreCase(args[0])) {
+                        tab.add("<url>");
+                    }
+                }
                 if (sender.hasPermission("imageframe.clone")) {
                     if ("clone".equalsIgnoreCase(args[0])) {
                         tab.add("<new-name>");
@@ -1631,6 +1731,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (args[3].matches("(?i)[0-9]*")) {
                             tab.add("<width>");
                         }
+                        if ("selection".startsWith(args[3].toLowerCase())) {
+                            tab.add("selection");
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.overlay")) {
+                    if ("overlay".equalsIgnoreCase(args[0])) {
                         if ("selection".startsWith(args[3].toLowerCase())) {
                             tab.add("selection");
                         }

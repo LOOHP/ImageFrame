@@ -22,6 +22,7 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.ItemFrameUtils;
+import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Rotation;
 import org.bukkit.World;
@@ -37,6 +38,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.map.MapView;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
@@ -265,6 +267,10 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
 
         public List<ItemFrame> getItemFrames() {
             return itemFrames;
+        }
+
+        public List<MapView> getMapViews() {
+            return itemFrames.stream().map(each -> MapUtils.getItemMapView(each.getItem())).collect(Collectors.toList());
         }
 
         public int getWidth() {
