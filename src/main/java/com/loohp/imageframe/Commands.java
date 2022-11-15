@@ -20,12 +20,14 @@
 
 package com.loohp.imageframe;
 
+import com.loohp.imageframe.migration.DrMapMigration;
+import com.loohp.imageframe.migration.ImageOnMapMigration;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
+import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
 import com.loohp.imageframe.objectholders.URLAnimatedImageMap;
 import com.loohp.imageframe.objectholders.URLImageMap;
-import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
 import com.loohp.imageframe.objectholders.URLStaticImageMap;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
@@ -163,7 +165,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                     ImageFrame.imageMapManager.addMap(imageMap);
                                     if (selection == null) {
-                                        imageMap.giveMaps(Collections.singleton((Player) sender), ImageFrame.mapItemFormat);
+                                        imageMap.giveMaps((Player) sender, ImageFrame.mapItemFormat);
                                     } else {
                                         AtomicBoolean flag = new AtomicBoolean(false);
                                         imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
@@ -347,7 +349,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
                                     ImageFrame.imageMapManager.addMap(newImageMap);
                                     if (selection == null) {
-                                        newImageMap.giveMaps(Collections.singleton(player), ImageFrame.mapItemFormat);
+                                        newImageMap.giveMaps(player, ImageFrame.mapItemFormat);
                                     } else {
                                         AtomicBoolean flag = new AtomicBoolean(false);
                                         newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
@@ -631,9 +633,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         ImageMap imageMap = ImageFrame.imageMapManager.getFromMapView(mapView);
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                        } else if (imageMap instanceof URLImageMap) {
+                        } else {
                             for (String line : ImageFrame.messageURLImageMapInfo) {
-                                sender.sendMessage(ChatColorUtils.translateAlternateColorCodes('&', line
+                                String message = ChatColorUtils.translateAlternateColorCodes('&', line
                                         .replace("{ImageID}", imageMap.getImageIndex() + "")
                                         .replace("{Name}", imageMap.getName())
                                         .replace("{Width}", imageMap.getWidth() + "")
@@ -641,8 +643,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         .replace("{CreatorName}", imageMap.getCreatorName())
                                         .replace("{CreatorUUID}", imageMap.getCreator().toString())
                                         .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))
-                                        .replace("{Markers}", imageMap.getMapMarkers().stream().flatMap(each -> each.keySet().stream()).collect(Collectors.joining(", ", "[", "]")))
-                                        .replace("{URL}", ((URLImageMap) imageMap).getUrl())));
+                                        .replace("{Markers}", imageMap.getMapMarkers().stream().flatMap(each -> each.keySet().stream()).collect(Collectors.joining(", ", "[", "]"))));
+                                if (imageMap instanceof URLImageMap) {
+                                    message = message.replace("{URL}", ((URLImageMap) imageMap).getUrl());
+                                } else {
+                                    message = message.replace("{URL}", "-");
+                                }
+                                sender.sendMessage(message);
                             }
                         }
                     }
@@ -759,7 +766,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                 }
                                 if (selection == null) {
-                                    imageMap.giveMaps(Collections.singleton(player), ImageFrame.mapItemFormat);
+                                    imageMap.giveMaps(player, ImageFrame.mapItemFormat);
                                 } else {
                                     AtomicBoolean flag = new AtomicBoolean(false);
                                     imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
@@ -939,7 +946,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
                                     ImageFrame.imageMapManager.addMap(newImageMap);
                                     if (selection == null) {
-                                        newImageMap.giveMaps(Collections.singleton((Player) sender), ImageFrame.mapItemFormat);
+                                        newImageMap.giveMaps((Player) sender, ImageFrame.mapItemFormat);
                                     } else {
                                         AtomicBoolean flag = new AtomicBoolean(false);
                                         newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
@@ -998,9 +1005,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(imageId);
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                        } else if (imageMap instanceof URLImageMap) {
+                        } else {
                             for (String line : ImageFrame.messageURLImageMapInfo) {
-                                sender.sendMessage(ChatColorUtils.translateAlternateColorCodes('&', line
+                                String message = ChatColorUtils.translateAlternateColorCodes('&', line
                                         .replace("{ImageID}", imageMap.getImageIndex() + "")
                                         .replace("{Name}", imageMap.getName())
                                         .replace("{Width}", imageMap.getWidth() + "")
@@ -1008,8 +1015,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         .replace("{CreatorName}", imageMap.getCreatorName())
                                         .replace("{CreatorUUID}", imageMap.getCreator().toString())
                                         .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))
-                                        .replace("{Markers}", imageMap.getMapMarkers().stream().flatMap(each -> each.keySet().stream()).collect(Collectors.joining(", ", "[", "]")))
-                                        .replace("{URL}", ((URLImageMap) imageMap).getUrl())));
+                                        .replace("{Markers}", imageMap.getMapMarkers().stream().flatMap(each -> each.keySet().stream()).collect(Collectors.joining(", ", "[", "]"))));
+                                if (imageMap instanceof URLImageMap) {
+                                    message = message.replace("{URL}", ((URLImageMap) imageMap).getUrl());
+                                } else {
+                                    message = message.replace("{URL}", "-");
+                                }
+                                sender.sendMessage(message);
                             }
                         }
                     } catch (NumberFormatException e) {
@@ -1110,7 +1122,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (imageMap == null) {
                                     sender.sendMessage(ImageFrame.messageNotAnImageMap);
                                 } else {
-                                    imageMap.giveMaps(Collections.singleton(player), ImageFrame.mapItemFormat);
+                                    imageMap.giveMaps(player, ImageFrame.mapItemFormat);
                                     sender.sendMessage(ImageFrame.messageImageMapCreated);
                                 }
                             } catch (NumberFormatException e) {
@@ -1260,6 +1272,29 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
+        } else if (args[0].equalsIgnoreCase("adminmigrate")) {
+            if (sender.hasPermission("imageframe.adminmigrate")) {
+                if (args.length > 1) {
+                    if (args[1].equalsIgnoreCase("DrMap")) {
+                        if (sender instanceof Player) {
+                            sender.sendMessage(ChatColor.YELLOW + "Migration has begun, see console for progress, completion and errors");
+                            DrMapMigration.migrate(((Player) sender).getUniqueId());
+                        } else {
+                            sender.sendMessage(ImageFrame.messageNoConsole);
+                        }
+                    } else if (args[1].equalsIgnoreCase("ImageOnMap")) {
+                        sender.sendMessage(ChatColor.YELLOW + "Migration has begun, see console for progress, completion and errors");
+                        ImageOnMapMigration.migrate();
+                    } else {
+                        sender.sendMessage(args[1] + " is not a supported plugin for migration");
+                    }
+                } else {
+                    sender.sendMessage(ImageFrame.messageInvalidUsage);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
         }
 
         sender.sendMessage(ChatColorUtils.translateAlternateColorCodes('&', Bukkit.spigot().getConfig().getString("messages.unknown-command")));
@@ -1334,6 +1369,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.adminsetcreator")) {
                     tab.add("adminsetcreator");
+                }
+                if (sender.hasPermission("imageframe.adminmigrate")) {
+                    tab.add("adminmigrate");
                 }
                 return tab;
             case 1:
@@ -1440,6 +1478,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.adminsetcreator")) {
                     if ("adminsetcreator".startsWith(args[0].toLowerCase())) {
                         tab.add("adminsetcreator");
+                    }
+                }
+                if (sender.hasPermission("imageframe.adminmigrate")) {
+                    if ("adminmigrate".startsWith(args[0].toLowerCase())) {
+                        tab.add("adminmigrate");
                     }
                 }
                 return tab;
@@ -1599,6 +1642,16 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.adminsetcreator")) {
                     if ("adminsetcreator".equalsIgnoreCase(args[0])) {
                         tab.add("<image-id>");
+                    }
+                }
+                if (sender.hasPermission("imageframe.adminmigrate")) {
+                    if ("adminmigrate".equalsIgnoreCase(args[0])) {
+                        if ("DrMap".toLowerCase().startsWith(args[1].toLowerCase())) {
+                            tab.add("DrMap");
+                        }
+                        if ("ImageOnMap".toLowerCase().startsWith(args[1].toLowerCase())) {
+                            tab.add("ImageOnMap");
+                        }
                     }
                 }
                 return tab;
