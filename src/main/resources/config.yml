@@ -8,6 +8,7 @@ Messages:
   InvalidOverlayMap: "&cOverlay only works on Vanilla Minecraft maps and without duplicates in selection!"
   NotCreator: "&cYou did not create that ImageMap"
   UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image."
+  ImageOverMaxFileSize: "&cImageMap cannot be loaded as it is over the max file size allowed. ({Size} bytes)"
   NotAnImageMap: "&cThat is not an ImageMap"
   URLImageMapInfo:
     - "&bImageID: {ImageID}"
@@ -70,6 +71,9 @@ Settings:
       - "http://media.discordapp.net"
       - "https://textures.minecraft.net"
       - "http://textures.minecraft.net"
+  # If the image is larger than the defined size, it won't be downloaded for preview
+  # (In Bytes)
+  MaxImageFileSize: 52428800
   #Max amount of image maps a player in the following groups can create
   #Setting -1 means unlimited
   #To add a player to a group, give the permission "imageframe.createlimit.<group>"

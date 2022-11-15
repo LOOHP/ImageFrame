@@ -69,6 +69,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageImageMapUpdated;
     public static String messageNotCreator;
     public static String messageUnableToLoadMap;
+    public static String messageImageOverMaxFileSize;
     public static String messageNotAnImageMap;
     public static List<String> messageURLImageMapInfo;
     public static String messageNoPermission;
@@ -110,6 +111,7 @@ public class ImageFrame extends JavaPlugin {
     public static List<String> restrictImageUrls;
     public static Map<String, Integer> playerCreationLimit;
     public static int mapMarkerLimit;
+    public static long maxImageFileSize;
 
     public static ImageMapManager imageMapManager;
     public static ItemFrameSelectionManager itemFrameSelectionManager;
@@ -213,6 +215,7 @@ public class ImageFrame extends JavaPlugin {
         messageImageMapUpdated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapUpdated"));
         messageNotCreator = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotCreator"));
         messageUnableToLoadMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
+        messageImageOverMaxFileSize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageOverMaxFileSize"));
         messageNotAnImageMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
         messageURLImageMapInfo = config.getConfiguration().getStringList("Messages.URLImageMapInfo").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
         messageNoPermission = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoPermission"));
@@ -257,6 +260,7 @@ public class ImageFrame extends JavaPlugin {
             playerCreationLimit.put(group, config.getConfiguration().getInt("Settings.PlayerCreationLimit." + group));
         }
         mapMarkerLimit = config.getConfiguration().getInt("Settings.MapMarkerLimit");
+        maxImageFileSize = config.getConfiguration().getLong("Settings.MaxImageFileSize");
 
         if (updaterTaskID >= 0) {
             Bukkit.getScheduler().cancelTask(updaterTaskID);

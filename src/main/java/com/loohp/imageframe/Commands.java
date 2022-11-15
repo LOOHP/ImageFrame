@@ -31,6 +31,7 @@ import com.loohp.imageframe.objectholders.URLImageMap;
 import com.loohp.imageframe.objectholders.URLStaticImageMap;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
+import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import net.md_5.bungee.api.ChatColor;
@@ -48,6 +49,8 @@ import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 import org.bukkit.util.Vector;
 
+import java.io.IOException;
+import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -157,11 +160,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                             Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
                                 try {
-                                    ImageMap imageMap;
-                                    if (player.hasPermission("imageframe.create.animated") && args[2].toLowerCase().endsWith(".gif")) {
-                                        imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, args[1], args[2], width, height, player.getUniqueId());
+                                    String url = args[2];
+                                    if (HTTPRequestUtils.getContentSize(url) > ImageFrame.maxImageFileSize) {
+                                        player.sendMessage(ImageFrame.messageImageOverMaxFileSize.replace("{Size}", ImageFrame.maxImageFileSize + ""));
+                                        throw new IOException("Image over max file size");
+                                    }
+                                    String imageType = HTTPRequestUtils.getContentType(url);
+                                    if (imageType == null) {
+                                        imageType = URLConnection.guessContentTypeFromName(url);
+                                    }
+                                    if (imageType == null) {
+                                        imageType = "";
                                     } else {
-                                        imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, args[1], args[2], width, height, player.getUniqueId());
+                                        imageType = imageType.trim();
+                                    }
+                                    ImageMap imageMap;
+                                    if (imageType.equals("image/gif") && player.hasPermission("imageframe.create.animated")) {
+                                        imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId());
+                                    } else {
+                                        imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId());
                                     }
                                     ImageFrame.imageMapManager.addMap(imageMap);
                                     if (selection == null) {
