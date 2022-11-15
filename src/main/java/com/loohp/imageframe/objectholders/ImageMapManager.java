@@ -33,13 +33,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collection;
@@ -95,6 +95,7 @@ public class ImageMapManager implements AutoCloseable {
 
     @Override
     public void close() {
+        saveDeletedMaps();
         Bukkit.getScheduler().cancelTask(taskId);
     }
 
@@ -117,6 +118,9 @@ public class ImageMapManager implements AutoCloseable {
     public synchronized void addMap(ImageMap map) throws Exception {
         if (map.getManager() != this) {
             throw new IllegalArgumentException("ImageMap's manager is not set to this");
+        }
+        if (getFromCreator(map.getCreator(), map.getName()) != null) {
+            throw new IllegalArgumentException("Duplicated map name for this creator");
         }
         int imageIndex = map.getImageIndex();
         if (imageIndex < 0) {
@@ -191,14 +195,23 @@ public class ImageMapManager implements AutoCloseable {
         dataFolder.mkdirs();
         for (File file : dataFolder.listFiles()) {
             if (file.isDirectory()) {
-                Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "Loading ImageMap ID " + file.getName());
+                Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Loading ImageMap ID " + file.getName());
                 try {
                     addMap(ImageMap.load(this, file));
                 } catch (Throwable e) {
-                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to load ImageMap data in " + file.getAbsolutePath());
+                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to load ImageMap data in " + file.getAbsolutePath());
                     e.printStackTrace();
                 }
-            } else if (file.getName().equalsIgnoreCase("deletedMaps.json")) {
+            } else if (file.getName().equalsIgnoreCase("deletedMaps.bin")) {
+                try (DataInputStream dataInputStream = new DataInputStream(Files.newInputStream(file.toPath()))) {
+                    try {
+                        deletedMapIds.add(dataInputStream.readInt());
+                    } catch (EOFException ignore) {}
+                } catch (IOException e) {
+                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to load ImageMapManager data in " + file.getAbsolutePath());
+                    e.printStackTrace();
+                }
+            } else if (file.getName().equalsIgnoreCase("deletedMaps.json")) { //legacy storage support
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(file.toPath()), StandardCharsets.UTF_8))) {
                     JsonObject json = GSON.fromJson(reader, JsonObject.class);
                     JsonArray deletedMapIdsArray = json.get("mapids").getAsJsonArray();
@@ -206,7 +219,13 @@ public class ImageMapManager implements AutoCloseable {
                         deletedMapIds.add(element.getAsInt());
                     }
                 } catch (IOException e) {
-                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to load ImageMapManager data in " + file.getAbsolutePath());
+                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to load ImageMapManager data in " + file.getAbsolutePath());
+                    e.printStackTrace();
+                }
+                saveDeletedMaps();
+                try {
+                    Files.move(file.toPath(), new File(dataFolder, "deletedMaps.json.bak").toPath());
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
@@ -214,18 +233,14 @@ public class ImageMapManager implements AutoCloseable {
     }
 
     public synchronized void saveDeletedMaps() {
-        File file = new File(dataFolder, "deletedMaps.json");
-        JsonObject json = new JsonObject();
-        JsonArray deletedMapIdsArray = new JsonArray(deletedMapIds.size());
-        for (int deletedMapId : deletedMapIds) {
-            deletedMapIdsArray.add(deletedMapId);
-        }
-        json.add("mapids", deletedMapIdsArray);
-        try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8))) {
-            pw.println(GSON.toJson(json));
-            pw.flush();
+        File file = new File(dataFolder, "deletedMaps.bin");
+        try (DataOutputStream dataOutputStream = new DataOutputStream(Files.newOutputStream(file.toPath()))) {
+            for (int deletedMapId : deletedMapIds) {
+                dataOutputStream.writeInt(deletedMapId);
+            }
+            dataOutputStream.flush();
         } catch (IOException e) {
-            Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Unable to save ImageMapManager data in " + file.getAbsolutePath());
+            Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to save ImageMapManager data in " + file.getAbsolutePath());
             e.printStackTrace();
         }
     }

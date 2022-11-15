@@ -256,7 +256,6 @@ public class URLStaticImageMap extends URLImageMap {
             this.parent = parent;
         }
 
-
         @Override
         public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
             byte[] colors;

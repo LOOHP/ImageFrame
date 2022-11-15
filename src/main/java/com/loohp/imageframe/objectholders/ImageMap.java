@@ -43,11 +43,13 @@ import java.io.File;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -177,7 +179,30 @@ public abstract class ImageMap {
 
     public abstract void save() throws Exception;
 
-    public void giveMaps(Collection<? extends Player> players, String mapNameFormat) {
+    public ItemStack getMap(int x, int y, String mapNameFormat) {
+        if (x >= width || y >= height) {
+            throw new IndexOutOfBoundsException("x, y position out of image map size");
+        }
+        MapView mapView = mapViews.get(y * width + x);
+        ItemStack itemStack = new ItemStack(Material.FILLED_MAP);
+        MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
+        mapMeta.setMapView(mapView);
+        mapMeta.setLore(Collections.singletonList(mapNameFormat
+                .replace("{ImageID}", getImageIndex() + "")
+                .replace("{X}", x + "")
+                .replace("{Y}", y + "")
+                .replace("{Name}", getName())
+                .replace("{Width}", getWidth() + "")
+                .replace("{Height}", getHeight() + "")
+                .replace("{CreatorName}", getCreatorName())
+                .replace("{CreatorUUID}", getCreator().toString())
+                .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
+        itemStack.setItemMeta(mapMeta);
+        return itemStack;
+    }
+
+    public List<ItemStack> getMaps(String mapNameFormat) {
+        List<ItemStack> maps = new ArrayList<>(mapViews.size());
         int i = 0;
         for (MapView mapView : mapViews) {
             ItemStack itemStack = new ItemStack(Material.FILLED_MAP);
@@ -194,45 +219,57 @@ public abstract class ImageMap {
                     .replace("{CreatorUUID}", getCreator().toString())
                     .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
             itemStack.setItemMeta(mapMeta);
-            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+            maps.add(itemStack);
+            i++;
+        }
+        return maps;
+    }
+
+    public void giveMap(Player player, int x, int y, String mapNameFormat) {
+        giveMap(Collections.singleton(player), x, y, mapNameFormat);
+    }
+
+    public void giveMap(Collection<? extends Player> players, int x, int y, String mapNameFormat) {
+        ItemStack map = getMap(x, y, mapNameFormat);
+        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+            players.forEach(p -> {
+                HashMap<Integer, ItemStack> result = p.getInventory().addItem(map.clone());
+                for (ItemStack stack : result.values()) {
+                    p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                }
+            });
+        });
+    }
+
+    public void giveMaps(Player player, String mapNameFormat) {
+        giveMaps(Collections.singleton(player), mapNameFormat);
+    }
+
+    public void giveMaps(Collection<? extends Player> players, String mapNameFormat) {
+        List<ItemStack> maps = getMaps(mapNameFormat);
+        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+            for (ItemStack map : maps) {
                 players.forEach(p -> {
-                    HashMap<Integer, ItemStack> result = p.getInventory().addItem(itemStack.clone());
+                    HashMap<Integer, ItemStack> result = p.getInventory().addItem(map.clone());
                     for (ItemStack stack : result.values()) {
                         p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
                     }
                 });
-            });
-            i++;
-        }
+            }
+        });
     }
 
     public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiPredicate<ItemFrame, ItemStack> prePlaceCheck, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat) {
         if (itemFrames.size() != mapViews.size()) {
             throw new IllegalArgumentException("itemFrames size does not equal to mapView size");
         }
-        int i = 0;
-        Map<ItemFrame, ItemStack> items = new HashMap<>(mapViews.size());
-        for (MapView mapView : mapViews) {
-            ItemStack itemStack = new ItemStack(Material.FILLED_MAP);
-            MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
-            mapMeta.setMapView(mapView);
-            mapMeta.setLore(Collections.singletonList(mapNameFormat
-                    .replace("{ImageID}", getImageIndex() + "")
-                    .replace("{X}", (i % width) + "")
-                    .replace("{Y}", (i / width) + "")
-                    .replace("{Name}", getName())
-                    .replace("{Width}", getWidth() + "")
-                    .replace("{Height}", getHeight() + "")
-                    .replace("{CreatorName}", getCreatorName())
-                    .replace("{CreatorUUID}", getCreator().toString())
-                    .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
-            itemStack.setItemMeta(mapMeta);
-            items.put(itemFrames.get(i++), itemStack);
-        }
+        List<ItemStack> items = getMaps(mapNameFormat);
         Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
-            for (Map.Entry<ItemFrame, ItemStack> entry : items.entrySet()) {
-                ItemFrame frame = entry.getKey();
-                ItemStack item = entry.getValue();
+            Iterator<ItemFrame> itr0 = itemFrames.iterator();
+            Iterator<ItemStack> itr1 = items.iterator();
+            while (itr0.hasNext() && itr1.hasNext()) {
+                ItemFrame frame = itr0.next();
+                ItemStack item = itr1.next();
                 if (frame.isValid()) {
                     if (prePlaceCheck.test(frame, item)) {
                         frame.setItem(item, false);

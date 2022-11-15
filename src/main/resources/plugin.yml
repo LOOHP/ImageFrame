@@ -19,6 +19,9 @@ permissions:
   imageframe.create.animated:
     default: op
     description: Allow players to create new animated image maps
+  imageframe.overlay:
+    default: true
+    description: Allow players to overlay images on Vanilla maps
   imageframe.clone:
     default: true
     description: Allow players to make deep copies of their own image maps
@@ -76,6 +79,9 @@ permissions:
   imageframe.adminsetcreator:
     default: op
     description: Allow players to change the creator of any image map
+  imageframe.adminmigrate:
+    default: op
+    description: Allow players to migrate maps from supported plugins to ImageFrame
   imageframe.update:
     default: op
     description: Allows you receive update messages
