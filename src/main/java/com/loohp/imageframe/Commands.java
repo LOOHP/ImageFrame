@@ -371,7 +371,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         AtomicBoolean flag = new AtomicBoolean(false);
                                         newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
                                             ItemStack originalItem = frame.getItem();
-                                            if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                                            if (originalItem != null && !originalItem.getType().equals(Material.AIR)) {
                                                 return false;
                                             }
                                             return PlayerUtils.isInteractionAllowed(player, frame);
@@ -788,7 +788,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     AtomicBoolean flag = new AtomicBoolean(false);
                                     imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
                                         ItemStack originalItem = frame.getItem();
-                                        if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                                        if (originalItem != null && !originalItem.getType().equals(Material.AIR)) {
                                             return false;
                                         }
                                         return PlayerUtils.isInteractionAllowed(player, frame);
@@ -968,7 +968,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         AtomicBoolean flag = new AtomicBoolean(false);
                                         newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
                                             ItemStack originalItem = frame.getItem();
-                                            if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                                            if (originalItem != null && !originalItem.getType().equals(Material.AIR)) {
                                                 return false;
                                             }
                                             return PlayerUtils.isInteractionAllowed(player, frame);
@@ -1109,7 +1109,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 AtomicBoolean flag = new AtomicBoolean(false);
                                 imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
                                     ItemStack originalItem = frame.getItem();
-                                    if (originalItem == null || originalItem.getType().equals(Material.AIR)) {
+                                    if (originalItem != null && !originalItem.getType().equals(Material.AIR)) {
                                         return false;
                                     }
                                     return PlayerUtils.isInteractionAllowed(player, frame);
