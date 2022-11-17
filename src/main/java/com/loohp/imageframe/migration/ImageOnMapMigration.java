@@ -88,8 +88,8 @@ public class ImageOnMapMigration {
                         } else if (type.equalsIgnoreCase("POSTER")) {
                             mapIds = new ArrayList<>((List<Integer>) section.get("mapsIDs"));
                             images = new BufferedImage[mapIds.size()];
-                            width = (int) section.get("rows");
-                            height = mapIds.size() / width;
+                            width = (int) section.get("columns");
+                            height = (int) section.get("rows");
                             for (int i = 0; i < images.length; i++) {
                                 images[i] = ImageIO.read(new File(imageFolder, "map" + mapIds.get(i) + ".png"));
                             }
