@@ -1864,6 +1864,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.adminclone")) {
+                    if ("adminclone".equalsIgnoreCase(args[0])) {
+                        if ("selection".startsWith(args[3].toLowerCase())) {
+                            tab.add("selection");
+                        }
+                    }
+                }
                 return tab;
             case 5:
                 if (sender.hasPermission("imageframe.create")) {
