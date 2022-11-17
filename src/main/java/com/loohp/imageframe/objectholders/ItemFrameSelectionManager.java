@@ -144,7 +144,7 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
             } else {
                 rotation = ItemFrameUtils.getClosestMapRotation(yaw + (ItemFrameUtils.isOnCeiling(left) ? 180F : 0F));
             }
-            return SelectedItemFrameResult.result(Collections.singletonList(left), 1, 1, rotation);
+            return SelectedItemFrameResult.result(Collections.singletonList(left), 1, 1, rotation, false);
         }
         if (!left.getAttachedFace().equals(right.getAttachedFace())) {
             return null;
@@ -155,9 +155,7 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
             return null;
         }
         BoundingBox boundingBox = BoundingBox.of(leftBlock, rightBlock);
-        if (Math.round(boundingBox.getVolume()) > ImageFrame.mapMaxSize) {
-            return SelectedItemFrameResult.oversize();
-        }
+        boolean oversize = Math.round(boundingBox.getVolume()) > ImageFrame.mapMaxSize;
         World world = left.getWorld();
         BlockFace facing = left.getFacing();
         Rotation rotation;
@@ -182,51 +180,67 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
             }
             heightFunction = each -> each.getLocation().getBlockY();
         } else {
-            boolean onCeiling = ItemFrameUtils.isOnCeiling(left);
-            rotation = ItemFrameUtils.getClosestMapRotation(yaw + (onCeiling ? 180F : 0F));
-            switch (rotation) {
-                case NONE:
-                case FLIPPED:
-                    comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ());
-                    if (onCeiling) {
-                        comparator = comparator.thenComparing(Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX()).reversed());
-                    } else {
+            rotation = ItemFrameUtils.getClosestMapRotation(yaw);
+            if (ItemFrameUtils.isOnCeiling(left)) {
+                switch (rotation) {
+                    case NONE:
+                    case FLIPPED:
+                        comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ()).reversed();
                         comparator = comparator.thenComparingDouble(each -> each.getLocation().getX());
-                    }
-                    heightFunction = each -> each.getLocation().getBlockZ();
-                    break;
-                case CLOCKWISE_45:
-                case FLIPPED_45:
-                    comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX()).reversed();
-                    if (onCeiling) {
-                        comparator = comparator.thenComparing(Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ()).reversed());
-                    } else {
+                        heightFunction = each -> each.getLocation().getBlockZ();
+                        break;
+                    case CLOCKWISE_45:
+                    case FLIPPED_45:
+                        comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX());
                         comparator = comparator.thenComparingDouble(each -> each.getLocation().getZ());
-                    }
-                    heightFunction = each -> each.getLocation().getBlockX();
-                    break;
-                case CLOCKWISE:
-                case COUNTER_CLOCKWISE:
-                    comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ()).reversed();
-                    if (onCeiling) {
-                        comparator = comparator.thenComparingDouble(each -> each.getLocation().getX());
-                    } else {
+                        heightFunction = each -> each.getLocation().getBlockX();
+                        rotation = rotation.rotateCounterClockwise().rotateCounterClockwise();
+                        break;
+                    case CLOCKWISE:
+                    case COUNTER_CLOCKWISE:
+                        comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ());
                         comparator = comparator.thenComparing(Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX()).reversed());
-                    }
-                    heightFunction = each -> each.getLocation().getBlockZ();
-                    break;
-                case CLOCKWISE_135:
-                case COUNTER_CLOCKWISE_45:
-                    comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX());
-                    if (onCeiling) {
-                        comparator = comparator.thenComparingDouble(each -> each.getLocation().getZ());
-                    } else {
+                        heightFunction = each -> each.getLocation().getBlockZ();
+                        break;
+                    case CLOCKWISE_135:
+                    case COUNTER_CLOCKWISE_45:
+                        comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX()).reversed();
                         comparator = comparator.thenComparing(Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ()).reversed());
-                    }
-                    heightFunction = each -> each.getLocation().getBlockX();
-                    break;
-                default:
-                    throw new RuntimeException("invalid rotation for maps on item frames: " + rotation.name());
+                        heightFunction = each -> each.getLocation().getBlockX();
+                        rotation = rotation.rotateCounterClockwise().rotateCounterClockwise();
+                        break;
+                    default:
+                        throw new RuntimeException("invalid rotation for maps on item frames: " + rotation.name());
+                }
+            } else {
+                switch (rotation) {
+                    case NONE:
+                    case FLIPPED:
+                        comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ());
+                        comparator = comparator.thenComparingDouble(each -> each.getLocation().getX());
+                        heightFunction = each -> each.getLocation().getBlockZ();
+                        break;
+                    case CLOCKWISE_45:
+                    case FLIPPED_45:
+                        comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX()).reversed();
+                        comparator = comparator.thenComparingDouble(each -> each.getLocation().getZ());
+                        heightFunction = each -> each.getLocation().getBlockX();
+                        break;
+                    case CLOCKWISE:
+                    case COUNTER_CLOCKWISE:
+                        comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ()).reversed();
+                        comparator = comparator.thenComparing(Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX()).reversed());
+                        heightFunction = each -> each.getLocation().getBlockZ();
+                        break;
+                    case CLOCKWISE_135:
+                    case COUNTER_CLOCKWISE_45:
+                        comparator = Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getX());
+                        comparator = comparator.thenComparing(Comparator.comparingDouble((ItemFrame each) -> each.getLocation().getZ()).reversed());
+                        heightFunction = each -> each.getLocation().getBlockX();
+                        break;
+                    default:
+                        throw new RuntimeException("invalid rotation for maps on item frames: " + rotation.name());
+                }
             }
         }
         List<ItemFrame> itemFrames = world.getNearbyEntities(boundingBox, e -> e instanceof ItemFrame && e.getFacing().equals(facing)).stream()
@@ -238,17 +252,13 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
         if (itemFrames.size() != width * height) {
             return null;
         }
-        return SelectedItemFrameResult.result(itemFrames, width, height, rotation);
+        return SelectedItemFrameResult.result(itemFrames, width, height, rotation, oversize);
     }
 
     public static class SelectedItemFrameResult {
 
-        public static SelectedItemFrameResult oversize() {
-            return new SelectedItemFrameResult(null, -1, -1, null, true);
-        }
-
-        public static SelectedItemFrameResult result(List<ItemFrame> itemFrames, int width, int height, Rotation rotation) {
-            return new SelectedItemFrameResult(itemFrames, width, height, rotation, false);
+        public static SelectedItemFrameResult result(List<ItemFrame> itemFrames, int width, int height, Rotation rotation, boolean overSize) {
+            return new SelectedItemFrameResult(itemFrames, width, height, rotation, overSize);
         }
 
         private final List<ItemFrame> itemFrames;
