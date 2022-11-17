@@ -949,15 +949,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 sender.sendMessage(ImageFrame.messageDuplicateMapName);
                                 return true;
                             }
-                            int takenMaps;
-                            if (ImageFrame.requireEmptyMaps) {
-                                if ((takenMaps = MapUtils.removeEmptyMaps(player, imageMap.getWidth() * imageMap.getHeight(), true)) < 0) {
-                                    sender.sendMessage(ImageFrame.messageNotEnoughMaps.replace("{Amount}", (imageMap.getWidth() * imageMap.getHeight()) + ""));
-                                    return true;
-                                }
-                            } else {
-                                takenMaps = 0;
-                            }
                             Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
                                 try {
                                     ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
@@ -987,15 +978,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 } catch (Exception e) {
                                     sender.sendMessage(ImageFrame.messageUnableToLoadMap);
                                     e.printStackTrace();
-                                    if (takenMaps > 0) {
-                                        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
-                                            Player p = (Player) sender;
-                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(new ItemStack(Material.MAP, takenMaps));
-                                            for (ItemStack stack : result.values()) {
-                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
-                                            }
-                                        });
-                                    }
                                 }
                             });
                         } catch (NumberFormatException e) {
