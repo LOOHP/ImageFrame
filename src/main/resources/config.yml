@@ -27,7 +27,8 @@ Messages:
   PlayerCreationLimitReached: "&cYou can only create <Limit> maps at once! Delete some to create new ones"
   DuplicateMapName: "&cYou've already created an image map with that name!"
   MapLookup: "&bList of image maps by {CreatorName} ({CreatorUUID}):"
-  ItemFrameOccupied: "&cFailed to place some maps on selected ItemFrame, they are either destroyed, replaced, occupied or protected."
+  ItemFrameOccupied: "&cFailed to place or remove some maps on selected ItemFrame, they are either destroyed, replaced, occupied or protected."
+  NotEnoughSpace: "&cUnable to place Combined ImageMap as there is not enough room."
   Selection:
     Begin: "&bRight click an Item Frame to select corner 1 and 2"
     Clear: "&eLeaving selection mode"
@@ -85,6 +86,14 @@ Settings:
     moderator: 20
   #Max amount of markers on a individual map
   MapMarkerLimit: 20
+  CombinedMapItem:
+    Name: "&bImageMap &f- &f{Name} &7({Width} x {Height})"
+    Lore:
+      - "&aRight Click on Item Frames of size {Width} x {Height} to place ImageMap"
+      - ""
+      - "&7ImageID: {ImageID}"
+      - "&7Creator: {CreatorName} ({CreatorUUID})"
+      - "&7Time Created: {TimeCreated}"
 
 #Enable update notifications for admins
 Updater: true

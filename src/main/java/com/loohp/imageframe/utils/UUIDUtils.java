@@ -20,25 +20,21 @@
 
 package com.loohp.imageframe.utils;
 
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
+import java.util.UUID;
 
-public class PlayerUtils {
+public class UUIDUtils {
 
-    public static boolean isInteractionAllowed(Player player, Entity entity) {
-        PlayerInteractEntityEvent event = new PlayerInteractEntityEvent(player, entity);
-        Bukkit.getPluginManager().callEvent(event);
-        return !event.isCancelled();
+    public static UUID fromIntArray(int[] array) {
+        if (array.length != 4) {
+            throw new IllegalArgumentException("array length is not 4");
+        }
+        return new UUID((long) array[0] << 32 | (long) array[1] & 4294967295L, (long) array[2] << 32 | (long) array[3] & 4294967295L);
     }
 
-    public static boolean isDamageAllowed(Player player, Entity entity) {
-        EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, entity, EntityDamageEvent.DamageCause.CUSTOM, 1.0);
-        Bukkit.getPluginManager().callEvent(event);
-        return !event.isCancelled();
+    public static int[] toIntArray(UUID uuid) {
+        long high = uuid.getMostSignificantBits();
+        long low = uuid.getLeastSignificantBits();
+        return new int[] {(int) (high >>> 32), (int) high, (int) (high >>> low), (int) low};
     }
 
 }

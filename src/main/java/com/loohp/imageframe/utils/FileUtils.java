@@ -28,8 +28,35 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 
 public class FileUtils {
+
+    public static final Comparator<File> BY_NUMBER_THAN_STRING = (file1, file2) -> {
+        String name1 = file1.getName();
+        String name2 = file2.getName();
+        boolean isNumber1 = false;
+        boolean isNumber2 = false;
+        int value1 = 0;
+        int value2 = 0;
+        if (name1.matches("[0-9]+")) {
+            isNumber1 = true;
+            value1 = Integer.parseInt(name1);
+        }
+        if (name2.matches("[0-9]+")) {
+            isNumber2 = true;
+            value2 = Integer.parseInt(name2);
+        }
+        if (isNumber1 && isNumber2) {
+            return Integer.compare(value1, value2);
+        } else if (!isNumber1 && !isNumber2) {
+            return name1.compareTo(name2);
+        } else if (!isNumber2) {
+            return -1;
+        } else {
+            return 1;
+        }
+    };
 
     private static final ClassLoader NULL_CLASSLOADER = null;
 

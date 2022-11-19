@@ -104,10 +104,11 @@ public class Commands implements CommandExecutor, TabCompleter {
         } else if (args[0].equalsIgnoreCase("create")) {
             if (sender.hasPermission("imageframe.create")) {
                 if (sender instanceof Player) {
-                    if (args.length == 4 || args.length == 5) {
+                    if (args.length == 4 || args.length == 5 || args.length == 6) {
                         try {
                             Player player = (Player) sender;
 
+                            boolean combined = args.length > 5 && args[5].equalsIgnoreCase("combined");
                             ItemFrameSelectionManager.SelectedItemFrameResult selection;
                             if (args[3].equalsIgnoreCase("selection")) {
                                 selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
@@ -115,7 +116,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     player.sendMessage(ImageFrame.messageSelectionNoSelection);
                                     return true;
                                 }
-                            } else if (args.length == 5) {
+                            } else if (args.length == 5 || args.length == 6) {
                                 selection = null;
                             } else {
                                 player.sendMessage(ImageFrame.messageInvalidUsage);
@@ -181,8 +182,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId());
                                     }
                                     ImageFrame.imageMapManager.addMap(imageMap);
-                                    if (selection == null) {
-                                        imageMap.giveMaps((Player) sender, ImageFrame.mapItemFormat);
+                                    if (combined) {
+                                        ImageFrame.combinedMapItemHandler.giveCombinedMap(imageMap, player);
+                                    } else if (selection == null) {
+                                        imageMap.giveMaps(player, ImageFrame.mapItemFormat);
                                     } else {
                                         AtomicBoolean flag = new AtomicBoolean(false);
                                         imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
@@ -192,10 +195,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                             return PlayerUtils.isInteractionAllowed(player, frame);
                                         }, (frame, item) -> {
-                                            Player p = (Player) sender;
-                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(item);
+                                            HashMap<Integer, ItemStack> result = player.getInventory().addItem(item);
                                             for (ItemStack stack : result.values()) {
-                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                                player.getWorld().dropItem(player.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
                                             }
                                             if (!flag.getAndSet(true)) {
                                                 sender.sendMessage(ImageFrame.messageItemFrameOccupied);
@@ -208,10 +210,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     e.printStackTrace();
                                     if (takenMaps > 0) {
                                         Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
-                                            Player p = (Player) sender;
-                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(new ItemStack(Material.MAP, takenMaps));
+                                            HashMap<Integer, ItemStack> result = player.getInventory().addItem(new ItemStack(Material.MAP, takenMaps));
                                             for (ItemStack stack : result.values()) {
-                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                                                player.getWorld().dropItem(player.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
                                             }
                                         });
                                     }
@@ -321,6 +322,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         try {
                             Player player = (Player) sender;
 
+                            boolean combined = args.length > 3 && args[3].equalsIgnoreCase("combined");
                             ItemFrameSelectionManager.SelectedItemFrameResult selection;
                             if (args.length > 3 && args[3].equalsIgnoreCase("selection")) {
                                 selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
@@ -365,7 +367,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 try {
                                     ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
                                     ImageFrame.imageMapManager.addMap(newImageMap);
-                                    if (selection == null) {
+                                    if (combined) {
+                                        ImageFrame.combinedMapItemHandler.giveCombinedMap(newImageMap, player);
+                                    } else if (selection == null) {
                                         newImageMap.giveMaps(player, ImageFrame.mapItemFormat);
                                     } else {
                                         AtomicBoolean flag = new AtomicBoolean(false);
@@ -754,6 +758,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     Player player = (Player) sender;
                     if (args.length > 1) {
                         try {
+                            boolean combined = args.length > 2 && args[2].equalsIgnoreCase("combined");
                             ItemFrameSelectionManager.SelectedItemFrameResult selection;
                             if (args.length > 2 && args[2].equalsIgnoreCase("selection")) {
                                 selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
@@ -782,7 +787,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         return true;
                                     }
                                 }
-                                if (selection == null) {
+                                if (combined) {
+                                    ImageFrame.combinedMapItemHandler.giveCombinedMap(imageMap, player);
+                                } else if (selection == null) {
                                     imageMap.giveMaps(player, ImageFrame.mapItemFormat);
                                 } else {
                                     AtomicBoolean flag = new AtomicBoolean(false);
@@ -918,6 +925,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         try {
                             Player player = (Player) sender;
 
+                            boolean combined = args[3].equalsIgnoreCase("combined");
                             ItemFrameSelectionManager.SelectedItemFrameResult selection;
                             if (args[3].equalsIgnoreCase("selection")) {
                                 selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
@@ -953,7 +961,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 try {
                                     ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
                                     ImageFrame.imageMapManager.addMap(newImageMap);
-                                    if (selection == null) {
+                                    if (combined) {
+                                        ImageFrame.combinedMapItemHandler.giveCombinedMap(newImageMap, player);
+                                    } else if (selection == null) {
                                         newImageMap.giveMaps((Player) sender, ImageFrame.mapItemFormat);
                                     } else {
                                         AtomicBoolean flag = new AtomicBoolean(false);
@@ -1074,7 +1084,21 @@ public class Commands implements CommandExecutor, TabCompleter {
         } else if (args[0].equalsIgnoreCase("adminget")) {
             if (sender.hasPermission("imageframe.adminget")) {
                 if (args.length > 1) {
-                    if (args.length > 2 && args[2].equalsIgnoreCase("selection") && sender instanceof Player) {
+                    if (args.length > 2 && args[2].equalsIgnoreCase("combined") && sender instanceof Player) {
+                        Player player = (Player) sender;
+                        try {
+                            int imageId = Integer.parseInt(args[1]);
+                            ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(imageId);
+                            if (imageMap == null) {
+                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                            } else {
+                                ImageFrame.combinedMapItemHandler.giveCombinedMap(imageMap, player);
+                                sender.sendMessage(ImageFrame.messageImageMapCreated);
+                            }
+                        } catch (NumberFormatException e) {
+                            sender.sendMessage(ImageFrame.messageInvalidUsage);
+                        }
+                    } else if (args.length > 2 && args[2].equalsIgnoreCase("selection") && sender instanceof Player) {
                         Player player = (Player) sender;
                         ItemFrameSelectionManager.SelectedItemFrameResult selection;
                         selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection((Player) sender);
@@ -1685,6 +1709,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if ("selection".startsWith(args[2].toLowerCase())) {
                             tab.add("selection");
                         }
+                        if ("combined".startsWith(args[2].toLowerCase())) {
+                            tab.add("combined");
+                        }
                     }
                 }
                 if (sender.hasPermission("imageframe.rename")) {
@@ -1715,6 +1742,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         if ("selection".startsWith(args[2].toLowerCase())) {
                             tab.add("selection");
+                        }
+                        if ("combined".startsWith(args[2].toLowerCase())) {
+                            tab.add("combined");
                         }
                     }
                 }
@@ -1800,6 +1830,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if ("selection".startsWith(args[3].toLowerCase())) {
                             tab.add("selection");
                         }
+                        if ("combined".startsWith(args[3].toLowerCase())) {
+                            tab.add("combined");
+                        }
                     }
                 }
                 if (sender.hasPermission("imageframe.marker")) {
@@ -1851,6 +1884,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if ("selection".startsWith(args[3].toLowerCase())) {
                             tab.add("selection");
                         }
+                        if ("combined".startsWith(args[3].toLowerCase())) {
+                            tab.add("combined");
+                        }
                     }
                 }
                 return tab;
@@ -1886,6 +1922,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 return tab;
             case 6:
+                if (sender.hasPermission("imageframe.create")) {
+                    if ("create".equalsIgnoreCase(args[0])) {
+                        if (!args[3].equalsIgnoreCase("selection") && "combined".startsWith(args[5].toLowerCase())) {
+                            tab.add("combined");
+                        }
+                    }
+                }
                 if (sender.hasPermission("imageframe.marker")) {
                     if ("marker".equalsIgnoreCase(args[0])) {
                         if ("add".equalsIgnoreCase(args[1])) {

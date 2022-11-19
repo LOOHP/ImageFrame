@@ -56,6 +56,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 public abstract class ImageMap {
 
@@ -180,6 +181,10 @@ public abstract class ImageMap {
     public abstract void save() throws Exception;
 
     public ItemStack getMap(int x, int y, String mapNameFormat) {
+        return getMap(x, y, mapNameFormat, itemStack -> itemStack);
+    }
+
+    public ItemStack getMap(int x, int y, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
         if (x >= width || y >= height) {
             throw new IndexOutOfBoundsException("x, y position out of image map size");
         }
@@ -198,10 +203,14 @@ public abstract class ImageMap {
                 .replace("{CreatorUUID}", getCreator().toString())
                 .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
         itemStack.setItemMeta(mapMeta);
-        return itemStack;
+        return postCreationFunction.apply(itemStack);
     }
 
     public List<ItemStack> getMaps(String mapNameFormat) {
+        return getMaps(mapNameFormat, itemStack -> itemStack);
+    }
+
+    public List<ItemStack> getMaps(String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
         List<ItemStack> maps = new ArrayList<>(mapViews.size());
         int i = 0;
         for (MapView mapView : mapViews) {
@@ -219,18 +228,26 @@ public abstract class ImageMap {
                     .replace("{CreatorUUID}", getCreator().toString())
                     .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
             itemStack.setItemMeta(mapMeta);
-            maps.add(itemStack);
+            maps.add(postCreationFunction.apply(itemStack));
             i++;
         }
         return maps;
     }
 
     public void giveMap(Player player, int x, int y, String mapNameFormat) {
-        giveMap(Collections.singleton(player), x, y, mapNameFormat);
+        giveMap(Collections.singleton(player), x, y, mapNameFormat, itemStack -> itemStack);
+    }
+
+    public void giveMap(Player player, int x, int y, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
+        giveMap(Collections.singleton(player), x, y, mapNameFormat, postCreationFunction);
     }
 
     public void giveMap(Collection<? extends Player> players, int x, int y, String mapNameFormat) {
-        ItemStack map = getMap(x, y, mapNameFormat);
+        giveMap(players, x, y, mapNameFormat, itemStack -> itemStack);
+    }
+
+    public void giveMap(Collection<? extends Player> players, int x, int y, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
+        ItemStack map = getMap(x, y, mapNameFormat, postCreationFunction);
         Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
             players.forEach(p -> {
                 HashMap<Integer, ItemStack> result = p.getInventory().addItem(map.clone());
@@ -242,11 +259,19 @@ public abstract class ImageMap {
     }
 
     public void giveMaps(Player player, String mapNameFormat) {
-        giveMaps(Collections.singleton(player), mapNameFormat);
+        giveMaps(Collections.singleton(player), mapNameFormat, itemStack -> itemStack);
+    }
+
+    public void giveMaps(Player player, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
+        giveMaps(Collections.singleton(player), mapNameFormat, postCreationFunction);
     }
 
     public void giveMaps(Collection<? extends Player> players, String mapNameFormat) {
-        List<ItemStack> maps = getMaps(mapNameFormat);
+        giveMaps(players, mapNameFormat, itemStack -> itemStack);
+    }
+
+    public void giveMaps(Collection<? extends Player> players, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
+        List<ItemStack> maps = getMaps(mapNameFormat, postCreationFunction);
         Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
             for (ItemStack map : maps) {
                 players.forEach(p -> {
@@ -260,10 +285,14 @@ public abstract class ImageMap {
     }
 
     public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiPredicate<ItemFrame, ItemStack> prePlaceCheck, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat) {
+        fillItemFrames(itemFrames, rotation, prePlaceCheck, unableToPlaceAction, mapNameFormat, itemStack -> itemStack);
+    }
+
+    public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiPredicate<ItemFrame, ItemStack> prePlaceCheck, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
         if (itemFrames.size() != mapViews.size()) {
             throw new IllegalArgumentException("itemFrames size does not equal to mapView size");
         }
-        List<ItemStack> items = getMaps(mapNameFormat);
+        List<ItemStack> items = getMaps(mapNameFormat, postCreationFunction);
         Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
             Iterator<ItemFrame> itr0 = itemFrames.iterator();
             Iterator<ItemStack> itr1 = items.iterator();

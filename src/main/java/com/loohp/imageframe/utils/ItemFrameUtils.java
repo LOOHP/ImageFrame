@@ -23,6 +23,7 @@ package com.loohp.imageframe.utils;
 import org.bukkit.Rotation;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.util.Vector;
 
 public class ItemFrameUtils {
 
@@ -53,6 +54,28 @@ public class ItemFrameUtils {
             }
         }
         return rotation;
+    }
+
+    public static Vector getClosestCardinalDirection(float yaw) {
+        double rotation = (yaw - 90.0F) % 360.0F;
+        if (rotation < 0.0D) {
+            rotation += 360.0D;
+        }
+        double alignedYaw;
+        if ((0.0D <= rotation) && (rotation < 45.0D)) {
+            alignedYaw = 90.0F;
+        } else if ((45.0D <= rotation) && (rotation < 135.0D)) {
+            alignedYaw = 180.0F;
+        } else if ((135.0D <= rotation) && (rotation < 225.0D)) {
+            alignedYaw = -90.0F;
+        } else if ((225.0D <= rotation) && (rotation < 315.0D)) {
+            alignedYaw = 0.0F;
+        } else if ((315.0D <= rotation) && (rotation < 360.0D)) {
+            alignedYaw = 90.0F;
+        } else {
+            alignedYaw = 0.0F;
+        }
+        return new Vector(-Math.sin(Math.toRadians(alignedYaw)), 0, Math.cos(Math.toRadians(alignedYaw)));
     }
 
 }

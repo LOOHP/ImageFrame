@@ -25,6 +25,7 @@ import com.loohp.imageframe.debug.Debug;
 import com.loohp.imageframe.listeners.Events;
 import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
+import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
@@ -75,6 +76,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageNoPermission;
     public static String messageNoConsole;
     public static String messageInvalidUsage;
+    public static String messageNotEnoughSpace;
     public static String messageNotEnoughMaps;
     public static String messageURLRestricted;
     public static String messagePlayerCreationLimitReached;
@@ -113,9 +115,13 @@ public class ImageFrame extends JavaPlugin {
     public static int mapMarkerLimit;
     public static long maxImageFileSize;
 
+    public static String combinedMapItemNameFormat;
+    public static List<String> combinedMapItemLoreFormat;
+
     public static ImageMapManager imageMapManager;
     public static ItemFrameSelectionManager itemFrameSelectionManager;
     public static MapMarkerEditManager mapMarkerEditManager;
+    public static CombinedMapItemHandler combinedMapItemHandler;
 
     public static boolean isURLAllowed(String url) {
         if (!restrictImageUrlEnabled) {
@@ -183,6 +189,7 @@ public class ImageFrame extends JavaPlugin {
         imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
         itemFrameSelectionManager = new ItemFrameSelectionManager();
         mapMarkerEditManager = new MapMarkerEditManager();
+        combinedMapItemHandler = new CombinedMapItemHandler();
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
@@ -198,6 +205,9 @@ public class ImageFrame extends JavaPlugin {
         }
         if (imageMapManager != null) {
             imageMapManager.close();
+        }
+        if (combinedMapItemHandler != null) {
+            combinedMapItemHandler.close();
         }
         getServer().getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageFrame has been Disabled!");
     }
@@ -221,6 +231,7 @@ public class ImageFrame extends JavaPlugin {
         messageNoPermission = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoPermission"));
         messageNoConsole = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoConsole"));
         messageInvalidUsage = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidUsage"));
+        messageNotEnoughSpace = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughSpace"));
         messageNotEnoughMaps = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughMaps"));
         messageURLRestricted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.URLRestricted"));
         messagePlayerCreationLimitReached = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.PlayerCreationLimitReached"));
@@ -261,6 +272,8 @@ public class ImageFrame extends JavaPlugin {
         }
         mapMarkerLimit = config.getConfiguration().getInt("Settings.MapMarkerLimit");
         maxImageFileSize = config.getConfiguration().getLong("Settings.MaxImageFileSize");
+        combinedMapItemNameFormat = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Settings.CombinedMapItem.Name"));
+        combinedMapItemLoreFormat = config.getConfiguration().getStringList("Settings.CombinedMapItem.Lore").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
 
         if (updaterTaskID >= 0) {
             Bukkit.getScheduler().cancelTask(updaterTaskID);

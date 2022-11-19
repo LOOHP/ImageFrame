@@ -21,23 +21,34 @@
 package com.loohp.imageframe.listeners;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
 import com.loohp.imageframe.utils.MapUtils;
+import io.github.bananapuncher714.nbteditor.NBTEditor;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
+
+import java.util.function.IntFunction;
 
 public class Events implements Listener {
 
@@ -53,7 +64,9 @@ public class Events implements Listener {
 
         Inventory inventory = event.getView().getTopInventory();
         if (inventory.getType().equals(InventoryType.WORKBENCH)) {
-            if (event.getRawSlot() == 0) {
+            if (containsCombinedMaps(i -> event.getView().getItem(i), 10)) {
+                event.setResult(Event.Result.DENY);
+            } else if (event.getRawSlot() == 0) {
                 ItemStack map = event.getView().getItem(5);
                 MapView mapView = MapUtils.getItemMapView(map);
                 if (mapView == null) {
@@ -77,7 +90,9 @@ public class Events implements Listener {
                 }
             }
         } else if (inventory.getType().equals(InventoryType.CARTOGRAPHY)) {
-            if (event.getRawSlot() == 2) {
+            if (containsCombinedMaps(i -> event.getView().getItem(i), 3)) {
+                event.setResult(Event.Result.DENY);
+            } else if (event.getRawSlot() == 2) {
                 ItemStack map = event.getView().getItem(0);
                 MapView mapView = MapUtils.getItemMapView(map);
                 if (mapView == null) {
@@ -95,6 +110,18 @@ public class Events implements Listener {
                 }
             }
         }
+    }
+
+    public boolean containsCombinedMaps(IntFunction<ItemStack> slotAccess, int size) {
+        for (int i = 0; i < size; i++) {
+            ItemStack itemStack = slotAccess.apply(i);
+            if (itemStack != null && itemStack.getType().equals(Material.PAPER)) {
+                if (NBTEditor.contains(itemStack, CombinedMapItemHandler.COMBINED_MAP_KEY)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -135,6 +162,61 @@ public class Events implements Listener {
         if (currentMapView != null) {
             if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
                 equipment.setItem(hand, new ItemStack(Material.MAP, currentItem.getAmount()));
+            }
+        }
+
+        Entity entity = event.getRightClicked();
+        if (entity instanceof ItemFrame) {
+            ItemFrame itemFrame = (ItemFrame) entity;
+            ItemStack itemStack = itemFrame.getItem();
+            MapView mapView = MapUtils.getItemMapView(itemStack);
+            if (mapView != null) {
+                if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
+                    itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false);
+                }
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEntityDamage(EntityDamageEvent event) {
+        Entity entity = event.getEntity();
+        if (entity instanceof ItemFrame) {
+            ItemFrame itemFrame = (ItemFrame) entity;
+            ItemStack itemStack = itemFrame.getItem();
+            MapView mapView = MapUtils.getItemMapView(itemStack);
+            if (mapView != null) {
+                if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
+                    itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false);
+                }
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEntityPickupItem(EntityPickupItemEvent event) {
+        Item item = event.getItem();
+        ItemStack currentItem = item.getItemStack();
+        MapView currentMapView = MapUtils.getItemMapView(currentItem);
+        if (currentMapView != null) {
+            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+                item.setItemStack(new ItemStack(Material.MAP, currentItem.getAmount()));
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onEntityLoad(EntitiesLoadEvent event) {
+        for (Entity entity : event.getEntities()) {
+            if (entity instanceof ItemFrame) {
+                ItemFrame itemFrame = (ItemFrame) entity;
+                ItemStack itemStack = itemFrame.getItem();
+                MapView mapView = MapUtils.getItemMapView(itemStack);
+                if (mapView != null) {
+                    if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
+                        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false));
+                    }
+                }
             }
         }
     }

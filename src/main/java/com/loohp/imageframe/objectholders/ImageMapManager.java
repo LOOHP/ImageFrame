@@ -27,10 +27,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.FileUtils;
+import com.loohp.imageframe.utils.MapUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapCursor;
+import org.bukkit.map.MapPalette;
+import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
 import java.io.BufferedReader;
@@ -42,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -56,6 +61,7 @@ import java.util.stream.Collectors;
 
 public class ImageMapManager implements AutoCloseable {
 
+    public static byte WHITE_PIXEL = MapPalette.matchColor(255, 255, 255);
     public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
     private final Map<Integer, ImageMap> maps;
@@ -169,8 +175,9 @@ public class ImageMapManager implements AutoCloseable {
         if (imageMap == null) {
             return;
         }
+        List<MapView> mapViews = imageMap.getMapViews();
         if (imageMap.trackDeletedMaps()) {
-            imageMap.getMapViews().forEach(each -> deletedMapIds.add(each.getId()));
+            mapViews.forEach(each -> deletedMapIds.add(each.getId()));
         }
         imageMap.markInvalid();
         dataFolder.mkdirs();
@@ -180,6 +187,11 @@ public class ImageMapManager implements AutoCloseable {
         }
         imageMap.stop();
         saveDeletedMaps();
+        mapViews.forEach(each -> {
+            if (each.getRenderers().isEmpty()) {
+                each.addRenderer(DeletedMapRenderer.INSTANCE);
+            }
+        });
     }
 
     public boolean isMapDeleted(int mapId) {
@@ -193,11 +205,15 @@ public class ImageMapManager implements AutoCloseable {
     public synchronized void loadMaps() {
         maps.clear();
         dataFolder.mkdirs();
-        for (File file : dataFolder.listFiles()) {
+        int count = 0;
+        File[] files = dataFolder.listFiles();
+        Arrays.sort(files, FileUtils.BY_NUMBER_THAN_STRING);
+        for (File file : files) {
             if (file.isDirectory()) {
-                Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Loading ImageMap ID " + file.getName());
+                Bukkit.getConsoleSender().sendMessage(ChatColor.GRAY + "[ImageFrame] Loading ImageMap ID " + file.getName());
                 try {
                     addMap(ImageMap.load(this, file));
+                    count++;
                 } catch (Throwable e) {
                     Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to load ImageMap data in " + file.getAbsolutePath());
                     e.printStackTrace();
@@ -230,6 +246,7 @@ public class ImageMapManager implements AutoCloseable {
                 }
             }
         }
+        Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Data loading completed! Loaded " + count + " ImageMaps!");
     }
 
     public synchronized void saveDeletedMaps() {
@@ -247,6 +264,27 @@ public class ImageMapManager implements AutoCloseable {
 
     public void sendAllMaps(Collection<? extends Player> players) {
         maps.values().forEach(m -> sendAllMaps(players));
+    }
+
+    public static class DeletedMapRenderer extends MapRenderer {
+
+        public static final DeletedMapRenderer INSTANCE = new DeletedMapRenderer();
+
+        private DeletedMapRenderer() {}
+
+        @Override
+        public void render(MapView map, MapCanvas canvas, Player player) {
+            List<MapRenderer> mapRenderers = map.getRenderers();
+            if (mapRenderers.size() != 1 || mapRenderers.get(0) != this) {
+                Bukkit.getScheduler().runTaskLater(ImageFrame.plugin, () -> map.removeRenderer(this), 1);
+                return;
+            }
+            for (int y = 0; y < MapUtils.MAP_WIDTH; y++) {
+                for (int x = 0; x < MapUtils.MAP_WIDTH; x++) {
+                    canvas.setPixel(x, y, WHITE_PIXEL);
+                }
+            }
+        }
     }
 
 }
