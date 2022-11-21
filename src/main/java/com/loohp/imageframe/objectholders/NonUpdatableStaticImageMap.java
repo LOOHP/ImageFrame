@@ -23,6 +23,7 @@ package com.loohp.imageframe.objectholders;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -76,9 +77,11 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         for (Future<MapView> future : mapViewsFuture) {
             try {
                 MapView mapView = future.get();
-                for (MapRenderer renderer : mapView.getRenderers()) {
-                    mapView.removeRenderer(renderer);
-                }
+                Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                    for (MapRenderer renderer : mapView.getRenderers()) {
+                        mapView.removeRenderer(renderer);
+                    }
+                });
                 mapViews.add(mapView);
                 mapIds.add(mapView.getId());
             } catch (InterruptedException | ExecutionException e) {
@@ -88,7 +91,8 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, -1, name, images, mapViews, mapIds, markers, width, height, creator, System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
-            mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, i));
+            int finalI = i;
+            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, finalI)));
         }
         map.update(false);
         return map;
@@ -142,10 +146,13 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, imageIndex, name, cachedImages, mapViews, mapIds, markers, width, height, creator, creationTime);
         for (int u = 0; u < mapViews.size(); u++) {
             MapView mapView = mapViews.get(u);
-            for (MapRenderer renderer : mapView.getRenderers()) {
-                mapView.removeRenderer(renderer);
-            }
-            mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, u));
+            int finalU = u;
+            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                for (MapRenderer renderer : mapView.getRenderers()) {
+                    mapView.removeRenderer(renderer);
+                }
+                mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, finalU));
+            });
         }
         return map;
     }

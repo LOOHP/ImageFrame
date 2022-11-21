@@ -207,13 +207,13 @@ public class MapUtils {
     public static BufferedImage resize(BufferedImage source, int width, int height) {
         BufferedImage image = new BufferedImage(width * MAP_WIDTH, height * MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
         Graphics g = image.createGraphics();
-        if (source.getWidth() > source.getHeight()) {
-            double ratio = (double) image.getWidth() / (double) source.getWidth();
-            int h = (int) Math.round(source.getHeight() * ratio);
+        double wRatio = (double) image.getWidth() / (double) source.getWidth();
+        double hRatio = (double) image.getHeight() / (double) source.getHeight();
+        if (wRatio < hRatio) {
+            int h = (int) Math.round(source.getHeight() * wRatio);
             g.drawImage(source, 0, (image.getHeight() - h) / 2, image.getWidth(), h, null);
         } else {
-            double ratio = (double) image.getHeight() / (double) source.getHeight();
-            int w = (int) Math.round(source.getWidth() * ratio);
+            int w = (int) Math.round(source.getWidth() * hRatio);
             g.drawImage(source, (image.getWidth() - w) / 2, 0, w, image.getHeight(), null);
         }
         g.dispose();

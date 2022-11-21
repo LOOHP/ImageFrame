@@ -187,10 +187,12 @@ public class ImageMapManager implements AutoCloseable {
         }
         imageMap.stop();
         saveDeletedMaps();
-        mapViews.forEach(each -> {
-            if (each.getRenderers().isEmpty()) {
-                each.addRenderer(DeletedMapRenderer.INSTANCE);
-            }
+        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+            mapViews.forEach(each -> {
+                if (each.getRenderers().isEmpty()) {
+                    each.addRenderer(DeletedMapRenderer.INSTANCE);
+                }
+            });
         });
     }
 

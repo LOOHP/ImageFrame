@@ -23,6 +23,7 @@ package com.loohp.imageframe.objectholders;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.GifReader;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.MapUtils;
@@ -65,16 +66,19 @@ public class URLAnimatedImageMap extends URLImageMap {
         List<Integer> mapIds = new ArrayList<>(mapsCount);
         for (Future<MapView> future : mapViewsFuture) {
             MapView mapView = future.get();
-            for (MapRenderer renderer : mapView.getRenderers()) {
-                mapView.removeRenderer(renderer);
-            }
+            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                for (MapRenderer renderer : mapView.getRenderers()) {
+                    mapView.removeRenderer(renderer);
+                }
+            });
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
         }
         URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new BufferedImage[mapsCount][], mapViews, mapIds, markers, width, height, creator, System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
-            mapView.addRenderer(new URLAnimatedImageMapRenderer(map, i));
+            int finalI = i;
+            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> mapView.addRenderer(new URLAnimatedImageMapRenderer(map, finalI)));
         }
         map.update(false);
         return map;
@@ -135,7 +139,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         for (int u = 0; u < mapViews.size(); u++) {
             MapView mapView = mapViews.get(u);
             for (MapRenderer renderer : mapView.getRenderers()) {
-                mapView.removeRenderer(renderer);
+                Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> mapView.removeRenderer(renderer));
             }
             mapView.addRenderer(new URLAnimatedImageMapRenderer(map, u));
         }
