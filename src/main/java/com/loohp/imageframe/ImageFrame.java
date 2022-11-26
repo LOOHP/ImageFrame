@@ -159,7 +159,7 @@ public class ImageFrame extends JavaPlugin {
         version = MCVersion.fromPackageName(getServer().getClass().getPackage().getName());
 
         if (!version.isSupported()) {
-            getServer().getConsoleSender().sendMessage(ChatColor.RED + "[InteractiveChat] This version of minecraft is unsupported! (" + version.toString() + ")");
+            getServer().getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] This version of minecraft is unsupported! (" + version.toString() + ")");
         }
 
         metrics = new Metrics(this, BSTATS_PLUGIN_ID);
