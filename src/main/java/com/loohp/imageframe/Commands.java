@@ -32,6 +32,7 @@ import com.loohp.imageframe.objectholders.URLStaticImageMap;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
+import com.loohp.imageframe.utils.ImageMapUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import net.md_5.bungee.api.ChatColor;
@@ -60,6 +61,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -333,9 +335,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                             } else {
                                 selection = null;
                             }
-                            ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[1]);
+                            ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                             if (imageMap == null) {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                                return true;
+                            }
+                            if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.EDIT_CLONE)) {
+                                sender.sendMessage(ImageFrame.messageNoPermission);
                                 return true;
                             }
                             if (selection != null) {
@@ -445,9 +451,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args.length > 1) {
                         if (args[1].equalsIgnoreCase("add")) {
                             if (args.length > 5) {
-                                ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[2]);
+                                ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[2]);
                                 if (imageMap == null) {
                                     sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                                } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.MARKER)) {
+                                    sender.sendMessage(ImageFrame.messageNoPermission);
                                 } else {
                                     if (ImageFrame.mapMarkerEditManager.isActiveEditing(player)) {
                                         ImageFrame.mapMarkerEditManager.leaveActiveEditing(player);
@@ -546,7 +554,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         ImageMap imageMap = null;
                         String url = null;
                         if (args.length > 1) {
-                            imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[1]);
+                            imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                             if (imageMap == null) {
                                 url = args[1];
                             } else if (args.length > 2) {
@@ -564,7 +572,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
                         } else {
-                            if (imageMap.getCreator().equals(player.getUniqueId())) {
+                            if (ImageFrame.hasImageMapPermission(imageMap, player, ImageMap.ImageMapAccessPermissionType.EDIT)) {
                                 try {
                                     if (imageMap instanceof URLImageMap) {
                                         URLImageMap urlImageMap = (URLImageMap) imageMap;
@@ -589,7 +597,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     e.printStackTrace();
                                 }
                             } else {
-                                sender.sendMessage(ImageFrame.messageNotCreator);
+                                sender.sendMessage(ImageFrame.messageNoPermission);
                             }
                         }
                     });
@@ -605,9 +613,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender instanceof Player) {
                     Player player = (Player) sender;
                     if (args.length > 2) {
-                        ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[1]);
+                        ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                        } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.EDIT)) {
+                            sender.sendMessage(ImageFrame.messageNoPermission);
                         } else {
                             String newName = args[2];
                             if (ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), newName) == null) {
@@ -639,7 +649,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     Player player = (Player) sender;
                     MapView mapView;
                     if (args.length > 1) {
-                        ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[1]);
+                        ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
                             return true;
@@ -656,12 +666,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
                         } else {
                             for (String line : ImageFrame.messageURLImageMapInfo) {
+                                String access = imageMap.getPermissions().entrySet().stream().map(each -> {
+                                    String playerName = Bukkit.getOfflinePlayer(each.getKey()).getName();
+                                    String permission = ImageFrame.messageAccessTypes.get(each.getValue());
+                                    if (playerName == null) {
+                                        return each.getKey().toString() + " - " + permission;
+                                    }
+                                    return playerName + " - " + permission;
+                                }).sorted().collect(Collectors.joining(", ", "[", "]"));
                                 String message = ChatColorUtils.translateAlternateColorCodes('&', line
                                         .replace("{ImageID}", imageMap.getImageIndex() + "")
                                         .replace("{Name}", imageMap.getName())
                                         .replace("{Width}", imageMap.getWidth() + "")
                                         .replace("{Height}", imageMap.getHeight() + "")
                                         .replace("{CreatorName}", imageMap.getCreatorName())
+                                        .replace("{Access}", access)
                                         .replace("{CreatorUUID}", imageMap.getCreator().toString())
                                         .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))
                                         .replace("{Markers}", imageMap.getMapMarkers().stream().flatMap(each -> each.keySet().stream()).collect(Collectors.joining(", ", "[", "]"))));
@@ -717,10 +736,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     Player player = (Player) sender;
                     if (args.length > 1) {
                         try {
-                            String name = args[1];
-                            ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), name);
+                            ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                             if (imageMap == null) {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                            } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.ALL)) {
+                                sender.sendMessage(ImageFrame.messageNoPermission);
                             } else {
                                 Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
                                     ImageFrame.imageMapManager.deleteMap(imageMap.getImageIndex());
@@ -737,6 +757,50 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                         }
                                     });
+                                });
+                            }
+                        } catch (NumberFormatException e) {
+                            sender.sendMessage(ImageFrame.messageInvalidUsage);
+                        }
+                    } else {
+                        sender.sendMessage(ImageFrame.messageInvalidUsage);
+                    }
+                } else {
+                    sender.sendMessage(ImageFrame.messageNoConsole);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
+        } else if (args[0].equalsIgnoreCase("setaccess")) {
+            if (sender.hasPermission("imageframe.setaccess")) {
+                if (sender instanceof Player) {
+                    Player player = (Player) sender;
+                    if (args.length > 3) {
+                        try {
+                            ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
+                            if (imageMap == null) {
+                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                            } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.ALL)) {
+                                sender.sendMessage(ImageFrame.messageNoPermission);
+                            } else {
+                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                    String targetPlayer = args[2];
+                                    UUID uuid = Bukkit.getOfflinePlayer(targetPlayer).getUniqueId();
+                                    String permissionTypeStr = args[3].toUpperCase();
+                                    try {
+                                        ImageMap.ImageMapAccessPermissionType permissionType = permissionTypeStr.equals("NONE") ? null : ImageMap.ImageMapAccessPermissionType.valueOf(permissionTypeStr);
+                                        imageMap.setPermission(uuid, permissionType);
+                                        ImageMap.ImageMapAccessPermissionType newPermission = imageMap.getPermission(uuid);
+                                        sender.sendMessage(ImageFrame.messageAccessUpdated
+                                                .replace("{PlayerName}", targetPlayer)
+                                                .replace("{PlayerUUID}", uuid.toString())
+                                                .replace("{Permission}", newPermission == null ? ImageFrame.messageAccessNoneType : ImageFrame.messageAccessTypes.get(newPermission)));
+                                    } catch (IllegalArgumentException e) {
+                                        sender.sendMessage(ImageFrame.messageInvalidUsage);
+                                    } catch (Exception e) {
+                                        sender.sendMessage(ImageFrame.messageUnknownError);
+                                    }
                                 });
                             }
                         } catch (NumberFormatException e) {
@@ -770,10 +834,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 selection = null;
                             }
 
-                            String name = args[1];
-                            ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), name);
+                            ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                             if (imageMap == null) {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                            } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.GET)) {
+                                sender.sendMessage(ImageFrame.messageNoPermission);
                             } else {
                                 if (selection != null) {
                                     if (imageMap.getWidth() != selection.getWidth() || imageMap.getHeight() != selection.getHeight()) {
@@ -824,225 +889,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
-        } else if (args[0].equalsIgnoreCase("adminrename")) {
-            if (sender.hasPermission("imageframe.adminrename")) {
-                if (args.length > 2) {
-                    try {
-                        int imageId = Integer.parseInt(args[1]);
-                        ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(imageId);
-                        if (imageMap == null) {
-                            sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                        } else {
-                            String newName = args[2];
-                            if (ImageFrame.imageMapManager.getFromCreator(imageMap.getCreator(), newName) == null) {
-                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
-                                    try {
-                                        imageMap.rename(newName);
-                                        sender.sendMessage(ImageFrame.messageImageMapRenamed);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                });
-                            } else {
-                                sender.sendMessage(ImageFrame.messageDuplicateMapName);
-                            }
-                        }
-                    } catch (NumberFormatException e) {
-                        sender.sendMessage(ImageFrame.messageInvalidUsage);
-                    }
-                } else {
-                    sender.sendMessage(ImageFrame.messageInvalidUsage);
-                }
-            } else {
-                sender.sendMessage(ImageFrame.messageNoPermission);
-            }
-            return true;
-        } else if (args[0].equalsIgnoreCase("adminrefresh")) {
-            if (sender.hasPermission("imageframe.adminrefresh")) {
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
-                        ImageMap imageMap = null;
-                        String url = null;
-                        if (args.length > 1) {
-                            try {
-                                imageMap = ImageFrame.imageMapManager.getFromImageId(Integer.parseInt(args[1]));
-                            } catch (NumberFormatException ignore) {
-                            }
-                            if (imageMap == null) {
-                                url = args[1];
-                            } else if (args.length > 2) {
-                                url = args[2];
-                            }
-                        }
-                        if (imageMap == null) {
-                            MapView mapView = MapUtils.getPlayerMapView(player);
-                            if (mapView == null) {
-                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                                return;
-                            }
-                            imageMap = ImageFrame.imageMapManager.getFromMapView(mapView);
-                        }
-                        if (imageMap == null) {
-                            sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                        } else {
-                            try {
-                                if (imageMap instanceof URLImageMap) {
-                                    URLImageMap urlImageMap = (URLImageMap) imageMap;
-                                    String oldUrl = urlImageMap.getUrl();
-                                    if (url != null) {
-                                        urlImageMap.setUrl(url);
-                                    }
-                                    try {
-                                        imageMap.update();
-                                        sender.sendMessage(ImageFrame.messageImageMapRefreshed);
-                                    } catch (Throwable e) {
-                                        urlImageMap.setUrl(oldUrl);
-                                        sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                                        e.printStackTrace();
-                                    }
-                                } else {
-                                    imageMap.update();
-                                    sender.sendMessage(ImageFrame.messageImageMapRefreshed);
-                                }
-                            } catch (Exception e) {
-                                sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                                e.printStackTrace();
-                            }
-                        }
-                    });
-                } else {
-                    sender.sendMessage(ImageFrame.messageNoConsole);
-                }
-            } else {
-                sender.sendMessage(ImageFrame.messageNoPermission);
-            }
-            return true;
-        } else if (args[0].equalsIgnoreCase("adminclone")) {
-            if (sender.hasPermission("imageframe.adminclone")) {
-                if (sender instanceof Player) {
-                    if (args.length == 3 || args.length == 4) {
-                        try {
-                            Player player = (Player) sender;
-
-                            boolean combined = args[3].equalsIgnoreCase("combined");
-                            ItemFrameSelectionManager.SelectedItemFrameResult selection;
-                            if (args[3].equalsIgnoreCase("selection")) {
-                                selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
-                                if (selection == null) {
-                                    player.sendMessage(ImageFrame.messageSelectionNoSelection);
-                                    return true;
-                                }
-                            } else {
-                                selection = null;
-                            }
-                            ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(Integer.parseInt(args[1]));
-                            if (imageMap == null) {
-                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                                return true;
-                            }
-                            if (selection != null) {
-                                if (imageMap.getWidth() != selection.getWidth() || imageMap.getHeight() != selection.getHeight()) {
-                                    sender.sendMessage(ImageFrame.messageSelectionIncorrectSize.replace("{Width}", imageMap.getWidth() + "").replace("{Height}", imageMap.getHeight() + ""));
-                                    return true;
-                                }
-                            }
-                            int limit = ImageFrame.getPlayerCreationLimit(player);
-                            Set<ImageMap> existingMaps = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId());
-                            if (limit >= 0 && existingMaps.size() >= limit) {
-                                sender.sendMessage(ImageFrame.messagePlayerCreationLimitReached.replace("{Limit}", limit + ""));
-                                return true;
-                            }
-                            if (existingMaps.stream().anyMatch(each -> each.getName().equalsIgnoreCase(args[2]))) {
-                                sender.sendMessage(ImageFrame.messageDuplicateMapName);
-                                return true;
-                            }
-                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
-                                try {
-                                    ImageMap newImageMap = imageMap.deepClone(args[2], player.getUniqueId());
-                                    ImageFrame.imageMapManager.addMap(newImageMap);
-                                    if (combined) {
-                                        ImageFrame.combinedMapItemHandler.giveCombinedMap(newImageMap, player);
-                                    } else if (selection == null) {
-                                        newImageMap.giveMaps((Player) sender, ImageFrame.mapItemFormat);
-                                    } else {
-                                        AtomicBoolean flag = new AtomicBoolean(false);
-                                        newImageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
-                                            ItemStack originalItem = frame.getItem();
-                                            if (originalItem != null && !originalItem.getType().equals(Material.AIR)) {
-                                                return false;
-                                            }
-                                            return PlayerUtils.isInteractionAllowed(player, frame);
-                                        }, (frame, item) -> {
-                                            Player p = (Player) sender;
-                                            HashMap<Integer, ItemStack> result = p.getInventory().addItem(item);
-                                            for (ItemStack stack : result.values()) {
-                                                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
-                                            }
-                                            if (!flag.getAndSet(true)) {
-                                                sender.sendMessage(ImageFrame.messageItemFrameOccupied);
-                                            }
-                                        }, ImageFrame.mapItemFormat);
-                                    }
-                                    sender.sendMessage(ImageFrame.messageImageMapCreated);
-                                } catch (Exception e) {
-                                    sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                                    e.printStackTrace();
-                                }
-                            });
-                        } catch (NumberFormatException e) {
-                            sender.sendMessage(ImageFrame.messageInvalidUsage);
-                        } catch (Exception e) {
-                            sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                            e.printStackTrace();
-                        }
-                    } else {
-                        sender.sendMessage(ImageFrame.messageInvalidUsage);
-                    }
-                } else {
-                    sender.sendMessage(ImageFrame.messageNoConsole);
-                }
-            } else {
-                sender.sendMessage(ImageFrame.messageNoPermission);
-            }
-            return true;
-        } else if (args[0].equalsIgnoreCase("admininfo")) {
-            if (sender.hasPermission("imageframe.admininfo")) {
-                if (args.length > 1) {
-                    try {
-                        int imageId = Integer.parseInt(args[1]);
-                        ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(imageId);
-                        if (imageMap == null) {
-                            sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                        } else {
-                            for (String line : ImageFrame.messageURLImageMapInfo) {
-                                String message = ChatColorUtils.translateAlternateColorCodes('&', line
-                                        .replace("{ImageID}", imageMap.getImageIndex() + "")
-                                        .replace("{Name}", imageMap.getName())
-                                        .replace("{Width}", imageMap.getWidth() + "")
-                                        .replace("{Height}", imageMap.getHeight() + "")
-                                        .replace("{CreatorName}", imageMap.getCreatorName())
-                                        .replace("{CreatorUUID}", imageMap.getCreator().toString())
-                                        .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))
-                                        .replace("{Markers}", imageMap.getMapMarkers().stream().flatMap(each -> each.keySet().stream()).collect(Collectors.joining(", ", "[", "]"))));
-                                if (imageMap instanceof URLImageMap) {
-                                    message = message.replace("{URL}", ((URLImageMap) imageMap).getUrl());
-                                } else {
-                                    message = message.replace("{URL}", "-");
-                                }
-                                sender.sendMessage(message);
-                            }
-                        }
-                    } catch (NumberFormatException e) {
-                        sender.sendMessage(ImageFrame.messageInvalidUsage);
-                    }
-                } else {
-                    sender.sendMessage(ImageFrame.messageInvalidUsage);
-                }
-            } else {
-                sender.sendMessage(ImageFrame.messageNoPermission);
-            }
-            return true;
         } else if (args[0].equalsIgnoreCase("admindelete")) {
             if (sender.hasPermission("imageframe.admindelete")) {
                 if (args.length > 1) {
@@ -1076,191 +922,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 } else {
                     sender.sendMessage(ImageFrame.messageInvalidUsage);
-                }
-            } else {
-                sender.sendMessage(ImageFrame.messageNoPermission);
-            }
-            return true;
-        } else if (args[0].equalsIgnoreCase("adminget")) {
-            if (sender.hasPermission("imageframe.adminget")) {
-                if (args.length > 1) {
-                    if (args.length > 2 && args[2].equalsIgnoreCase("combined") && sender instanceof Player) {
-                        Player player = (Player) sender;
-                        try {
-                            int imageId = Integer.parseInt(args[1]);
-                            ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(imageId);
-                            if (imageMap == null) {
-                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                            } else {
-                                ImageFrame.combinedMapItemHandler.giveCombinedMap(imageMap, player);
-                                sender.sendMessage(ImageFrame.messageImageMapCreated);
-                            }
-                        } catch (NumberFormatException e) {
-                            sender.sendMessage(ImageFrame.messageInvalidUsage);
-                        }
-                    } else if (args.length > 2 && args[2].equalsIgnoreCase("selection") && sender instanceof Player) {
-                        Player player = (Player) sender;
-                        ItemFrameSelectionManager.SelectedItemFrameResult selection;
-                        selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection((Player) sender);
-                        if (selection == null) {
-                            sender.sendMessage(ImageFrame.messageSelectionNoSelection);
-                            return true;
-                        }
-                        try {
-                            int imageId = Integer.parseInt(args[1]);
-                            ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(imageId);
-                            if (imageMap == null) {
-                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                            } else {
-                                AtomicBoolean flag = new AtomicBoolean(false);
-                                imageMap.fillItemFrames(selection.getItemFrames(), selection.getRotation(), (frame, item) -> {
-                                    ItemStack originalItem = frame.getItem();
-                                    if (originalItem != null && !originalItem.getType().equals(Material.AIR)) {
-                                        return false;
-                                    }
-                                    return PlayerUtils.isInteractionAllowed(player, frame);
-                                }, (frame, item) -> {
-                                    if (!flag.getAndSet(true)) {
-                                        sender.sendMessage(ImageFrame.messageItemFrameOccupied);
-                                    }
-                                }, ImageFrame.mapItemFormat);
-                                sender.sendMessage(ImageFrame.messageImageMapCreated);
-                            }
-                        } catch (NumberFormatException e) {
-                            sender.sendMessage(ImageFrame.messageInvalidUsage);
-                        }
-                    } else {
-                        Player player = null;
-                        if (args.length > 2) {
-                            player = Bukkit.getPlayer(args[2]);
-                        } else if (sender instanceof Player) {
-                            player = (Player) sender;
-                        }
-                        if (player == null) {
-                            sender.sendMessage(ImageFrame.messageNoConsole);
-                        } else {
-                            try {
-                                int imageId = Integer.parseInt(args[1]);
-                                ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(imageId);
-                                if (imageMap == null) {
-                                    sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                                } else {
-                                    imageMap.giveMaps(player, ImageFrame.mapItemFormat);
-                                    sender.sendMessage(ImageFrame.messageImageMapCreated);
-                                }
-                            } catch (NumberFormatException e) {
-                                sender.sendMessage(ImageFrame.messageInvalidUsage);
-                            }
-                        }
-                    }
-                } else {
-                    sender.sendMessage(ImageFrame.messageInvalidUsage);
-                }
-            } else {
-                sender.sendMessage(ImageFrame.messageNoPermission);
-            }
-            return true;
-        } else if (args[0].equalsIgnoreCase("adminmarker")) {
-            if (sender.hasPermission("imageframe.adminmarker")) {
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    if (args.length > 1) {
-                        if (args[1].equalsIgnoreCase("add")) {
-                            if (args.length > 5) {
-                                try {
-                                    ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(Integer.parseInt(args[2]));
-                                    if (imageMap == null) {
-                                        sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                                    } else {
-                                        if (ImageFrame.mapMarkerEditManager.isActiveEditing(player)) {
-                                            ImageFrame.mapMarkerEditManager.leaveActiveEditing(player);
-                                        }
-                                        try {
-                                            String name = args[3];
-                                            if (imageMap.getMapMarker(name) == null) {
-                                                byte direction = Byte.parseByte(args[4]);
-                                                MapCursor.Type type = MapCursor.Type.valueOf(args[5].toUpperCase());
-                                                String caption = args.length > 6 ? ChatColorUtils.translateAlternateColorCodes('&', String.join(" ", Arrays.copyOfRange(args, 6, args.length))) : null;
-                                                MapCursor mapCursor = new MapCursor((byte) 0, (byte) 0, direction, type, true, caption);
-                                                ImageFrame.mapMarkerEditManager.setActiveEditing(player, name, mapCursor, imageMap);
-                                                if (!MapUtils.isRenderOnFrame(type)) {
-                                                    player.sendMessage(ImageFrame.messageMarkersNotRenderOnFrameWarning);
-                                                }
-                                                player.sendMessage(ImageFrame.messageMarkersAddBegin.replace("{Name}", imageMap.getName()));
-                                            } else {
-                                                player.sendMessage(ImageFrame.messageMarkersDuplicateName);
-                                            }
-                                        } catch (IllegalArgumentException e) {
-                                            sender.sendMessage(ImageFrame.messageInvalidUsage);
-                                        }
-                                    }
-                                } catch (NumberFormatException e) {
-                                    sender.sendMessage(ImageFrame.messageInvalidUsage);
-                                }
-                            } else {
-                                sender.sendMessage(ImageFrame.messageInvalidUsage);
-                            }
-                        } else if (args[1].equalsIgnoreCase("remove")) {
-                            if (args.length > 3) {
-                                try {
-                                    ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(Integer.parseInt(args[2]));
-                                    if (imageMap == null) {
-                                        sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                                    } else {
-                                        Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
-                                            for (Map<String, MapCursor> map : imageMap.getMapMarkers()) {
-                                                if (map.remove(args[3]) != null) {
-                                                    try {
-                                                        sender.sendMessage(ImageFrame.messageMarkersRemove);
-                                                        imageMap.save();
-                                                        imageMap.send(imageMap.getViewers());
-                                                    } catch (Exception e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                    return;
-                                                }
-                                            }
-                                            sender.sendMessage(ImageFrame.messageMarkersNotAMarker);
-                                        });
-                                    }
-                                } catch (NumberFormatException e) {
-                                    sender.sendMessage(ImageFrame.messageInvalidUsage);
-                                }
-                            } else {
-                                sender.sendMessage(ImageFrame.messageInvalidUsage);
-                            }
-                        } else if (args[1].equalsIgnoreCase("clear")) {
-                            if (args.length > 2) {
-                                try {
-                                    ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(Integer.parseInt(args[2]));
-                                    if (imageMap == null) {
-                                        sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                                    } else {
-                                        Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
-                                            try {
-                                                imageMap.getMapMarkers().forEach(each -> each.clear());
-                                                sender.sendMessage(ImageFrame.messageMarkersClear);
-                                                imageMap.save();
-                                                imageMap.send(imageMap.getViewers());
-                                            } catch (Exception e) {
-                                                e.printStackTrace();
-                                            }
-                                        });
-                                    }
-                                } catch (NumberFormatException e) {
-                                    sender.sendMessage(ImageFrame.messageInvalidUsage);
-                                }
-                            } else {
-                                sender.sendMessage(ImageFrame.messageInvalidUsage);
-                            }
-                        } else {
-                            sender.sendMessage(ImageFrame.messageInvalidUsage);
-                        }
-                    } else {
-                        sender.sendMessage(ImageFrame.messageInvalidUsage);
-                    }
-                } else {
-                    sender.sendMessage(ImageFrame.messageNoConsole);
                 }
             } else {
                 sender.sendMessage(ImageFrame.messageNoPermission);
@@ -1363,32 +1024,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.get")) {
                     tab.add("get");
                 }
-                if (sender.hasPermission("imageframe.adminrefresh")) {
-                    tab.add("adminrefresh");
-                }
-                if (sender.hasPermission("imageframe.adminclone")) {
-                    tab.add("adminclone");
-                }
-                if (sender.hasPermission("imageframe.adminrename")) {
-                    tab.add("adminrename");
-                }
-                if (sender.hasPermission("imageframe.admininfo")) {
-                    tab.add("admininfo");
-                }
-                if (sender.hasPermission("imageframe.admindelete")) {
-                    tab.add("admindelete");
-                }
-                if (sender.hasPermission("imageframe.adminget")) {
-                    tab.add("adminget");
-                }
                 if (sender.hasPermission("imageframe.update")) {
                     tab.add("update");
                 }
                 if (sender.hasPermission("imageframe.marker")) {
                     tab.add("marker");
                 }
-                if (sender.hasPermission("imageframe.adminmarker")) {
-                    tab.add("adminmarker");
+                if (sender.hasPermission("imageframe.setaccess")) {
+                    tab.add("setaccess");
+                }
+                if (sender.hasPermission("imageframe.admindelete")) {
+                    tab.add("admindelete");
                 }
                 if (sender.hasPermission("imageframe.adminsetcreator")) {
                     tab.add("adminsetcreator");
@@ -1453,36 +1099,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("get");
                     }
                 }
-                if (sender.hasPermission("imageframe.adminrefresh")) {
-                    if ("adminrefresh".startsWith(args[0].toLowerCase())) {
-                        tab.add("adminrefresh");
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminclone")) {
-                    if ("adminclone".startsWith(args[0].toLowerCase())) {
-                        tab.add("adminclone");
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminrename")) {
-                    if ("adminrename".startsWith(args[0].toLowerCase())) {
-                        tab.add("adminrename");
-                    }
-                }
-                if (sender.hasPermission("imageframe.admininfo")) {
-                    if ("admininfo".startsWith(args[0].toLowerCase())) {
-                        tab.add("admininfo");
-                    }
-                }
-                if (sender.hasPermission("imageframe.admindelete")) {
-                    if ("admindelete".startsWith(args[0].toLowerCase())) {
-                        tab.add("admindelete");
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminget")) {
-                    if ("adminget".startsWith(args[0].toLowerCase())) {
-                        tab.add("adminget");
-                    }
-                }
                 if (sender.hasPermission("imageframe.update")) {
                     if ("update".startsWith(args[0].toLowerCase())) {
                         tab.add("update");
@@ -1493,9 +1109,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("marker");
                     }
                 }
-                if (sender.hasPermission("imageframe.adminmarker")) {
-                    if ("adminmarker".startsWith(args[0].toLowerCase())) {
-                        tab.add("adminmarker");
+                if (sender.hasPermission("imageframe.setaccess")) {
+                    if ("setaccess".startsWith(args[0].toLowerCase())) {
+                        tab.add("setaccess");
+                    }
+                }
+                if (sender.hasPermission("imageframe.admindelete")) {
+                    if ("admindelete".startsWith(args[0].toLowerCase())) {
+                        tab.add("admindelete");
                     }
                 }
                 if (sender.hasPermission("imageframe.adminsetcreator")) {
@@ -1523,11 +1144,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.clone")) {
                     if ("clone".equalsIgnoreCase(args[0])) {
                         if (sender instanceof Player) {
-                            for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                if (imageMap.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
-                                    tab.add(imageMap.getName());
-                                }
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                         }
                     }
                 }
@@ -1535,11 +1152,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if ("refresh".equalsIgnoreCase(args[0])) {
                         tab.add("[url]");
                         if (sender instanceof Player) {
-                            for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                if (imageMap.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
-                                    tab.add(imageMap.getName());
-                                }
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                         }
                     }
                 }
@@ -1564,71 +1177,29 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.rename")) {
                     if ("rename".equalsIgnoreCase(args[0])) {
                         if (sender instanceof Player) {
-                            for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                if (imageMap.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
-                                    tab.add(imageMap.getName());
-                                }
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                         }
                     }
                 }
                 if (sender.hasPermission("imageframe.info")) {
                     if ("info".equalsIgnoreCase(args[0])) {
                         if (sender instanceof Player) {
-                            for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                if (imageMap.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
-                                    tab.add(imageMap.getName());
-                                }
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                         }
                     }
                 }
                 if (sender.hasPermission("imageframe.delete")) {
                     if ("delete".equalsIgnoreCase(args[0])) {
                         if (sender instanceof Player) {
-                            for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                if (imageMap.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
-                                    tab.add(imageMap.getName());
-                                }
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                         }
                     }
                 }
                 if (sender.hasPermission("imageframe.get")) {
                     if ("get".equalsIgnoreCase(args[0])) {
                         if (sender instanceof Player) {
-                            for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                if (imageMap.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
-                                    tab.add(imageMap.getName());
-                                }
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                         }
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminrefresh")) {
-                    if ("adminrefresh".equalsIgnoreCase(args[0])) {
-                        tab.add("[url]");
-                        tab.add("<image-id>");
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminrename")) {
-                    if ("adminrename".equalsIgnoreCase(args[0])) {
-                        tab.add("<image-id>");
-                    }
-                }
-                if (sender.hasPermission("imageframe.admininfo")) {
-                    if ("admininfo".equalsIgnoreCase(args[0])) {
-                        tab.add("<image-id>");
-                    }
-                }
-                if (sender.hasPermission("imageframe.admindelete")) {
-                    if ("admindelete".equalsIgnoreCase(args[0])) {
-                        tab.add("<image-id>");
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminget")) {
-                    if ("adminget".equalsIgnoreCase(args[0])) {
-                        tab.add("<image-id>");
                     }
                 }
                 if (sender.hasPermission("imageframe.marker")) {
@@ -1649,17 +1220,16 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
-                if (sender.hasPermission("imageframe.adminmarker")) {
-                    if ("adminmarker".equalsIgnoreCase(args[0])) {
-                        if ("add".startsWith(args[1].toLowerCase())) {
-                            tab.add("add");
+                if (sender.hasPermission("imageframe.setaccess")) {
+                    if ("setaccess".equalsIgnoreCase(args[0])) {
+                        if (sender instanceof Player) {
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                         }
-                        if ("remove".startsWith(args[1].toLowerCase())) {
-                            tab.add("remove");
-                        }
-                        if ("clear".startsWith(args[1].toLowerCase())) {
-                            tab.add("clear");
-                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.admindelete")) {
+                    if ("admindelete".equalsIgnoreCase(args[0])) {
+                        tab.add("<image-id>");
                     }
                 }
                 if (sender.hasPermission("imageframe.adminsetcreator")) {
@@ -1697,7 +1267,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.refresh")) {
                     if ("refresh".equalsIgnoreCase(args[0])) {
                         if (sender instanceof Player) {
-                            ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId(), args[1]);
+                            ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
                             if (imageMap != null) {
                                 tab.add("[url]");
                             }
@@ -1719,81 +1289,31 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("<new-name>");
                     }
                 }
-                if (sender.hasPermission("imageframe.adminrefresh")) {
-                    if ("adminrefresh".equalsIgnoreCase(args[0])) {
-                        try {
-                            Integer.parseInt(args[1]);
-                            tab.add("[url]");
-                        } catch (NumberFormatException ignore) {
-                        }
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminclone")) {
-                    if ("adminclone".equalsIgnoreCase(args[0])) {
-                        tab.add("<new-name>");
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminget")) {
-                    if ("adminget".equalsIgnoreCase(args[0])) {
-                        for (Player player : Bukkit.getOnlinePlayers()) {
-                            if (player.getName().toLowerCase().startsWith(args[2].toLowerCase())) {
-                                tab.add(player.getName());
-                            }
-                        }
-                        if ("selection".startsWith(args[2].toLowerCase())) {
-                            tab.add("selection");
-                        }
-                        if ("combined".startsWith(args[2].toLowerCase())) {
-                            tab.add("combined");
-                        }
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminrename")) {
-                    if ("adminrename".equalsIgnoreCase(args[0])) {
-                        tab.add("<new-name>");
-                    }
-                }
                 if (sender.hasPermission("imageframe.marker")) {
                     if ("marker".equalsIgnoreCase(args[0])) {
                         if ("add".equalsIgnoreCase(args[1])) {
                             if (sender instanceof Player) {
-                                for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                    if (imageMap.getName().toLowerCase().startsWith(args[2].toLowerCase())) {
-                                        tab.add(imageMap.getName());
-                                    }
-                                }
+                                tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
                             }
                         }
                         if ("remove".equalsIgnoreCase(args[1])) {
                             if (sender instanceof Player) {
-                                for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                    if (imageMap.getName().toLowerCase().startsWith(args[2].toLowerCase())) {
-                                        tab.add(imageMap.getName());
-                                    }
-                                }
+                                tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
                             }
                         }
                         if ("clear".equalsIgnoreCase(args[1])) {
                             if (sender instanceof Player) {
-                                for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                                    if (imageMap.getName().toLowerCase().startsWith(args[2].toLowerCase())) {
-                                        tab.add(imageMap.getName());
-                                    }
-                                }
+                                tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
                             }
                         }
                     }
                 }
-                if (sender.hasPermission("imageframe.adminmarker")) {
-                    if ("adminmarker".equalsIgnoreCase(args[0])) {
-                        if ("add".equalsIgnoreCase(args[1])) {
-                            tab.add("<image-id>");
-                        }
-                        if ("remove".equalsIgnoreCase(args[1])) {
-                            tab.add("<image-id>");
-                        }
-                        if ("clear".equalsIgnoreCase(args[1])) {
-                            tab.add("<image-id>");
+                if (sender.hasPermission("imageframe.setaccess")) {
+                    if ("setaccess".equalsIgnoreCase(args[0])) {
+                        for (Player player : Bukkit.getOnlinePlayers()) {
+                            if (!player.equals(sender) && player.getName().toLowerCase().startsWith(args[2].toLowerCase())) {
+                                tab.add(player.getName());
+                            }
                         }
                     }
                 }
@@ -1842,8 +1362,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         if ("remove".equalsIgnoreCase(args[1])) {
                             if (sender instanceof Player) {
-                                Player player = (Player) sender;
-                                ImageMap imageMap = ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), args[2]);
+                                ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[2]);
                                 if (imageMap != null) {
                                     for (Map<String, MapCursor> map : imageMap.getMapMarkers()) {
                                         for (String name : map.keySet()) {
@@ -1857,35 +1376,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
-                if (sender.hasPermission("imageframe.adminmarker")) {
-                    if ("adminmarker".equalsIgnoreCase(args[0])) {
-                        if ("add".equalsIgnoreCase(args[1])) {
-                            tab.add("<marker-name>");
-                        }
-                        if ("remove".equalsIgnoreCase(args[1])) {
-                            try {
-                                ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(Integer.parseInt(args[2]));
-                                if (imageMap != null) {
-                                    for (Map<String, MapCursor> map : imageMap.getMapMarkers()) {
-                                        for (String name : map.keySet()) {
-                                            if (name.toLowerCase().startsWith(args[3].toLowerCase())) {
-                                                tab.add(name);
-                                            }
-                                        }
-                                    }
-                                }
-                            } catch (NumberFormatException ignore) {
+                if (sender.hasPermission("imageframe.setaccess")) {
+                    if ("setaccess".equalsIgnoreCase(args[0])) {
+                        for (String typeName : ImageMap.ImageMapAccessPermissionType.values().keySet()) {
+                            if (typeName.toLowerCase().startsWith(args[3].toLowerCase())) {
+                                tab.add(typeName);
                             }
                         }
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminclone")) {
-                    if ("adminclone".equalsIgnoreCase(args[0])) {
-                        if ("selection".startsWith(args[3].toLowerCase())) {
-                            tab.add("selection");
-                        }
-                        if ("combined".startsWith(args[3].toLowerCase())) {
-                            tab.add("combined");
+                        if ("NONE".toLowerCase().startsWith(args[3].toLowerCase())) {
+                            tab.add("NONE");
                         }
                     }
                 }
@@ -1900,17 +1399,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.marker")) {
                     if ("marker".equalsIgnoreCase(args[0])) {
-                        if ("add".equalsIgnoreCase(args[1])) {
-                            for (int i = 0; i < 16; i++) {
-                                if (String.valueOf(i).startsWith(args[4])) {
-                                    tab.add(String.valueOf(i));
-                                }
-                            }
-                        }
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminmarker")) {
-                    if ("adminmarker".equalsIgnoreCase(args[0])) {
                         if ("add".equalsIgnoreCase(args[1])) {
                             for (int i = 0; i < 16; i++) {
                                 if (String.valueOf(i).startsWith(args[4])) {
@@ -1940,28 +1428,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
-                if (sender.hasPermission("imageframe.adminmarker")) {
-                    if ("adminmarker".equalsIgnoreCase(args[0])) {
-                        if ("add".equalsIgnoreCase(args[1])) {
-                            for (MapCursor.Type type : MapCursor.Type.values()) {
-                                if (type.name().toLowerCase().startsWith(args[5].toLowerCase())) {
-                                    tab.add(type.name().toLowerCase());
-                                }
-                            }
-                        }
-                    }
-                }
                 return tab;
             default:
                 if (sender.hasPermission("imageframe.marker")) {
                     if ("marker".equalsIgnoreCase(args[0])) {
-                        if ("add".equalsIgnoreCase(args[1])) {
-                            tab.add("[caption]...");
-                        }
-                    }
-                }
-                if (sender.hasPermission("imageframe.adminmarker")) {
-                    if ("adminmarker".equalsIgnoreCase(args[0])) {
                         if ("add".equalsIgnoreCase(args[1])) {
                             tab.add("[caption]...");
                         }

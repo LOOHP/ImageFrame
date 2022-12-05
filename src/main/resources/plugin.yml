@@ -55,30 +55,18 @@ permissions:
   imageframe.get:
     default: true
     description: Allow players to get an image map they've created
-  imageframe.adminrefresh:
-    default: op
-    description: Allow players to refresh image maps
-  imageframe.adminclone:
-    default: op
-    description: Allow players to make deep copies of any image map
-  imageframe.adminrename:
-    default: op
-    description: Allow players to rename image maps of any image id
-  imageframe.admininfo:
-    default: op
-    description: Allow players to view image map data of any image id
-  imageframe.admindelete:
-    default: op
-    description: Allow players to delete any image map with its image id
-  imageframe.adminget:
-    default: op
-    description: Allow players to get any image map with its image id
-  imageframe.adminmarker:
-    default: op
-    description: Allow players to add and remove markers on any image map
+  imageframe.setaccess:
+    default: true
+    description: Allow players to change access permissions of their image maps
+  imageframe.adminbypass:
+    default: true
+    description: Bypass all access restrictions and allow users to use and modify any image map
   imageframe.adminsetcreator:
     default: op
-    description: Allow players to change the creator of any image map
+    description: Allow players to change the creator of any image map via the image map id
+  imageframe.admindelete:
+    default: op
+    description: Allow players to delete any image map via the image map id
   imageframe.adminmigrate:
     default: op
     description: Allow players to migrate maps from supported plugins to ImageFrame

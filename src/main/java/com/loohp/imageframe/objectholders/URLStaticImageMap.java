@@ -44,6 +44,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -78,7 +80,7 @@ public class URLStaticImageMap extends URLImageMap {
                 throw new RuntimeException(e);
             }
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, System.currentTimeMillis());
+        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
         for (int i = 0; i < mapViews.size(); i++) {
             MapView mapView = mapViews.get(i);
             int finalI = i;
@@ -100,6 +102,16 @@ public class URLStaticImageMap extends URLImageMap {
         int height = json.get("height").getAsInt();
         long creationTime = json.get("creationTime").getAsLong();
         UUID creator = UUID.fromString(json.get("creator").getAsString());
+        Map<UUID, ImageMapAccessPermissionType> hasAccess;
+        if (json.has("hasAccess")) {
+            JsonObject accessJson = json.get("hasAccess").getAsJsonObject();
+            hasAccess = new HashMap<>(accessJson.size());
+            for (Map.Entry<String, JsonElement> entry : accessJson.entrySet()) {
+                hasAccess.put(UUID.fromString(entry.getKey()), ImageMapAccessPermissionType.valueOf(entry.getValue().getAsString().toUpperCase()));
+            }
+        } else {
+            hasAccess = Collections.emptyMap();
+        }
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
@@ -134,7 +146,7 @@ public class URLStaticImageMap extends URLImageMap {
         for (Future<MapView> future : mapViewsFuture) {
             mapViews.add(future.get());
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, creationTime);
+        URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
         for (int u = 0; u < mapViews.size(); u++) {
             MapView mapView = mapViews.get(u);
             int finalU = u;
@@ -152,8 +164,8 @@ public class URLStaticImageMap extends URLImageMap {
 
     protected byte[][] cachedColors;
 
-    protected URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
-        super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, creationTime);
+    protected URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+        super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
         cacheColors();
     }
@@ -222,6 +234,11 @@ public class URLStaticImageMap extends URLImageMap {
         json.addProperty("width", width);
         json.addProperty("height", height);
         json.addProperty("creator", creator.toString());
+        JsonObject accessJson = new JsonObject();
+        for (Map.Entry<UUID, ImageMapAccessPermissionType> entry : hasAccess.entrySet()) {
+            accessJson.addProperty(entry.getKey().toString(), entry.getValue().name());
+        }
+        json.add("hasAccess", accessJson);
         json.addProperty("creationTime", creationTime);
         JsonArray mapDataJson = new JsonArray();
         for (int i = 0; i < mapViews.size(); i++) {

@@ -26,6 +26,7 @@ import com.loohp.imageframe.listeners.Events;
 import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
 import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
+import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
@@ -35,6 +36,7 @@ import com.loohp.imageframe.utils.MCVersion;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -43,6 +45,7 @@ import javax.imageio.spi.IIORegistry;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,8 +71,8 @@ public class ImageFrame extends JavaPlugin {
     public static String messageImageMapDeleted;
     public static String messageImageMapRenamed;
     public static String messageImageMapUpdated;
-    public static String messageNotCreator;
     public static String messageUnableToLoadMap;
+    public static String messageUnknownError;
     public static String messageImageOverMaxFileSize;
     public static String messageNotAnImageMap;
     public static List<String> messageURLImageMapInfo;
@@ -77,6 +80,9 @@ public class ImageFrame extends JavaPlugin {
     public static String messageNoConsole;
     public static String messageInvalidUsage;
     public static String messageNotEnoughSpace;
+    public static String messageAccessUpdated;
+    public static Map<ImageMap.ImageMapAccessPermissionType, String> messageAccessTypes;
+    public static String messageAccessNoneType;
     public static String messageNotEnoughMaps;
     public static String messageURLRestricted;
     public static String messagePlayerCreationLimitReached;
@@ -152,6 +158,19 @@ public class ImageFrame extends JavaPlugin {
         return limit;
     }
 
+    public static boolean hasImageMapPermission(ImageMap imageMap, CommandSender sender, ImageMap.ImageMapAccessPermissionType permissionType) {
+        if (permissionType == null) {
+            return true;
+        }
+        if (sender.hasPermission("imageframe.adminbypass")) {
+            return true;
+        }
+        if (!(sender instanceof Player)) {
+            return false;
+        }
+        return imageMap.hasPermission(((Player) sender).getUniqueId(), permissionType);
+    }
+
     @Override
     public void onEnable() {
         plugin = this;
@@ -223,8 +242,8 @@ public class ImageFrame extends JavaPlugin {
         messageImageMapDeleted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
         messageImageMapRenamed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRenamed"));
         messageImageMapUpdated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapUpdated"));
-        messageNotCreator = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotCreator"));
         messageUnableToLoadMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
+        messageUnknownError = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnknownError"));
         messageImageOverMaxFileSize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageOverMaxFileSize"));
         messageNotAnImageMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
         messageURLImageMapInfo = config.getConfiguration().getStringList("Messages.URLImageMapInfo").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
@@ -232,6 +251,12 @@ public class ImageFrame extends JavaPlugin {
         messageNoConsole = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoConsole"));
         messageInvalidUsage = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidUsage"));
         messageNotEnoughSpace = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughSpace"));
+        messageAccessUpdated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.AccessPermission.Updated"));
+        messageAccessTypes = new HashMap<>();
+        for (ImageMap.ImageMapAccessPermissionType type : ImageMap.ImageMapAccessPermissionType.values().values()) {
+            messageAccessTypes.put(type, ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.AccessPermission.Types." + type.name())));
+        }
+        messageAccessNoneType = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.AccessPermission.Types.NONE"));
         messageNotEnoughMaps = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughMaps"));
         messageURLRestricted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.URLRestricted"));
         messagePlayerCreationLimitReached = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.PlayerCreationLimitReached"));

@@ -6,8 +6,8 @@ Messages:
   ImageMapRenamed: "&aImageMap had been renamed!"
   ImageMapUpdated: "&aImageMap had been updated!"
   InvalidOverlayMap: "&cOverlay only works on Vanilla Minecraft maps and without duplicates in selection!"
-  NotCreator: "&cYou did not create that ImageMap"
   UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image."
+  UnknownError: "&cAn unknown error had occurred."
   ImageOverMaxFileSize: "&cImageMap cannot be loaded as it is over the max file size allowed. ({Size} bytes)"
   NotAnImageMap: "&cThat is not an ImageMap"
   URLImageMapInfo:
@@ -15,6 +15,7 @@ Messages:
     - "&aName: {Name}"
     - "&eMap Size: {Width} x {Height}"
     - "&dCreator: {CreatorName} ({CreatorUUID})"
+    - "&fAccess: {Access}"
     - "&aTime Created: {TimeCreated}"
     - "&bMarkers: {Markers}"
     - "&eURL: {URL}"
@@ -29,6 +30,15 @@ Messages:
   MapLookup: "&bList of image maps by {CreatorName} ({CreatorUUID}):"
   ItemFrameOccupied: "&cFailed to place or remove some maps on selected ItemFrame, they are either destroyed, replaced, occupied or protected."
   NotEnoughSpace: "&cUnable to place Combined ImageMap as there is not enough room."
+  AccessPermission:
+    Updated: "&aUpdated access for {PlayerName} ({PlayerUUID}), they now have {Permission} permission."
+    Types:
+      NONE: "NONE"
+      GET: "GET"
+      MARKER: "MARKER"
+      EDIT: "EDIT"
+      EDIT_CLONE: "EDIT WITH CLONE"
+      ALL: "ALL"
   Selection:
     Begin: "&bRight click an Item Frame to select corner 1 and 2"
     Clear: "&eLeaving selection mode"

@@ -44,6 +44,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -52,8 +53,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -83,11 +86,12 @@ public abstract class ImageMap {
     protected final int width;
     protected final int height;
     protected UUID creator;
+    protected Map<UUID, ImageMapAccessPermissionType> hasAccess;
     protected final long creationTime;
 
     private boolean isValid;
 
-    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, long creationTime) {
+    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         if (mapViews.size() != width * height) {
             throw new IllegalArgumentException("mapViews size does not equal width * height");
         }
@@ -106,9 +110,12 @@ public abstract class ImageMap {
         this.width = width;
         this.height = height;
         this.creator = creator;
+        this.hasAccess = new ConcurrentHashMap<>(hasAccess);
         this.creationTime = creationTime;
 
         this.isValid = true;
+
+        this.hasAccess.remove(creator);
     }
 
     public ImageMapManager getManager() {
@@ -328,6 +335,44 @@ public abstract class ImageMap {
 
     public void changeCreator(UUID creator) throws Exception {
         this.creator = creator;
+        hasAccess.remove(creator);
+        save();
+    }
+
+    public ImageMapAccessPermissionType getPermission(UUID player) {
+        if (player.equals(creator)) {
+            return ImageMapAccessPermissionType.ALL;
+        }
+        return hasAccess.get(player);
+    }
+
+    public Map<UUID, ImageMapAccessPermissionType> getPermissions() {
+        return Collections.unmodifiableMap(hasAccess);
+    }
+
+    public boolean hasPermission(UUID player, ImageMapAccessPermissionType permissionType) {
+        if (permissionType == null) {
+            return true;
+        }
+        if (player.equals(creator)) {
+            return true;
+        }
+        ImageMapAccessPermissionType type = hasAccess.get(player);
+        if (type == null) {
+            return false;
+        }
+        return type.containsPermission(permissionType);
+    }
+
+    public void setPermission(UUID player, ImageMapAccessPermissionType permissionType) throws Exception {
+        if (player.equals(creator)) {
+            return;
+        }
+        if (permissionType == null) {
+            hasAccess.remove(player);
+        } else {
+            hasAccess.put(player, permissionType);
+        }
         save();
     }
 
@@ -404,6 +449,91 @@ public abstract class ImageMap {
 
         public abstract MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player);
 
+    }
+
+    public static class ImageMapAccessPermissionType {
+
+        public static final ImageMapAccessPermissionType GET = new ImageMapAccessPermissionType("GET");
+        public static final ImageMapAccessPermissionType MARKER = new ImageMapAccessPermissionType("MARKER", GET);
+        public static final ImageMapAccessPermissionType EDIT = new ImageMapAccessPermissionType("EDIT", MARKER);
+        public static final ImageMapAccessPermissionType EDIT_CLONE = new ImageMapAccessPermissionType("EDIT_CLONE", EDIT);
+        public static final ImageMapAccessPermissionType ALL = new ImageMapAccessPermissionType("ALL", EDIT_CLONE);
+
+        /**
+         * Special case type: All registered ImageMapAccessPermissionTypes inherits this
+         */
+        public static final ImageMapAccessPermissionType BASE = new ImageMapAccessPermissionType("BASE") {
+            @Override
+            public boolean containsPermission(ImageMapAccessPermissionType type) {
+                return TYPES.containsKey(type.name());
+            }
+        };
+
+        private static final Map<String, ImageMapAccessPermissionType> TYPES = new HashMap<>();
+
+        static {
+            register(GET);
+            register(MARKER);
+            register(EDIT);
+            register(EDIT_CLONE);
+            register(ALL);
+        }
+
+        public static void register(ImageMapAccessPermissionType type) {
+            TYPES.put(type.name(), type);
+        }
+
+        public static ImageMapAccessPermissionType valueOf(String name) {
+            ImageMapAccessPermissionType type = TYPES.get(name);
+            if (type != null) {
+                return type;
+            }
+            throw new IllegalArgumentException(name + " is not a registered ImageMapAccessPermissionType");
+        }
+
+        public static Map<String, ImageMapAccessPermissionType> values() {
+            return Collections.unmodifiableMap(TYPES);
+        }
+
+        private final String name;
+        private final Set<ImageMapAccessPermissionType> inheritance;
+
+        public ImageMapAccessPermissionType(String name, ImageMapAccessPermissionType... inheritance) {
+            if (name == null) {
+                throw new IllegalArgumentException("name cannot be null");
+            }
+            this.name = name;
+            this.inheritance = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(inheritance)));
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public boolean containsPermission(ImageMapAccessPermissionType type) {
+            if (this.equals(type)) {
+                return true;
+            }
+            for (ImageMapAccessPermissionType inheritedType : inheritance) {
+                if (!inheritedType.equals(this) && inheritedType.containsPermission(type)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ImageMapAccessPermissionType type = (ImageMapAccessPermissionType) o;
+            return name.equals(type.name) && inheritance.equals(type.inheritance);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, inheritance);
+        }
     }
 
 }
