@@ -45,7 +45,6 @@ import javax.imageio.spi.IIORegistry;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +69,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageImageMapRefreshed;
     public static String messageImageMapDeleted;
     public static String messageImageMapRenamed;
-    public static String messageImageMapUpdated;
+    public static String messageSetCreator;
     public static String messageUnableToLoadMap;
     public static String messageUnknownError;
     public static String messageImageOverMaxFileSize;
@@ -241,7 +240,7 @@ public class ImageFrame extends JavaPlugin {
         messageImageMapRefreshed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
         messageImageMapDeleted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
         messageImageMapRenamed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRenamed"));
-        messageImageMapUpdated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapUpdated"));
+        messageSetCreator = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.SetCreator"));
         messageUnableToLoadMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
         messageUnknownError = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnknownError"));
         messageImageOverMaxFileSize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageOverMaxFileSize"));

@@ -940,7 +940,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 try {
                                     OfflinePlayer player = Bukkit.getOfflinePlayer(args[2]);
                                     imageMap.changeCreator(player.getUniqueId());
-                                    sender.sendMessage(ImageFrame.messageImageMapUpdated);
+                                    sender.sendMessage(ImageFrame.messageSetCreator
+                                            .replace("{ImageID}", imageMap.getImageIndex() + "")
+                                            .replace("{CreatorName}", imageMap.getCreatorName())
+                                            .replace("{CreatorUUID}", imageMap.getCreator().toString()));
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
