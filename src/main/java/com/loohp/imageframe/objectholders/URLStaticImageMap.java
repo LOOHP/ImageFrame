@@ -203,7 +203,7 @@ public class URLStaticImageMap extends URLImageMap {
     public void update(boolean save) throws Exception {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(HTTPRequestUtils.download(url)));
         if (image == null) {
-            throw new RuntimeException("Unable to read image");
+            throw new RuntimeException("Unable to read or download image, does this url directly links to an image? (" + url + ")");
         }
         image = MapUtils.resize(image, width, height);
         int i = 0;
