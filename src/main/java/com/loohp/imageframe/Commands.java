@@ -179,9 +179,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                     ImageMap imageMap;
                                     if (imageType.equals("image/gif") && player.hasPermission("imageframe.create.animated")) {
-                                        imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId());
+                                        imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId()).get();
                                     } else {
-                                        imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId());
+                                        imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId()).get();
                                     }
                                     ImageFrame.imageMapManager.addMap(imageMap);
                                     if (combined) {
@@ -293,7 +293,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                             Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
                                 try {
-                                    ImageMap imageMap = MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, args[1], args[2], mapViews, width, height, player.getUniqueId());
+                                    ImageMap imageMap = MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, args[1], args[2], mapViews, width, height, player.getUniqueId()).get();
                                     ImageFrame.imageMapManager.addMap(imageMap);
                                     sender.sendMessage(ImageFrame.messageImageMapCreated);
                                 } catch (Exception e) {

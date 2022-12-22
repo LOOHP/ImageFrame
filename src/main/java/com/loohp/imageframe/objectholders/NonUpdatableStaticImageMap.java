@@ -54,11 +54,11 @@ import java.util.concurrent.Future;
 
 public class NonUpdatableStaticImageMap extends ImageMap {
 
-    public static NonUpdatableStaticImageMap create(ImageMapManager manager, String name, BufferedImage[] images, int width, int height, UUID creator) throws Exception {
+    public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, int width, int height, UUID creator) throws Exception {
         return create(manager, name, images, null, width, height, creator);
     }
 
-    public static NonUpdatableStaticImageMap create(ImageMapManager manager, String name, BufferedImage[] images, List<Integer> mapIds, int width, int height, UUID creator) throws Exception {
+    public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, List<Integer> mapIds, int width, int height, UUID creator) throws Exception {
         World world = Bukkit.getWorlds().get(0);
         int mapsCount = width * height;
         if (images.length != mapsCount) {
@@ -91,17 +91,18 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             }
         }
         NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, -1, name, images, mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
-        for (int i = 0; i < mapViews.size(); i++) {
-            MapView mapView = mapViews.get(i);
-            int finalI = i;
-            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, finalI)));
-        }
-        map.update(false);
-        return map;
+        return MapUtils.callSyncMethod(() -> {
+            for (int i = 0; i < mapViews.size(); i++) {
+                MapView mapView = mapViews.get(i);
+                mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, i));
+            }
+            map.update(false);
+            return map;
+        });
     }
 
     @SuppressWarnings("unused")
-    public static NonUpdatableStaticImageMap load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
+    public static Future<? extends NonUpdatableStaticImageMap> load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
         if (!json.get("type").getAsString().equals(NonUpdatableStaticImageMap.class.getName())) {
             throw new IllegalArgumentException("invalid type");
         }
@@ -156,17 +157,16 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             mapViews.add(future.get());
         }
         NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, imageIndex, name, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
-        for (int u = 0; u < mapViews.size(); u++) {
-            MapView mapView = mapViews.get(u);
-            int finalU = u;
-            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+        return MapUtils.callSyncMethod(() -> {
+            for (int u = 0; u < mapViews.size(); u++) {
+                MapView mapView = mapViews.get(u);
                 for (MapRenderer renderer : mapView.getRenderers()) {
                     mapView.removeRenderer(renderer);
                 }
-                mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, finalU));
-            });
-        }
-        return map;
+                mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, u));
+            }
+            return map;
+        });
     }
 
     protected final BufferedImage[] cachedImages;
@@ -204,7 +204,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             g.dispose();
             images[i] = newImage;
         }
-        NonUpdatableStaticImageMap imageMap = create(manager, name, images, width, height, creator);
+        NonUpdatableStaticImageMap imageMap = create(manager, name, images, width, height, creator).get();
         List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
         int i = 0;
         for (Map<String, MapCursor> map : getMapMarkers()) {

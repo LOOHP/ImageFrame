@@ -55,7 +55,7 @@ import java.util.concurrent.Future;
 
 public class URLStaticImageMap extends URLImageMap {
 
-    public static URLStaticImageMap create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
+    public static Future<? extends URLStaticImageMap> create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
         World world = Bukkit.getWorlds().get(0);
         int mapsCount = width * height;
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapsCount);
@@ -81,17 +81,17 @@ public class URLStaticImageMap extends URLImageMap {
             }
         }
         URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
-        for (int i = 0; i < mapViews.size(); i++) {
-            MapView mapView = mapViews.get(i);
-            int finalI = i;
-            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> mapView.addRenderer(new URLStaticImageMapRenderer(map, finalI)));
-        }
-        map.update(false);
-        return map;
+        return MapUtils.callSyncMethod(() -> {
+            for (int i = 0; i < mapViews.size(); i++) {
+                mapViews.get(i).addRenderer(new URLStaticImageMapRenderer(map, i));
+            }
+            map.update(false);
+            return map;
+        });
     }
 
     @SuppressWarnings("unused")
-    public static URLStaticImageMap load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
+    public static Future<? extends URLStaticImageMap> load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
         if (!json.get("type").getAsString().equals(URLStaticImageMap.class.getName())) {
             throw new IllegalArgumentException("invalid type");
         }
@@ -147,17 +147,16 @@ public class URLStaticImageMap extends URLImageMap {
             mapViews.add(future.get());
         }
         URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
-        for (int u = 0; u < mapViews.size(); u++) {
-            MapView mapView = mapViews.get(u);
-            int finalU = u;
-            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+        return MapUtils.callSyncMethod(() -> {
+            for (int u = 0; u < mapViews.size(); u++) {
+                MapView mapView = mapViews.get(u);
                 for (MapRenderer renderer : mapView.getRenderers()) {
                     mapView.removeRenderer(renderer);
                 }
-                mapView.addRenderer(new URLStaticImageMapRenderer(map, finalU));
-            });
-        }
-        return map;
+                mapView.addRenderer(new URLStaticImageMapRenderer(map, u));
+            }
+            return map;
+        });
     }
 
     protected final BufferedImage[] cachedImages;
@@ -186,7 +185,7 @@ public class URLStaticImageMap extends URLImageMap {
 
     @Override
     public ImageMap deepClone(String name, UUID creator) throws Exception {
-        URLStaticImageMap imageMap = create(manager, name, url, width, height, creator);
+        URLStaticImageMap imageMap = create(manager, name, url, width, height, creator).get();
         List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
         int i = 0;
         for (Map<String, MapCursor> map : getMapMarkers()) {

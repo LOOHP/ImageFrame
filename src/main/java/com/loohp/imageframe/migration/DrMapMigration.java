@@ -54,7 +54,7 @@ public class DrMapMigration {
                 BufferedImage[] images = new BufferedImage[] {ImageIO.read(file)};
                 int mapId = Integer.parseInt(file.getName().substring(0, file.getName().lastIndexOf(".")));
                 String name = "DrMap_" + mapId;
-                NonUpdatableStaticImageMap imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, owner);
+                NonUpdatableStaticImageMap imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, owner).get();
                 ImageFrame.imageMapManager.addMap(imageMap);
                 Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Migrated DrMap " + file.getName() + " to " + name);
             } catch (Exception e) {

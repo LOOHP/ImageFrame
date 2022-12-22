@@ -99,11 +99,11 @@ public class ImageOnMapMigration {
                         }
                         NonUpdatableStaticImageMap imageMap;
                         if (ImageFrame.imageMapManager.getFromCreator(owner, name) == null) {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, mapIds, width, height, owner);
+                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, mapIds, width, height, owner).get();
                         } else if (ImageFrame.imageMapManager.getFromCreator(owner, iomId) == null) {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, iomId, images, mapIds, width, height, owner);
+                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, iomId, images, mapIds, width, height, owner).get();
                         } else {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, "ImageOnMap-" + iomId, images, mapIds, width, height, owner);
+                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, "ImageOnMap-" + iomId, images, mapIds, width, height, owner).get();
                         }
                         ImageFrame.imageMapManager.addMap(imageMap);
                         Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Migrated ImageOnMap " + file.getName() + " to " + name + " of " + owner);

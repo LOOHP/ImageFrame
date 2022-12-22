@@ -46,7 +46,7 @@ import java.util.concurrent.Future;
 
 public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
 
-    public static MinecraftURLOverlayImageMap create(ImageMapManager manager, String name, String url, List<MapView> mapViews, int width, int height, UUID creator) throws Exception {
+    public static Future<? extends MinecraftURLOverlayImageMap> create(ImageMapManager manager, String name, String url, List<MapView> mapViews, int width, int height, UUID creator) throws Exception {
         int mapsCount = width * height;
         List<Integer> mapIds = new ArrayList<>(mapsCount);
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapsCount);
@@ -61,16 +61,18 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             markers.add(new ConcurrentHashMap<>());
         }
         MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
-        for (int i = 0; i < mapViews.size(); i++) {
-            MapView mapView = mapViews.get(i);
-            mapView.addRenderer(new MinecraftURLOverlayImageMapRenderer(map, i));
-        }
-        map.update(false);
-        return map;
+        return MapUtils.callSyncMethod(() -> {
+            for (int i = 0; i < mapViews.size(); i++) {
+                MapView mapView = mapViews.get(i);
+                mapView.addRenderer(new MinecraftURLOverlayImageMapRenderer(map, i));
+            }
+            map.update(false);
+            return map;
+        });
     }
 
     @SuppressWarnings("unused")
-    public static MinecraftURLOverlayImageMap load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
+    public static Future<? extends MinecraftURLOverlayImageMap> load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
         if (!json.get("type").getAsString().equals(MinecraftURLOverlayImageMap.class.getName())) {
             throw new IllegalArgumentException("invalid type");
         }
@@ -126,16 +128,18 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             mapViews.add(future.get());
         }
         MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
-        for (int u = 0; u < mapViews.size(); u++) {
-            MapView mapView = mapViews.get(u);
-            for (MapRenderer mapRenderer : mapView.getRenderers()) {
-                if (mapRenderer.getClass().getName().equals(MinecraftURLOverlayImageMapRenderer.class.getName())) {
-                    mapView.removeRenderer(mapRenderer);
+        return MapUtils.callSyncMethod(() -> {
+            for (int u = 0; u < mapViews.size(); u++) {
+                MapView mapView = mapViews.get(u);
+                for (MapRenderer mapRenderer : mapView.getRenderers()) {
+                    if (mapRenderer.getClass().getName().equals(MinecraftURLOverlayImageMapRenderer.class.getName())) {
+                        mapView.removeRenderer(mapRenderer);
+                    }
                 }
+                mapView.addRenderer(new MinecraftURLOverlayImageMapRenderer(map, u));
             }
-            mapView.addRenderer(new MinecraftURLOverlayImageMapRenderer(map, u));
-        }
-        return map;
+            return map;
+        });
     }
 
     protected MinecraftURLOverlayImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
@@ -144,7 +148,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
 
     @Override
     public ImageMap deepClone(String name, UUID creator) throws Exception {
-        MinecraftURLOverlayImageMap imageMap = create(manager, name, url, mapViews, width, height, creator);
+        MinecraftURLOverlayImageMap imageMap = create(manager, name, url, mapViews, width, height, creator).get();
         List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
         int i = 0;
         for (Map<String, MapCursor> map : getMapMarkers()) {

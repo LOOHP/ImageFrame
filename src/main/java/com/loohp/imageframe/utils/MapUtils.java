@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
@@ -132,6 +133,19 @@ public class MapUtils {
         } catch (ReflectiveOperationException e) {
             e.printStackTrace();
         }
+    }
+
+    public static <T> Future<T> callSyncMethod(Callable<T> task) {
+        if (Bukkit.isPrimaryThread()) {
+            try {
+                return CompletableFuture.completedFuture(task.call());
+            } catch (Exception e) {
+                CompletableFuture<T> future = new CompletableFuture<>();
+                future.completeExceptionally(e);
+                return future;
+            }
+        }
+        return Bukkit.getScheduler().callSyncMethod(ImageFrame.plugin, task);
     }
 
     public static void sendImageMap(MapView mapView, Collection<? extends Player> players) {
