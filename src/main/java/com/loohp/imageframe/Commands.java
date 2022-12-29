@@ -962,19 +962,21 @@ public class Commands implements CommandExecutor, TabCompleter {
         } else if (args[0].equalsIgnoreCase("adminmigrate")) {
             if (sender.hasPermission("imageframe.adminmigrate")) {
                 if (args.length > 1) {
-                    if (args[1].equalsIgnoreCase("DrMap")) {
-                        if (sender instanceof Player) {
+                    Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                        if (args[1].equalsIgnoreCase("DrMap")) {
+                            if (sender instanceof Player) {
+                                sender.sendMessage(ChatColor.YELLOW + "Migration has begun, see console for progress, completion and errors");
+                                DrMapMigration.migrate(((Player) sender).getUniqueId());
+                            } else {
+                                sender.sendMessage(ImageFrame.messageNoConsole);
+                            }
+                        } else if (args[1].equalsIgnoreCase("ImageOnMap")) {
                             sender.sendMessage(ChatColor.YELLOW + "Migration has begun, see console for progress, completion and errors");
-                            DrMapMigration.migrate(((Player) sender).getUniqueId());
+                            ImageOnMapMigration.migrate();
                         } else {
-                            sender.sendMessage(ImageFrame.messageNoConsole);
+                            sender.sendMessage(args[1] + " is not a supported plugin for migration");
                         }
-                    } else if (args[1].equalsIgnoreCase("ImageOnMap")) {
-                        sender.sendMessage(ChatColor.YELLOW + "Migration has begun, see console for progress, completion and errors");
-                        ImageOnMapMigration.migrate();
-                    } else {
-                        sender.sendMessage(args[1] + " is not a supported plugin for migration");
-                    }
+                    });
                 } else {
                     sender.sendMessage(ImageFrame.messageInvalidUsage);
                 }

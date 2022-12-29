@@ -57,6 +57,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -68,11 +69,12 @@ public abstract class ImageMap {
     public static final String UNKNOWN_CREATOR_NAME = "???";
     public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
-    public static ImageMap load(ImageMapManager manager, File folder) throws Exception {
+    @SuppressWarnings("unchecked")
+    public static Future<? extends ImageMap> load(ImageMapManager manager, File folder) throws Exception {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(new File(folder, "data.json").toPath()), StandardCharsets.UTF_8))) {
             JsonObject json = GSON.fromJson(reader, JsonObject.class);
             String type = json.get("type").getAsString();
-            return (ImageMap) Class.forName(type).getMethod("load", ImageMapManager.class, File.class, JsonObject.class).invoke(null, manager, folder, json);
+            return (Future<? extends ImageMap>) Class.forName(type).getMethod("load", ImageMapManager.class, File.class, JsonObject.class).invoke(null, manager, folder, json);
         }
     }
 

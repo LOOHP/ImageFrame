@@ -135,17 +135,8 @@ public class MapUtils {
         }
     }
 
-    public static <T> Future<T> callSyncMethod(Callable<T> task) {
-        if (Bukkit.isPrimaryThread()) {
-            try {
-                return CompletableFuture.completedFuture(task.call());
-            } catch (Exception e) {
-                CompletableFuture<T> future = new CompletableFuture<>();
-                future.completeExceptionally(e);
-                return future;
-            }
-        }
-        return Bukkit.getScheduler().callSyncMethod(ImageFrame.plugin, task);
+    public static World getMainWorld() {
+        return Bukkit.getWorlds().get(0);
     }
 
     public static void sendImageMap(MapView mapView, Collection<? extends Player> players) {

@@ -22,8 +22,10 @@ package com.loohp.imageframe.migration;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.NonUpdatableStaticImageMap;
+import com.loohp.imageframe.utils.MapUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -49,10 +51,15 @@ public class DrMapMigration {
             Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] DrMap plugin data folder not found");
             return;
         }
+        World world = MapUtils.getMainWorld();
         for (File file : folder.listFiles()) {
             try {
                 BufferedImage[] images = new BufferedImage[] {ImageIO.read(file)};
                 int mapId = Integer.parseInt(file.getName().substring(0, file.getName().lastIndexOf(".")));
+                if (MapUtils.getMap(mapId).get() == null) {
+                    Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + "[ImageFrame] Changed a mapId of DrMap " + file.getName() + " as it could not be found on the server, you might need to redistribute this ImageMap to players and item frames.");
+                    mapId = MapUtils.createMap(world).get().getId();
+                }
                 String name = "DrMap_" + mapId;
                 NonUpdatableStaticImageMap imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, owner).get();
                 ImageFrame.imageMapManager.addMap(imageMap);

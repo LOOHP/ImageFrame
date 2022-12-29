@@ -50,12 +50,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -134,8 +136,13 @@ public class ImageMapManager implements AutoCloseable {
         } else {
             mapIndexCounter.updateAndGet(i -> Math.max(imageIndex + 1, i));
         }
-        maps.put(map.getImageIndex(), map);
-        map.save();
+        maps.put(imageIndex, map);
+        try {
+            map.save();
+        } catch (Throwable e) {
+            maps.remove(imageIndex);
+            throw e;
+        }
     }
 
     public boolean hasMap(int imageIndex) {
@@ -207,15 +214,14 @@ public class ImageMapManager implements AutoCloseable {
     public synchronized void loadMaps() {
         maps.clear();
         dataFolder.mkdirs();
-        int count = 0;
         File[] files = dataFolder.listFiles();
         Arrays.sort(files, FileUtils.BY_NUMBER_THAN_STRING);
+        List<MutablePair<File, Future<? extends ImageMap>>> futures = new LinkedList<>();
         for (File file : files) {
             if (file.isDirectory()) {
                 Bukkit.getConsoleSender().sendMessage(ChatColor.GRAY + "[ImageFrame] Loading ImageMap ID " + file.getName());
                 try {
-                    addMap(ImageMap.load(this, file));
-                    count++;
+                    futures.add(new MutablePair<>(file, ImageMap.load(this, file)));
                 } catch (Throwable e) {
                     Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to load ImageMap data in " + file.getAbsolutePath());
                     e.printStackTrace();
@@ -248,7 +254,19 @@ public class ImageMapManager implements AutoCloseable {
                 }
             }
         }
-        Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Data loading completed! Loaded " + count + " ImageMaps!");
+        Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+            int count = 0;
+            for (MutablePair<File, Future<? extends ImageMap>> pair : futures) {
+                try {
+                    addMap(pair.getSecond().get());
+                    count++;
+                } catch (Throwable e) {
+                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to load ImageMap data in " + pair.getFirst().getAbsolutePath());
+                    e.printStackTrace();
+                }
+            }
+            Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Data loading completed! Loaded " + count + " ImageMaps!");
+        });
     }
 
     public synchronized void saveDeletedMaps() {

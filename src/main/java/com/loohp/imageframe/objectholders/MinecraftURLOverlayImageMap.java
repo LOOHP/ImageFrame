@@ -23,7 +23,10 @@ package com.loohp.imageframe.objectholders;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.MapUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapCursor;
@@ -61,11 +64,12 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             markers.add(new ConcurrentHashMap<>());
         }
         MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
-        return MapUtils.callSyncMethod(() -> {
-            for (int i = 0; i < mapViews.size(); i++) {
-                MapView mapView = mapViews.get(i);
-                mapView.addRenderer(new MinecraftURLOverlayImageMapRenderer(map, i));
-            }
+        return FutureUtils.callAsyncMethod(() -> {
+            FutureUtils.callSyncMethod(() -> {
+                for (int i = 0; i < mapViews.size(); i++) {
+                    mapViews.get(i).addRenderer(new MinecraftURLOverlayImageMapRenderer(map, i));
+                }
+            }).get();
             map.update(false);
             return map;
         });
@@ -128,7 +132,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             mapViews.add(future.get());
         }
         MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
-        return MapUtils.callSyncMethod(() -> {
+        return FutureUtils.callSyncMethod(() -> {
             for (int u = 0; u < mapViews.size(); u++) {
                 MapView mapView = mapViews.get(u);
                 for (MapRenderer mapRenderer : mapView.getRenderers()) {

@@ -24,6 +24,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -59,7 +60,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
     }
 
     public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, List<Integer> mapIds, int width, int height, UUID creator) throws Exception {
-        World world = Bukkit.getWorlds().get(0);
+        World world = MapUtils.getMainWorld();
         int mapsCount = width * height;
         if (images.length != mapsCount) {
             throw new IllegalArgumentException("images length not the same as width * height");
@@ -91,11 +92,12 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             }
         }
         NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, -1, name, images, mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
-        return MapUtils.callSyncMethod(() -> {
-            for (int i = 0; i < mapViews.size(); i++) {
-                MapView mapView = mapViews.get(i);
-                mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, i));
-            }
+        return FutureUtils.callAsyncMethod(() -> {
+            FutureUtils.callSyncMethod(() -> {
+                for (int i = 0; i < mapViews.size(); i++) {
+                    mapViews.get(i).addRenderer(new NonUpdatableStaticImageMapRenderer(map, i));
+                }
+            }).get();
             map.update(false);
             return map;
         });
@@ -157,7 +159,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             mapViews.add(future.get());
         }
         NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, imageIndex, name, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
-        return MapUtils.callSyncMethod(() -> {
+        return FutureUtils.callSyncMethod(() -> {
             for (int u = 0; u < mapViews.size(); u++) {
                 MapView mapView = mapViews.get(u);
                 for (MapRenderer renderer : mapView.getRenderers()) {
