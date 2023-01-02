@@ -130,17 +130,17 @@ public class ImageMapManager implements AutoCloseable {
         if (getFromCreator(map.getCreator(), map.getName()) != null) {
             throw new IllegalArgumentException("Duplicated map name for this creator");
         }
-        int imageIndex = map.getImageIndex();
-        if (imageIndex < 0) {
+        int originalImageIndex = map.getImageIndex();
+        if (originalImageIndex < 0) {
             map.imageIndex = mapIndexCounter.getAndIncrement();
         } else {
-            mapIndexCounter.updateAndGet(i -> Math.max(imageIndex + 1, i));
+            mapIndexCounter.updateAndGet(i -> Math.max(originalImageIndex + 1, i));
         }
-        maps.put(imageIndex, map);
+        maps.put(map.getImageIndex(), map);
         try {
             map.save();
         } catch (Throwable e) {
-            maps.remove(imageIndex);
+            maps.remove(originalImageIndex);
             throw e;
         }
     }
