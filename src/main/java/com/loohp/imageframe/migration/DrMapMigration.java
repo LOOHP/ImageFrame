@@ -41,12 +41,12 @@ public class DrMapMigration {
             Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] DrMap must be disabled for migration to begin");
             return;
         }
-        File migrationMarker = new File(Bukkit.getWorldContainer() + "/plugins/DrMap/imageframe-migrated.bin");
+        File migrationMarker = new File(ImageFrame.plugin.getDataFolder().getParent() + "/DrMap/imageframe-migrated.bin");
         if (migrationMarker.exists()) {
             Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + "[ImageFrame] DrMap data already marked as migrated");
             return;
         }
-        File folder = new File(Bukkit.getWorldContainer() + "/plugins/DrMap/images");
+        File folder = new File(ImageFrame.plugin.getDataFolder().getParent() + "/DrMap/images");
         if (!folder.exists() || !folder.isDirectory()) {
             Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] DrMap plugin data folder not found");
             return;

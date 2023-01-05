@@ -46,18 +46,18 @@ public class ImageOnMapMigration {
             Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageOnMap must be disabled for migration to begin");
             return;
         }
-        File migrationMarker = new File(Bukkit.getWorldContainer() + "/plugins/ImageOnMap/imageframe-migrated.bin");
+        File migrationMarker = new File(ImageFrame.plugin.getDataFolder().getParent() + "/ImageOnMap/imageframe-migrated.bin");
         if (migrationMarker.exists()) {
             Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + "[ImageFrame] ImageOnMap data already marked as migrated");
             return;
         }
-        File userFolder = new File(Bukkit.getWorldContainer() + "/plugins/ImageOnMap/maps");
+        File userFolder = new File(ImageFrame.plugin.getDataFolder().getParent() + "/ImageOnMap/maps");
         if (!userFolder.exists() || !userFolder.isDirectory()) {
             Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageOnMap plugin data folder not found");
             return;
         }
         World world = MapUtils.getMainWorld();
-        File imageFolder = new File(Bukkit.getWorldContainer() + "/plugins/ImageOnMap/images");
+        File imageFolder = new File(ImageFrame.plugin.getDataFolder().getParent() + "/ImageOnMap/images");
         for (File file : userFolder.listFiles()) {
             String fileNameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf("."));
             UUID owner;
