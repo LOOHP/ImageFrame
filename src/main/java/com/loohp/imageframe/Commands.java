@@ -178,7 +178,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         imageType = imageType.trim();
                                     }
                                     ImageMap imageMap;
-                                    if (imageType.equals("image/gif") && player.hasPermission("imageframe.create.animated")) {
+                                    if (imageType.equals(MapUtils.GIF_CONTENT_TYPE) && player.hasPermission("imageframe.create.animated")) {
                                         imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId()).get();
                                     } else {
                                         imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, args[1], url, width, height, player.getUniqueId()).get();

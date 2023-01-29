@@ -45,6 +45,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -166,6 +167,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     protected final BufferedImage[][] cachedImages;
 
     protected byte[][][] cachedColors;
+    protected boolean[][] cachedDifferenceFromLastFrame;
 
     protected URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[][] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
@@ -189,6 +191,17 @@ public class URLAnimatedImageMap extends URLImageMap {
             for (BufferedImage image : images) {
                 data[u++] = MapPalette.imageToBytes(image);
             }
+        }
+        cachedDifferenceFromLastFrame = new boolean[cachedColors.length][];
+        for (int u = 0; u < cachedColors.length; u++) {
+            byte[][] colors = cachedColors[u];
+            boolean[] array = new boolean[colors.length];
+            for (int localTick = 0; localTick < colors.length; localTick++) {
+                byte[] currentColors = colors[localTick];
+                byte[] lastColor = colors[localTick == 0 ? colors.length - 1 : localTick - 1];
+                array[localTick] = Arrays.equals(currentColors, lastColor);
+            }
+            cachedDifferenceFromLastFrame[u] = array;
         }
     }
 
@@ -238,6 +251,18 @@ public class URLAnimatedImageMap extends URLImageMap {
             return null;
         }
         return colors[currentTick % colors.length];
+    }
+
+    @Override
+    public boolean isAnimationColorsSameAsLast(int currentTick, int index) {
+        if (cachedDifferenceFromLastFrame == null) {
+            return true;
+        }
+        boolean[] array = cachedDifferenceFromLastFrame[index];
+        if (array == null) {
+            return true;
+        }
+        return array[currentTick % array.length];
     }
 
     @Override
@@ -326,7 +351,8 @@ public class URLAnimatedImageMap extends URLImageMap {
 
         @Override
         public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
-            byte[] colors = parent.getRawAnimationColors(parent.getManager().getCurrentAnimationTick(), index);
+            int currentTick = parent.getManager().getCurrentAnimationTick();
+            byte[] colors = parent.isAnimationColorsSameAsLast(currentTick, index) ? null : parent.getRawAnimationColors(currentTick, index);
             Collection<MapCursor> cursors = parent.getMapMarkers().get(index).values();
             return new MutablePair<>(colors, cursors);
         }

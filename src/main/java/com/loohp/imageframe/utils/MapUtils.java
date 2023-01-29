@@ -65,7 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
@@ -74,6 +73,7 @@ public class MapUtils {
     public static final int MAP_WIDTH = 128;
     public static final int COLOR_ARRAY_LENGTH = 16384;
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    public static final String GIF_CONTENT_TYPE = "image/gif";
     public static final List<BlockFace> CARTESIAN_BLOCK_FACES = Collections.unmodifiableList(Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN));
 
     private static Class<?> craftMapViewClass;
