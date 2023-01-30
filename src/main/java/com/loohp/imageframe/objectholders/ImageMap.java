@@ -165,10 +165,6 @@ public abstract class ImageMap {
         throw new UnsupportedOperationException("this map does not requires animation");
     }
 
-    public boolean isAnimationColorsSameAsLast(int currentTick, int index) {
-        throw new UnsupportedOperationException("this map does not requires animation");
-    }
-
     public boolean trackDeletedMaps() {
         return true;
     }
