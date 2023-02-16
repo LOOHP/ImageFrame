@@ -24,6 +24,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.GifReader;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
@@ -49,8 +50,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -167,6 +170,8 @@ public class URLAnimatedImageMap extends URLImageMap {
     protected final BufferedImage[][] cachedImages;
 
     protected byte[][][] cachedColors;
+    protected int[][] fakeMapIds;
+    protected Set<Integer> fakeMapIdsSet;
 
     protected URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[][] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
@@ -182,20 +187,29 @@ public class URLAnimatedImageMap extends URLImageMap {
             return;
         }
         cachedColors = new byte[cachedImages.length][][];
+        fakeMapIds = new int[cachedColors.length][];
+        fakeMapIdsSet = new HashSet<>();
         int i = 0;
         for (BufferedImage[] images : cachedImages) {
             byte[][] data = new byte[images.length][];
+            int[] madIds = new int[data.length];
+            Arrays.fill(madIds, -1);
             int u = 0;
             byte[] lastDistinctFrame = null;
             for (BufferedImage image : images) {
                 byte[] b = MapPalette.imageToBytes(image);
                 if (u == 0 || !Arrays.equals(b, lastDistinctFrame)) {
                     data[u] = b;
+                    int mapId = ImageMapManager.getNextFakeMapId();
+                    madIds[u] = mapId;
+                    fakeMapIdsSet.add(mapId);
                     lastDistinctFrame = b;
                 }
                 u++;
             }
-            cachedColors[i++] = data;
+            cachedColors[i] = data;
+            fakeMapIds[i] = madIds;
+            i++;
         }
     }
 
@@ -225,6 +239,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             index++;
         }
         cacheColors();
+        Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(this));
         if (save) {
             save();
         }
@@ -245,6 +260,44 @@ public class URLAnimatedImageMap extends URLImageMap {
             return null;
         }
         return colors[currentTick % colors.length];
+    }
+
+    @Override
+    public int getAnimationFakeMapId(int currentTick, int index) {
+        if (fakeMapIds == null) {
+            return -1;
+        }
+        int[] mapIds = fakeMapIds[index];
+        if (mapIds == null) {
+            return -1;
+        }
+        return mapIds[currentTick % mapIds.length];
+    }
+
+    @Override
+    public void sendAnimationFakeMaps(Collection<? extends Player> players, MapPacketSentCallback completionCallback) {
+        int length = getSequenceLength();
+        for (int currentTick = 0; currentTick < length; currentTick++) {
+            for (int index = 0; index < fakeMapIds.length; index++) {
+                int[] mapIds = fakeMapIds[index];
+                if (currentTick < mapIds.length) {
+                    int mapId = mapIds[currentTick];
+                    if (mapId >= 0) {
+                        MapUtils.sendImageMap(mapId, mapViews.get(index), currentTick, players, completionCallback);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public Set<Integer> getFakeMapIds() {
+        return fakeMapIdsSet;
+    }
+
+    @Override
+    public int getSequenceLength() {
+        return cachedImages[0].length;
     }
 
     @Override
@@ -332,11 +385,15 @@ public class URLAnimatedImageMap extends URLImageMap {
         }
 
         @Override
-        public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
-            int currentTick = parent.getManager().getCurrentAnimationTick();
+        public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, int currentTick, Player player) {
             byte[] colors = parent.getRawAnimationColors(currentTick, index);
             Collection<MapCursor> cursors = parent.getMapMarkers().get(index).values();
             return new MutablePair<>(colors, cursors);
+        }
+
+        @Override
+        public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
+            return renderMap(mapView, parent.getManager().getCurrentAnimationTick(), player);
         }
     }
 

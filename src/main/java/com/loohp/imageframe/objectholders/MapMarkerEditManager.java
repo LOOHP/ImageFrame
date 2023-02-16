@@ -21,6 +21,7 @@
 package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -130,9 +131,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             editData.setCurrentTargetMap(mapView);
             editData.getMapCursor().setX((byte) target.getX());
             editData.getMapCursor().setY((byte) target.getY());
-            if (!imageMap.requiresAnimationService()) {
-                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> imageMap.send(imageMap.getViewers()));
-            }
+            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> imageMap.send(imageMap.getViewers()));
         }
     }
 
@@ -142,6 +141,10 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
 
     public boolean isActiveEditing(Player player) {
         return activeEditing.containsKey(player);
+    }
+
+    public MapMarkerEditData getActiveEditing(Player player) {
+        return activeEditing.get(player);
     }
 
     public MapMarkerEditData leaveActiveEditing(Player player) {
@@ -210,8 +213,9 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
                 } else {
                     MapCursor mapCursor = editData.getMapCursor();
                     markers.put(editData.getName(), mapCursor);
-                    imageMap.save();
+                    Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(imageMap));
                     imageMap.send(imageMap.getViewers());
+                    imageMap.save();
                     player.sendMessage(ImageFrame.messageMarkersAddConfirm);
                 }
             } catch (Exception e) {
@@ -250,7 +254,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             return currentTargetMap;
         }
 
-        public void setCurrentTargetMap(MapView currentTargetMap) {
+        protected void setCurrentTargetMap(MapView currentTargetMap) {
             this.currentTargetMap = currentTargetMap;
         }
 

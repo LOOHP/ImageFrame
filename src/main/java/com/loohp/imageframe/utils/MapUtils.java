@@ -26,6 +26,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.imageframe.objectholders.MapPacketSentCallback;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.objectholders.Point2D;
 import org.bukkit.Bukkit;
@@ -67,6 +68,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class MapUtils {
 
@@ -140,6 +143,18 @@ public class MapUtils {
     }
 
     public static void sendImageMap(MapView mapView, Collection<? extends Player> players) {
+        sendImageMap(mapView.getId(), mapView, -1, players, null);
+    }
+
+    public static void sendImageMap(MapView mapView, Collection<? extends Player> players, MapPacketSentCallback completionCallback) {
+        sendImageMap(mapView.getId(), mapView, -1, players);
+    }
+
+    public static void sendImageMap(int mapId, MapView mapView, int currentTick, Collection<? extends Player> players) {
+        sendImageMap(mapId, mapView, currentTick, players, null);
+    }
+
+    public static void sendImageMap(int mapId, MapView mapView, int currentTick, Collection<? extends Player> players, MapPacketSentCallback completionCallback) {
         List<MapRenderer> renderers = mapView.getRenderers();
         if (renderers.isEmpty()) {
             throw new IllegalArgumentException("mapView is not from an image map");
@@ -149,16 +164,15 @@ public class MapUtils {
             throw new IllegalArgumentException("mapView is not from an image map");
         }
         ImageMap.ImageMapRenderer imageMapManager = (ImageMap.ImageMapRenderer) optMapRenderer.get();
-
         for (Player player : players) {
             try {
-                MutablePair<byte[], Collection<MapCursor>> renderData = imageMapManager.renderPacketData(mapView, player);
+                MutablePair<byte[], Collection<MapCursor>> renderData = currentTick < 0 ? imageMapManager.renderPacketData(mapView, player) : imageMapManager.renderPacketData(mapView, currentTick, player);
                 byte[] colors = renderData.getFirst();
                 Collection<MapCursor> cursors = renderData.getSecond();
 
                 PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.MAP);
                 if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
-                    packet.getIntegers().write(0, mapView.getId());
+                    packet.getIntegers().write(0, mapId);
                     packet.getBytes().write(0, (byte) 0);
                     packet.getBooleans().write(0, false);
                     if (cursors == null) {
@@ -176,7 +190,7 @@ public class MapUtils {
                         packet.getModifier().write(4, nmsWorldMapBClassConstructor.newInstance(0, 0, 128, 128, colors));
                     }
                 } else {
-                    packet.getIntegers().write(0, mapView.getId());
+                    packet.getIntegers().write(0, mapId);
                     packet.getBytes().write(0, (byte) 0);
                     packet.getBooleans().write(0, false);
                     packet.getBooleans().write(1, false);
@@ -202,7 +216,7 @@ public class MapUtils {
                         packet.getByteArrays().write(0, colors);
                     }
                 }
-                ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
+                ImageFrame.rateLimitedPacketSendingManager.queue(player, packet, completionCallback == null ? null : (p, r) -> completionCallback.accept(p, mapId, r));
             } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
                 e.printStackTrace();
             }

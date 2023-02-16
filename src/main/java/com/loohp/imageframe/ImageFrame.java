@@ -25,11 +25,13 @@ import com.loohp.imageframe.debug.Debug;
 import com.loohp.imageframe.listeners.Events;
 import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
+import com.loohp.imageframe.objectholders.AnimatedFakeMapManager;
 import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
+import com.loohp.imageframe.objectholders.RateLimitedPacketSendingManager;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.MCVersion;
@@ -120,6 +122,8 @@ public class ImageFrame extends JavaPlugin {
     public static int mapMarkerLimit;
     public static long maxImageFileSize;
 
+    public static int rateLimit;
+
     public static String combinedMapItemNameFormat;
     public static List<String> combinedMapItemLoreFormat;
 
@@ -127,6 +131,8 @@ public class ImageFrame extends JavaPlugin {
     public static ItemFrameSelectionManager itemFrameSelectionManager;
     public static MapMarkerEditManager mapMarkerEditManager;
     public static CombinedMapItemHandler combinedMapItemHandler;
+    public static AnimatedFakeMapManager animatedFakeMapManager;
+    public static RateLimitedPacketSendingManager rateLimitedPacketSendingManager;
 
     public static boolean isURLAllowed(String url) {
         if (!restrictImageUrlEnabled) {
@@ -208,6 +214,8 @@ public class ImageFrame extends JavaPlugin {
         itemFrameSelectionManager = new ItemFrameSelectionManager();
         mapMarkerEditManager = new MapMarkerEditManager();
         combinedMapItemHandler = new CombinedMapItemHandler();
+        animatedFakeMapManager = new AnimatedFakeMapManager();
+        rateLimitedPacketSendingManager = new RateLimitedPacketSendingManager();
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
@@ -298,6 +306,8 @@ public class ImageFrame extends JavaPlugin {
         maxImageFileSize = config.getConfiguration().getLong("Settings.MaxImageFileSize");
         combinedMapItemNameFormat = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Settings.CombinedMapItem.Name"));
         combinedMapItemLoreFormat = config.getConfiguration().getStringList("Settings.CombinedMapItem.Lore").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
+
+        rateLimit = config.getConfiguration().getInt("Settings.MapPacketSendingRateLimit");
 
         if (updaterTaskID >= 0) {
             Bukkit.getScheduler().cancelTask(updaterTaskID);

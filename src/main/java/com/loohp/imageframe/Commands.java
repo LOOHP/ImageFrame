@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe;
 
+import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.migration.DrMapMigration;
 import com.loohp.imageframe.migration.ImageOnMapMigration;
 import com.loohp.imageframe.objectholders.ImageMap;
@@ -493,8 +494,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (map.remove(args[3]) != null) {
                                                 try {
                                                     sender.sendMessage(ImageFrame.messageMarkersRemove);
-                                                    imageMap.save();
+                                                    Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(imageMap));
                                                     imageMap.send(imageMap.getViewers());
+                                                    imageMap.save();
                                                 } catch (Exception e) {
                                                     e.printStackTrace();
                                                 }
@@ -517,8 +519,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         try {
                                             imageMap.getMapMarkers().forEach(each -> each.clear());
                                             sender.sendMessage(ImageFrame.messageMarkersClear);
-                                            imageMap.save();
+                                            Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(imageMap));
                                             imageMap.send(imageMap.getViewers());
+                                            imageMap.save();
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }

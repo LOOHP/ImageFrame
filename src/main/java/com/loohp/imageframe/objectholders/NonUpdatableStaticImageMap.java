@@ -24,6 +24,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
@@ -222,6 +223,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
     @Override
     public void update(boolean save) throws Exception {
         cacheColors();
+        Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(this));
         send(getViewers());
         if (save) {
             save();

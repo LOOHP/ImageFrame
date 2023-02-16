@@ -65,8 +65,16 @@ public class ImageMapManager implements AutoCloseable {
 
     public static byte WHITE_PIXEL = MapPalette.matchColor(255, 255, 255);
     public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
+    public static final int FAKE_MAP_ID_START_RANGE = Integer.MAX_VALUE / 4 * 3;
+
+    private static final AtomicInteger FAKE_MAP_ID_COUNTER = new AtomicInteger(FAKE_MAP_ID_START_RANGE);
+
+    public static int getNextFakeMapId() {
+        return FAKE_MAP_ID_COUNTER.getAndUpdate(i -> i < FAKE_MAP_ID_START_RANGE ? FAKE_MAP_ID_START_RANGE : i + 1);
+    }
 
     private final Map<Integer, ImageMap> maps;
+    private final Map<MapView, ImageMap> mapsByView;
     private final AtomicInteger mapIndexCounter;
     private final File dataFolder;
     private final AtomicInteger tickCounter;
@@ -76,25 +84,17 @@ public class ImageMapManager implements AutoCloseable {
 
     public ImageMapManager(File dataFolder) {
         this.maps = new ConcurrentHashMap<>();
+        this.mapsByView = new ConcurrentHashMap<>();
         this.mapIndexCounter = new AtomicInteger(0);
         this.dataFolder = dataFolder;
         this.tickCounter = new AtomicInteger(0);
         this.renderEventListeners = new CopyOnWriteArrayList<>();
         this.deletedMapIds = ConcurrentHashMap.newKeySet();
-        this.taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(ImageFrame.plugin, () -> animationTask(), 0, 1).getTaskId();
+        this.taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(ImageFrame.plugin, () -> tickCounter.incrementAndGet(), 0, 1).getTaskId();
     }
 
     public File getDataFolder() {
         return dataFolder;
-    }
-
-    private void animationTask() {
-        tickCounter.incrementAndGet();
-        for (ImageMap imageMap : maps.values()) {
-            if (imageMap.requiresAnimationService()) {
-                imageMap.send(imageMap.getViewers());
-            }
-        }
     }
 
     public int getCurrentAnimationTick() {
@@ -137,10 +137,16 @@ public class ImageMapManager implements AutoCloseable {
             mapIndexCounter.updateAndGet(i -> Math.max(originalImageIndex + 1, i));
         }
         maps.put(map.getImageIndex(), map);
+        for (MapView mapView : map.getMapViews()) {
+            mapsByView.put(mapView, map);
+        }
         try {
             map.save();
         } catch (Throwable e) {
             maps.remove(originalImageIndex);
+            for (MapView mapView : map.getMapViews()) {
+                mapsByView.remove(mapView);
+            }
             throw e;
         }
     }
@@ -162,7 +168,7 @@ public class ImageMapManager implements AutoCloseable {
     }
 
     public ImageMap getFromMapView(MapView mapView) {
-        return maps.values().stream().filter(each -> each.getMapViews().contains(mapView)).findFirst().orElse(null);
+        return mapsByView.get(mapView);
     }
 
     public Set<ImageMap> getFromCreator(UUID uuid) {
@@ -183,6 +189,9 @@ public class ImageMapManager implements AutoCloseable {
             return;
         }
         List<MapView> mapViews = imageMap.getMapViews();
+        for (MapView mapView : mapViews) {
+            mapsByView.remove(mapView);
+        }
         if (imageMap.trackDeletedMaps()) {
             mapViews.forEach(each -> deletedMapIds.add(each.getId()));
         }
@@ -213,6 +222,7 @@ public class ImageMapManager implements AutoCloseable {
 
     public synchronized void loadMaps() {
         maps.clear();
+        mapsByView.clear();
         dataFolder.mkdirs();
         File[] files = dataFolder.listFiles();
         Arrays.sort(files, FileUtils.BY_NUMBER_THAN_STRING);

@@ -104,6 +104,11 @@ Settings:
       - "&7ImageID: {ImageID}"
       - "&7Creator: {CreatorName} ({CreatorUUID})"
       - "&7Time Created: {TimeCreated}"
+  #How many map packets can be sent to a player in 1/20 of a second
+  #You can turn this down if you are facing network issues
+  #However maps might take longer to show to a player
+  #To disable the rate limit, set to -1
+  MapPacketSendingRateLimit: -1
 
 #Enable update notifications for admins
 Updater: true

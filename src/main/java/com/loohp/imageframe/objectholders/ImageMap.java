@@ -161,7 +161,23 @@ public abstract class ImageMap {
         return false;
     }
 
+    public int getSequenceLength() {
+        return 1;
+    }
+
     public byte[] getRawAnimationColors(int currentTick, int index) {
+        throw new UnsupportedOperationException("this map does not requires animation");
+    }
+
+    public int getAnimationFakeMapId(int currentTick, int index) {
+        throw new UnsupportedOperationException("this map does not requires animation");
+    }
+
+    public void sendAnimationFakeMaps(Collection<? extends Player> players, MapPacketSentCallback completionCallback) {
+        throw new UnsupportedOperationException("this map does not requires animation");
+    }
+
+    public Set<Integer> getFakeMapIds() {
         throw new UnsupportedOperationException("this map does not requires animation");
     }
 
@@ -443,10 +459,20 @@ public abstract class ImageMap {
             canvas.setCursors(MapUtils.toMapCursorCollection(renderData.getSecond()));
         }
 
+        public MutablePair<byte[], Collection<MapCursor>> renderPacketData(MapView mapView, int currentTick, Player player) {
+            MutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, currentTick, player);
+            manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
+            return renderData;
+        }
+
         public MutablePair<byte[], Collection<MapCursor>> renderPacketData(MapView mapView, Player player) {
             MutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
             manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
             return renderData;
+        }
+
+        public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, int currentTick, Player player) {
+            return renderMap(mapView, player);
         }
 
         public abstract MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player);
