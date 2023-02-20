@@ -36,7 +36,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -48,6 +50,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
 
+import java.util.Collection;
 import java.util.function.IntFunction;
 
 public class Events implements Listener {
@@ -62,9 +65,16 @@ public class Events implements Listener {
             }
         }
 
+        boolean isClickingTop = event.getView().getTopInventory().equals(event.getClickedInventory());
+        boolean isClickingBottom = event.getView().getBottomInventory().equals(event.getClickedInventory());
+
         Inventory inventory = event.getView().getTopInventory();
         if (inventory.getType().equals(InventoryType.WORKBENCH)) {
-            if (containsCombinedMaps(i -> event.getView().getItem(i), 10)) {
+            if ((isClickingTop && isCombinedMaps(event.getCursor()))
+                    || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
+                    || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
+                    || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
+                    || containsCombinedMaps(i -> event.getView().getItem(i), 10)) {
                 event.setResult(Event.Result.DENY);
             } else if (event.getRawSlot() == 0) {
                 ItemStack map = event.getView().getItem(5);
@@ -90,7 +100,11 @@ public class Events implements Listener {
                 }
             }
         } else if (inventory.getType().equals(InventoryType.CARTOGRAPHY)) {
-            if (containsCombinedMaps(i -> event.getView().getItem(i), 3)) {
+            if ((isClickingTop && isCombinedMaps(event.getCursor()))
+                    || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
+                    || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
+                    || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
+                    || containsCombinedMaps(i -> event.getView().getItem(i), 3)) {
                 event.setResult(Event.Result.DENY);
             } else if (event.getRawSlot() == 2) {
                 ItemStack map = event.getView().getItem(0);
@@ -112,14 +126,34 @@ public class Events implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onDrag(InventoryDragEvent event) {
+        Inventory inventory = event.getView().getTopInventory();
+        int size = inventory.getSize();
+        if (inventory.getType().equals(InventoryType.WORKBENCH) || inventory.getType().equals(InventoryType.CARTOGRAPHY)) {
+            if (containsCombinedMaps(event.getNewItems().values()) && event.getNewItems().keySet().stream().anyMatch(i -> i < size)) {
+                event.setResult(Event.Result.DENY);
+            }
+        }
+    }
+
     public boolean containsCombinedMaps(IntFunction<ItemStack> slotAccess, int size) {
         for (int i = 0; i < size; i++) {
             ItemStack itemStack = slotAccess.apply(i);
-            if (itemStack != null && itemStack.getType().equals(Material.PAPER)) {
-                if (NBTEditor.contains(itemStack, CombinedMapItemHandler.COMBINED_MAP_KEY)) {
-                    return true;
-                }
+            if (isCombinedMaps(itemStack)) {
+                return true;
             }
+        }
+        return false;
+    }
+
+    public boolean containsCombinedMaps(Collection<ItemStack> itemStacks) {
+        return itemStacks.stream().anyMatch(itemStack -> isCombinedMaps(itemStack));
+    }
+
+    public boolean isCombinedMaps(ItemStack itemStack) {
+        if (itemStack != null && itemStack.getType().equals(Material.PAPER)) {
+            return NBTEditor.contains(itemStack, CombinedMapItemHandler.COMBINED_MAP_KEY);
         }
         return false;
     }
