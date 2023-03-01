@@ -21,6 +21,7 @@ Messages:
     - "&eURL: {URL}"
   NoPermission: "&cYou do not have permission to do that!"
   NoConsole: "&cThis command can only be ran by players!"
+  PlayerNotFound: "&cThis player cannot be found!"
   InvalidUsage: "&cInvalid Usage!"
   NotEnoughMaps: "&cYou do not have {Amount} maps!"
   Oversize: "&cThat is too big! Max size for a map is {MaxSize}"

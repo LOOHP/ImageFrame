@@ -80,6 +80,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageNoPermission;
     public static String messageNoConsole;
     public static String messageInvalidUsage;
+    public static String messagePlayerNotFound;
     public static String messageNotEnoughSpace;
     public static String messageAccessUpdated;
     public static Map<ImageMap.ImageMapAccessPermissionType, String> messageAccessTypes;
@@ -257,6 +258,7 @@ public class ImageFrame extends JavaPlugin {
         messageNoPermission = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoPermission"));
         messageNoConsole = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoConsole"));
         messageInvalidUsage = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidUsage"));
+        messagePlayerNotFound = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.PlayerNotFound"));
         messageNotEnoughSpace = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughSpace"));
         messageAccessUpdated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.AccessPermission.Updated"));
         messageAccessTypes = new HashMap<>();
