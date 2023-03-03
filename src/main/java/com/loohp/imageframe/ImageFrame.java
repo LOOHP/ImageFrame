@@ -210,6 +210,7 @@ public class ImageFrame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new Debug(), this);
         getServer().getPluginManager().registerEvents(new Updater(), this);
         getServer().getPluginManager().registerEvents(new Events(), this);
+        getServer().getPluginManager().registerEvents(new Events.ModernEvents(), this);
 
         imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
         itemFrameSelectionManager = new ItemFrameSelectionManager();

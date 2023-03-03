@@ -39,6 +39,7 @@ import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
@@ -66,6 +67,7 @@ public class AnimatedFakeMapManager implements Listener {
         this.pendingKnownMapIds = new ConcurrentHashMap<>();
         Bukkit.getScheduler().runTaskTimer(ImageFrame.plugin, () -> tick(), 0, 1);
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
+        Bukkit.getPluginManager().registerEvents(new ModernEvents(), ImageFrame.plugin);
         for (World world : Bukkit.getWorlds()) {
             for (Entity entity : world.getEntities()) {
                 handleEntity(entity);
@@ -219,8 +221,8 @@ public class AnimatedFakeMapManager implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onEntityLoad(EntitiesLoadEvent event) {
-        for (Entity entity : event.getEntities()) {
+    public void onChunkLoad(ChunkLoadEvent event) {
+        for (Entity entity : event.getChunk().getEntities()) {
             handleEntity(entity);
         }
     }
@@ -280,6 +282,17 @@ public class AnimatedFakeMapManager implements Listener {
                 pendingKnownIds.removeAll(ids);
             }
         });
+    }
+
+    public class ModernEvents implements Listener {
+
+        @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+        public void onEntityLoad(EntitiesLoadEvent event) {
+            for (Entity entity : event.getEntities()) {
+                handleEntity(entity);
+            }
+        }
+
     }
 
     public static class AnimationData {

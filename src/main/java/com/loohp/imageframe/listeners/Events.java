@@ -43,6 +43,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
@@ -240,8 +241,8 @@ public class Events implements Listener {
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
-    public void onEntityLoad(EntitiesLoadEvent event) {
-        for (Entity entity : event.getEntities()) {
+    public void onChunkLoad(ChunkLoadEvent event) {
+        for (Entity entity : event.getChunk().getEntities()) {
             if (entity instanceof ItemFrame) {
                 ItemFrame itemFrame = (ItemFrame) entity;
                 ItemStack itemStack = itemFrame.getItem();
@@ -253,6 +254,26 @@ public class Events implements Listener {
                 }
             }
         }
+    }
+
+    public static class ModernEvents implements Listener {
+
+        @EventHandler(priority = EventPriority.NORMAL)
+        public void onEntityLoad(EntitiesLoadEvent event) {
+            for (Entity entity : event.getEntities()) {
+                if (entity instanceof ItemFrame) {
+                    ItemFrame itemFrame = (ItemFrame) entity;
+                    ItemStack itemStack = itemFrame.getItem();
+                    MapView mapView = MapUtils.getItemMapView(itemStack);
+                    if (mapView != null) {
+                        if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
+                            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false));
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
 }

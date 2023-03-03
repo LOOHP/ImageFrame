@@ -68,8 +68,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 public class MapUtils {
 
