@@ -144,15 +144,31 @@ public class MapUtils {
         sendImageMap(mapView.getId(), mapView, -1, players, null);
     }
 
+    public static void sendImageMap(MapView mapView, Collection<? extends Player> players, boolean now) {
+        sendImageMap(mapView.getId(), mapView, -1, players, null, now);
+    }
+
     public static void sendImageMap(MapView mapView, Collection<? extends Player> players, MapPacketSentCallback completionCallback) {
         sendImageMap(mapView.getId(), mapView, -1, players);
+    }
+
+    public static void sendImageMap(MapView mapView, Collection<? extends Player> players, MapPacketSentCallback completionCallback, boolean now) {
+        sendImageMap(mapView.getId(), mapView, -1, players, now);
     }
 
     public static void sendImageMap(int mapId, MapView mapView, int currentTick, Collection<? extends Player> players) {
         sendImageMap(mapId, mapView, currentTick, players, null);
     }
 
+    public static void sendImageMap(int mapId, MapView mapView, int currentTick, Collection<? extends Player> players, boolean now) {
+        sendImageMap(mapId, mapView, currentTick, players, null, now);
+    }
+
     public static void sendImageMap(int mapId, MapView mapView, int currentTick, Collection<? extends Player> players, MapPacketSentCallback completionCallback) {
+        sendImageMap(mapId, mapView, currentTick, players, completionCallback, false);
+    }
+
+    public static void sendImageMap(int mapId, MapView mapView, int currentTick, Collection<? extends Player> players, MapPacketSentCallback completionCallback, boolean now) {
         List<MapRenderer> renderers = mapView.getRenderers();
         if (renderers.isEmpty()) {
             throw new IllegalArgumentException("mapView is not from an image map");
@@ -214,7 +230,14 @@ public class MapUtils {
                         packet.getByteArrays().write(0, colors);
                     }
                 }
-                ImageFrame.rateLimitedPacketSendingManager.queue(player, packet, completionCallback == null ? null : (p, r) -> completionCallback.accept(p, mapId, r));
+                if (now) {
+                    ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
+                    if (completionCallback != null) {
+                        completionCallback.accept(player, mapId, true);
+                    }
+                } else {
+                    ImageFrame.rateLimitedPacketSendingManager.queue(player, packet, completionCallback == null ? null : (p, r) -> completionCallback.accept(p, mapId, r));
+                }
             } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
                 e.printStackTrace();
             }

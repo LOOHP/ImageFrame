@@ -6,6 +6,7 @@ prefix: ImageFrame
 authors: [LOOHP]
 description: Put images on maps and walls!
 depend: [ProtocolLib]
+softdepend: [ViaVersion]
 
 commands:
   imageframe:

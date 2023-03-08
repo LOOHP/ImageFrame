@@ -30,6 +30,7 @@ import com.loohp.imageframe.ImageFrame;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.map.MapView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -108,10 +109,14 @@ public class FakeItemUtils {
 
         private final ItemFrame itemFrame;
         private final ItemStack itemStack;
+        private final int realMapId;
+        private final MapView mapView;
 
-        public ItemFrameUpdateData(ItemFrame itemFrame, ItemStack itemStack) {
+        public ItemFrameUpdateData(ItemFrame itemFrame, ItemStack itemStack, int realMapId, MapView mapView) {
             this.itemFrame = itemFrame;
             this.itemStack = itemStack;
+            this.realMapId = realMapId;
+            this.mapView = mapView;
         }
 
         public ItemFrame getItemFrame() {
@@ -120,6 +125,14 @@ public class FakeItemUtils {
 
         public ItemStack getItemStack() {
             return itemStack;
+        }
+
+        public int getRealMapId() {
+            return realMapId;
+        }
+
+        public MapView getMapView() {
+            return mapView;
         }
     }
 

@@ -23,6 +23,7 @@ package com.loohp.imageframe.objectholders;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
+import com.loohp.imageframe.hooks.viaversion.ViaHook;
 import com.loohp.imageframe.utils.FakeItemUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
@@ -46,6 +47,7 @@ import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -159,14 +161,24 @@ public class AnimatedFakeMapManager implements Listener {
                     });
                 }
                 if (!needReset.isEmpty()) {
-                    FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, itemFrame.getItem());
+                    FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, itemFrame.getItem(), mapView.getId(), mapView);
                     needReset.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
                 }
-                FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, getMapItem(mapId));
+                FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, getMapItem(mapId), mapView.getId(), mapView);
                 players.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
             }
             for (Map.Entry<Player, List<FakeItemUtils.ItemFrameUpdateData>> entry : updateData.entrySet()) {
-                FakeItemUtils.sendFakeItemChange(entry.getKey(), entry.getValue());
+                Player player = entry.getKey();
+                if (ImageFrame.viaHook && ViaHook.isPlayerLegacy(player)) {
+                    if (!ImageFrame.viaDisableSmoothAnimationForLegacyPlayers) {
+                        List<FakeItemUtils.ItemFrameUpdateData> list = entry.getValue();
+                        for (FakeItemUtils.ItemFrameUpdateData data : list) {
+                            MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), currentTick, Collections.singleton(player), true);
+                        }
+                    }
+                } else {
+                    FakeItemUtils.sendFakeItemChange(player, entry.getValue());
+                }
             }
         });
         for (Player player : Bukkit.getOnlinePlayers()) {

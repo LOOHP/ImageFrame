@@ -6,7 +6,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>1.7.1.0</version>
+    <version>1.7.1.1</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -193,12 +193,22 @@
             <url>https://repo.dmulloy2.net/nexus/repository/public/</url>
         </repository>
         <repository>
+            <id>viaversion-repo</id>
+            <url>https://repo.viaversion.com</url>
+        </repository>
+        <repository>
             <id>loohp-repo</id>
             <url>https://repo.loohpjames.com/repository</url>
         </repository>
     </repositories>
 
     <dependencies>
+        <dependency>
+            <groupId>com.viaversion</groupId>
+            <artifactId>viaversion-api</artifactId>
+            <version>4.5.1</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>me.carleslc.Simple-YAML</groupId>
             <artifactId>Simple-Yaml</artifactId>

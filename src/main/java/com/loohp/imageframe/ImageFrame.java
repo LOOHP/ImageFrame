@@ -40,6 +40,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.imageio.ImageIO;
@@ -62,6 +63,9 @@ public class ImageFrame extends JavaPlugin {
     public static MCVersion version;
 
     public Metrics metrics;
+
+    public static boolean viaHook = false;
+    public static boolean viaDisableSmoothAnimationForLegacyPlayers = false;
 
     public static boolean updaterEnabled;
     public static int updaterTaskID = -1;
@@ -177,6 +181,15 @@ public class ImageFrame extends JavaPlugin {
         return imageMap.hasPermission(((Player) sender).getUniqueId(), permissionType);
     }
 
+    public static boolean isPluginEnabled(String name) {
+        return isPluginEnabled(name, true);
+    }
+
+    public static boolean isPluginEnabled(String name, boolean checkRunning) {
+        Plugin plugin = Bukkit.getPluginManager().getPlugin(name);
+        return plugin != null && (!checkRunning || plugin.isEnabled());
+    }
+
     @Override
     public void onEnable() {
         plugin = this;
@@ -206,6 +219,11 @@ public class ImageFrame extends JavaPlugin {
         reloadConfig();
 
         getCommand("imageframe").setExecutor(new Commands());
+
+        if (isPluginEnabled("ViaVersion")) {
+            getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "[ImageFrame] ImageFrame has hooked into ViaVersion!");
+            viaHook = true;
+        }
 
         getServer().getPluginManager().registerEvents(new Debug(), this);
         getServer().getPluginManager().registerEvents(new Updater(), this);
@@ -244,6 +262,8 @@ public class ImageFrame extends JavaPlugin {
     public void reloadConfig() {
         Config config = Config.getConfig(CONFIG_ID);
         config.reload();
+
+        viaDisableSmoothAnimationForLegacyPlayers = config.getConfiguration().getBoolean("Hooks.ViaVersion.DisableSmoothAnimationForLegacyPlayers");
 
         messageReloaded = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Reloaded"));
         messageImageMapCreated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapCreated"));
