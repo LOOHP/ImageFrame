@@ -836,7 +836,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             selection = null;
                         }
                         Player player;
-                        if (sender.hasPermission("imageframe.get.others")) {
+                        if (selection == null && sender.hasPermission("imageframe.get.others")) {
                             int pos = combined ? 3 : 2;
                             if (args.length > pos) {
                                 player = Bukkit.getPlayer(args[pos]);
@@ -1393,10 +1393,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.get")) {
                     if ("get".equalsIgnoreCase(args[0])) {
-                        if (sender.hasPermission("imageframe.get.others")) {
-                            for (Player player : Bukkit.getOnlinePlayers()) {
-                                if (player.getName().toLowerCase().startsWith(args[3].toLowerCase())) {
-                                    tab.add(player.getName());
+                        if (args[2].equalsIgnoreCase("combined")) {
+                            if (sender.hasPermission("imageframe.get.others")) {
+                                for (Player player : Bukkit.getOnlinePlayers()) {
+                                    if (player.getName().toLowerCase().startsWith(args[3].toLowerCase())) {
+                                        tab.add(player.getName());
+                                    }
                                 }
                             }
                         }
