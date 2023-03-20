@@ -45,19 +45,10 @@ public class FakeItemUtils {
             PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.ENTITY_METADATA);
             packet.getIntegers().write(0, itemFrameUpdateData.getItemFrame().getEntityId());
             WrappedDataWatcher watcher = new WrappedDataWatcher();
-            switch (ImageFrame.version) {
-                case V1_19_3:
-                case V1_19:
-                case V1_18_2:
-                case V1_18:
-                case V1_17:
-                    watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(8, ITEM_SERIALIZER), itemFrameUpdateData.getItemStack());
-                    break;
-                case V1_16_4:
-                case V1_16_2:
-                case V1_16:
-                    watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(7, ITEM_SERIALIZER), itemFrameUpdateData.getItemStack());
-                    break;
+            if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
+                watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(8, ITEM_SERIALIZER), itemFrameUpdateData.getItemStack());
+            } else {
+                watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(7, ITEM_SERIALIZER), itemFrameUpdateData.getItemStack());
             }
             writeMetadataPacket(packet, watcher);
             packets.add(packet);
