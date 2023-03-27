@@ -34,10 +34,23 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.UUID;
 
-public class DrMapMigration {
+public class DrMapMigration implements ExternalPluginMigration {
 
-    public static void migrate(UUID owner) {
-        if (Bukkit.getPluginManager().isPluginEnabled("DrMap")) {
+    public static final String PLUGIN_NAME = "DrMap";
+
+    @Override
+    public String externalPluginName() {
+        return PLUGIN_NAME;
+    }
+
+    @Override
+    public boolean requirePlayer() {
+        return true;
+    }
+
+    @Override
+    public void migrate(UUID owner) {
+        if (Bukkit.getPluginManager().isPluginEnabled(PLUGIN_NAME)) {
             Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] DrMap must be disabled for migration to begin");
             return;
         }

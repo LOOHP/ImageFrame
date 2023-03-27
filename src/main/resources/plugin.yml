@@ -20,6 +20,9 @@ permissions:
   imageframe.create.animated:
     default: op
     description: Allow players to create new animated image maps
+  imageframe.create.others:
+    default: op
+    description: Allow players to create image maps for other players, applies to overlay and clone, bypasses owning limit
   imageframe.overlay:
     default: true
     description: Allow players to overlay images on Vanilla maps

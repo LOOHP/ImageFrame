@@ -51,6 +51,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
@@ -261,7 +262,18 @@ public class MapUtils {
     }
 
     public static BufferedImage getSubImage(BufferedImage source, int x, int y) {
-        return source.getSubimage(x * MAP_WIDTH, y * MAP_WIDTH, MAP_WIDTH, MAP_WIDTH);
+        int startX = x * MAP_WIDTH;
+        int startY = y * MAP_WIDTH;
+        int width = source.getWidth() - startX;
+        int height = source.getHeight() - startY;
+        if (width < MAP_WIDTH || height < MAP_WIDTH) {
+            BufferedImage image = new BufferedImage(MAP_WIDTH, MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = image.createGraphics();
+            g.drawImage(source.getSubimage(startX, startY, width, height), 0, 0, null);
+            g.dispose();
+            return image;
+        }
+        return source.getSubimage(startX, startY, MAP_WIDTH, MAP_WIDTH);
     }
 
     public static MapView getItemMapView(ItemStack itemStack) {

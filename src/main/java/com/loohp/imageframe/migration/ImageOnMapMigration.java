@@ -38,11 +38,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class ImageOnMapMigration {
+public class ImageOnMapMigration implements ExternalPluginMigration {
 
+    public static final String PLUGIN_NAME = "ImageOnMap";
+
+    @Override
+    public String externalPluginName() {
+        return PLUGIN_NAME;
+    }
+
+    @Override
+    public boolean requirePlayer() {
+        return false;
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
-    public static void migrate() {
-        if (Bukkit.getPluginManager().isPluginEnabled("ImageOnMap")) {
+    public void migrate(UUID unused) {
+        if (Bukkit.getPluginManager().isPluginEnabled(PLUGIN_NAME)) {
             Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageOnMap must be disabled for migration to begin");
             return;
         }
