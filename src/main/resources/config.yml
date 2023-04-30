@@ -1,5 +1,6 @@
 Messages:
   Reloaded: "&eImageFrame has been reloaded!"
+  ImageMapProcessing: "&cImageMap is being processed, please wait!"
   ImageMapCreated: "&aImageMap has been created!"
   ImageMapRefreshed: "&aImageMap has been refreshed!"
   ImageMapDeleted: "&eImageMap had been deleted!"
