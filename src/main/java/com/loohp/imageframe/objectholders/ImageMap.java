@@ -161,24 +161,40 @@ public abstract class ImageMap {
         return false;
     }
 
+    public int getCurrentPositionInSequence() {
+        return 0;
+    }
+
+    public boolean isAnimationPaused() {
+        throw new UnsupportedOperationException("this map does not require animation");
+    }
+
+    public void setAnimationPause(boolean pause) throws Exception {
+        throw new UnsupportedOperationException("this map does not require animation");
+    }
+
+    public void setCurrentPositionInSequence(int position) {
+        //do nothing
+    }
+
     public int getSequenceLength() {
         return 1;
     }
 
     public byte[] getRawAnimationColors(int currentTick, int index) {
-        throw new UnsupportedOperationException("this map does not requires animation");
+        throw new UnsupportedOperationException("this map does not require animation");
     }
 
     public int getAnimationFakeMapId(int currentTick, int index) {
-        throw new UnsupportedOperationException("this map does not requires animation");
+        throw new UnsupportedOperationException("this map does not require animation");
     }
 
     public void sendAnimationFakeMaps(Collection<? extends Player> players, MapPacketSentCallback completionCallback) {
-        throw new UnsupportedOperationException("this map does not requires animation");
+        throw new UnsupportedOperationException("this map does not require animation");
     }
 
     public Set<Integer> getFakeMapIds() {
-        throw new UnsupportedOperationException("this map does not requires animation");
+        throw new UnsupportedOperationException("this map does not require animation");
     }
 
     public boolean trackDeletedMaps() {
@@ -477,91 +493,6 @@ public abstract class ImageMap {
 
         public abstract MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player);
 
-    }
-
-    public static class ImageMapAccessPermissionType {
-
-        public static final ImageMapAccessPermissionType GET = new ImageMapAccessPermissionType("GET");
-        public static final ImageMapAccessPermissionType MARKER = new ImageMapAccessPermissionType("MARKER", GET);
-        public static final ImageMapAccessPermissionType EDIT = new ImageMapAccessPermissionType("EDIT", MARKER);
-        public static final ImageMapAccessPermissionType EDIT_CLONE = new ImageMapAccessPermissionType("EDIT_CLONE", EDIT);
-        public static final ImageMapAccessPermissionType ALL = new ImageMapAccessPermissionType("ALL", EDIT_CLONE);
-
-        /**
-         * Special case type: All registered ImageMapAccessPermissionTypes inherits this
-         */
-        public static final ImageMapAccessPermissionType BASE = new ImageMapAccessPermissionType("BASE") {
-            @Override
-            public boolean containsPermission(ImageMapAccessPermissionType type) {
-                return TYPES.containsKey(type.name());
-            }
-        };
-
-        private static final Map<String, ImageMapAccessPermissionType> TYPES = new HashMap<>();
-
-        static {
-            register(GET);
-            register(MARKER);
-            register(EDIT);
-            register(EDIT_CLONE);
-            register(ALL);
-        }
-
-        public static void register(ImageMapAccessPermissionType type) {
-            TYPES.put(type.name(), type);
-        }
-
-        public static ImageMapAccessPermissionType valueOf(String name) {
-            ImageMapAccessPermissionType type = TYPES.get(name);
-            if (type != null) {
-                return type;
-            }
-            throw new IllegalArgumentException(name + " is not a registered ImageMapAccessPermissionType");
-        }
-
-        public static Map<String, ImageMapAccessPermissionType> values() {
-            return Collections.unmodifiableMap(TYPES);
-        }
-
-        private final String name;
-        private final Set<ImageMapAccessPermissionType> inheritance;
-
-        public ImageMapAccessPermissionType(String name, ImageMapAccessPermissionType... inheritance) {
-            if (name == null) {
-                throw new IllegalArgumentException("name cannot be null");
-            }
-            this.name = name;
-            this.inheritance = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(inheritance)));
-        }
-
-        public String name() {
-            return name;
-        }
-
-        public boolean containsPermission(ImageMapAccessPermissionType type) {
-            if (this.equals(type)) {
-                return true;
-            }
-            for (ImageMapAccessPermissionType inheritedType : inheritance) {
-                if (!inheritedType.equals(this) && inheritedType.containsPermission(type)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ImageMapAccessPermissionType type = (ImageMapAccessPermissionType) o;
-            return name.equals(type.name) && inheritance.equals(type.inheritance);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(name, inheritance);
-        }
     }
 
 }

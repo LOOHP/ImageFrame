@@ -97,7 +97,6 @@ public class AnimatedFakeMapManager implements Listener {
         }
         Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
             Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
-            int currentTick = ImageFrame.imageMapManager.getCurrentAnimationTick();
             for (FilteredData entry : filtered) {
                 ItemFrame itemFrame = entry.getItemFrame();
                 Holder<AnimationData> holder = entry.getAnimationDataHolder();
@@ -124,7 +123,8 @@ public class AnimatedFakeMapManager implements Listener {
                     continue;
                 }
                 int index = animationData.getIndex();
-                int mapId = imageMap.getAnimationFakeMapId(currentTick, index);
+                int currentPosition = imageMap.getCurrentPositionInSequence();
+                int mapId = imageMap.getAnimationFakeMapId(currentPosition, index);
                 if (mapId < 0) {
                     continue;
                 }
@@ -161,10 +161,10 @@ public class AnimatedFakeMapManager implements Listener {
                     });
                 }
                 if (!needReset.isEmpty()) {
-                    FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, itemFrame.getItem(), mapView.getId(), mapView);
+                    FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, itemFrame.getItem(), mapView.getId(), mapView, currentPosition);
                     needReset.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
                 }
-                FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, getMapItem(mapId), mapView.getId(), mapView);
+                FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, getMapItem(mapId), mapView.getId(), mapView, currentPosition);
                 players.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
             }
             for (Map.Entry<Player, List<FakeItemUtils.ItemFrameUpdateData>> entry : updateData.entrySet()) {
@@ -173,7 +173,7 @@ public class AnimatedFakeMapManager implements Listener {
                     if (!ImageFrame.viaDisableSmoothAnimationForLegacyPlayers) {
                         List<FakeItemUtils.ItemFrameUpdateData> list = entry.getValue();
                         for (FakeItemUtils.ItemFrameUpdateData data : list) {
-                            MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), currentTick, Collections.singleton(player), true);
+                            MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), data.getCurrentPosition(), Collections.singleton(player), true);
                         }
                     }
                 } else {

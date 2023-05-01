@@ -24,6 +24,7 @@ import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.migration.ExternalPluginMigration;
 import com.loohp.imageframe.migration.PluginMigrationRegistry;
 import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
@@ -373,7 +374,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(ImageFrame.messageNotAnImageMap);
                                     return true;
                                 }
-                                if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.EDIT_CLONE)) {
+                                if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.EDIT_CLONE)) {
                                     sender.sendMessage(ImageFrame.messageNoPermission);
                                     return true;
                                 }
@@ -460,6 +461,48 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
+        } else if (args[0].equalsIgnoreCase("pause")) {
+            if (sender.hasPermission("imageframe.pause")) {
+                if (args.length == 2) {
+                    try {
+                        MutablePair<UUID, String> pair = ImageMapUtils.extractImageMapPlayerPrefixedName(sender, args[1]);
+                        boolean isConsole = !(sender instanceof Player);
+                        if (pair.getFirst() == null && isConsole) {
+                            sender.sendMessage(ImageFrame.messageNoConsole);
+                        } else {
+                            ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
+                            if (imageMap == null) {
+                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                                return true;
+                            }
+                            if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.ADJUST_PLAYBACK)) {
+                                sender.sendMessage(ImageFrame.messageNoPermission);
+                                return true;
+                            }
+                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                try {
+                                    if (imageMap.requiresAnimationService()) {
+                                        imageMap.setAnimationPause(!imageMap.isAnimationPaused());
+                                    }
+                                    sender.sendMessage(ImageFrame.messageImageMapTogglePaused);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                        }
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(ImageFrame.messageInvalidUsage);
+                    } catch (Exception e) {
+                        sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                        e.printStackTrace();
+                    }
+                } else {
+                    sender.sendMessage(ImageFrame.messageInvalidUsage);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
         } else if (args[0].equalsIgnoreCase("select")) {
             if (sender.hasPermission("imageframe.select")) {
                 if (sender instanceof Player) {
@@ -488,7 +531,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[2]);
                                 if (imageMap == null) {
                                     sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                                } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.MARKER)) {
+                                } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.MARKER)) {
                                     sender.sendMessage(ImageFrame.messageNoPermission);
                                 } else {
                                     if (ImageFrame.mapMarkerEditManager.isActiveEditing(player)) {
@@ -608,7 +651,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
                         } else {
-                            if (ImageFrame.hasImageMapPermission(imageMap, player, ImageMap.ImageMapAccessPermissionType.EDIT)) {
+                            if (ImageFrame.hasImageMapPermission(imageMap, player, ImageMapAccessPermissionType.EDIT)) {
                                 try {
                                     if (imageMap instanceof URLImageMap) {
                                         URLImageMap urlImageMap = (URLImageMap) imageMap;
@@ -652,7 +695,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                        } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.EDIT)) {
+                        } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.EDIT)) {
                             sender.sendMessage(ImageFrame.messageNoPermission);
                         } else {
                             String newName = args[2];
@@ -775,7 +818,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                             if (imageMap == null) {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                            } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.ALL)) {
+                            } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.ALL)) {
                                 sender.sendMessage(ImageFrame.messageNoPermission);
                             } else {
                                 Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
@@ -817,7 +860,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
                             if (imageMap == null) {
                                 sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                            } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.ALL)) {
+                            } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.ALL)) {
                                 sender.sendMessage(ImageFrame.messageNoPermission);
                             } else {
                                 Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
@@ -825,9 +868,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     UUID uuid = Bukkit.getOfflinePlayer(targetPlayer).getUniqueId();
                                     String permissionTypeStr = args[3].toUpperCase();
                                     try {
-                                        ImageMap.ImageMapAccessPermissionType permissionType = permissionTypeStr.equals("NONE") ? null : ImageMap.ImageMapAccessPermissionType.valueOf(permissionTypeStr);
+                                        ImageMapAccessPermissionType permissionType = permissionTypeStr.equals("NONE") ? null : ImageMapAccessPermissionType.valueOf(permissionTypeStr);
                                         imageMap.setPermission(uuid, permissionType);
-                                        ImageMap.ImageMapAccessPermissionType newPermission = imageMap.getPermission(uuid);
+                                        ImageMapAccessPermissionType newPermission = imageMap.getPermission(uuid);
                                         sender.sendMessage(ImageFrame.messageAccessUpdated
                                                 .replace("{PlayerName}", targetPlayer)
                                                 .replace("{PlayerUUID}", uuid.toString())
@@ -897,7 +940,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                        } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.GET)) {
+                        } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.GET)) {
                             sender.sendMessage(ImageFrame.messageNoPermission);
                         } else {
                             if (selection != null) {
@@ -1068,6 +1111,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.clone")) {
                     tab.add("clone");
                 }
+                if (sender.hasPermission("imageframe.pause")) {
+                    tab.add("pause");
+                }
                 if (sender.hasPermission("imageframe.select")) {
                     tab.add("select");
                 }
@@ -1127,6 +1173,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.clone")) {
                     if ("clone".startsWith(args[0].toLowerCase())) {
                         tab.add("clone");
+                    }
+                }
+                if (sender.hasPermission("imageframe.pause")) {
+                    if ("pause".startsWith(args[0].toLowerCase())) {
+                        tab.add("pause");
                     }
                 }
                 if (sender.hasPermission("imageframe.select")) {
@@ -1208,17 +1259,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.clone")) {
                     if ("clone".equalsIgnoreCase(args[0])) {
-                        if (sender instanceof Player) {
-                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
-                        }
+                        tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
+                    }
+                }
+                if (sender.hasPermission("imageframe.pause")) {
+                    if ("pause".equalsIgnoreCase(args[0])) {
+                        tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1], ImageMapAccessPermissionType.ADJUST_PLAYBACK, imageMap -> imageMap.requiresAnimationService()));
                     }
                 }
                 if (sender.hasPermission("imageframe.refresh")) {
                     if ("refresh".equalsIgnoreCase(args[0])) {
                         tab.add("[url]");
-                        if (sender instanceof Player) {
-                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
-                        }
+                        tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                     }
                 }
                 if (sender.hasPermission("imageframe.select")) {
@@ -1241,30 +1293,22 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.rename")) {
                     if ("rename".equalsIgnoreCase(args[0])) {
-                        if (sender instanceof Player) {
-                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
-                        }
+                        tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                     }
                 }
                 if (sender.hasPermission("imageframe.info")) {
                     if ("info".equalsIgnoreCase(args[0])) {
-                        if (sender instanceof Player) {
-                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
-                        }
+                        tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                     }
                 }
                 if (sender.hasPermission("imageframe.delete")) {
                     if ("delete".equalsIgnoreCase(args[0])) {
-                        if (sender instanceof Player) {
-                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
-                        }
+                        tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                     }
                 }
                 if (sender.hasPermission("imageframe.get")) {
                     if ("get".equalsIgnoreCase(args[0])) {
-                        if (sender instanceof Player) {
-                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
-                        }
+                        tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                     }
                 }
                 if (sender.hasPermission("imageframe.marker")) {
@@ -1287,9 +1331,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.setaccess")) {
                     if ("setaccess".equalsIgnoreCase(args[0])) {
-                        if (sender instanceof Player) {
-                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
-                        }
+                        tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                     }
                 }
                 if (sender.hasPermission("imageframe.admindelete")) {
@@ -1363,19 +1405,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.marker")) {
                     if ("marker".equalsIgnoreCase(args[0])) {
                         if ("add".equalsIgnoreCase(args[1])) {
-                            if (sender instanceof Player) {
-                                tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
                         }
                         if ("remove".equalsIgnoreCase(args[1])) {
-                            if (sender instanceof Player) {
-                                tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
                         }
                         if ("clear".equalsIgnoreCase(args[1])) {
-                            if (sender instanceof Player) {
-                                tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
-                            }
+                            tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[2]));
                         }
                     }
                 }
@@ -1462,7 +1498,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.setaccess")) {
                     if ("setaccess".equalsIgnoreCase(args[0])) {
-                        for (String typeName : ImageMap.ImageMapAccessPermissionType.values().keySet()) {
+                        for (String typeName : ImageMapAccessPermissionType.values().keySet()) {
                             if (typeName.toLowerCase().startsWith(args[3].toLowerCase())) {
                                 tab.add(typeName);
                             }

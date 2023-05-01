@@ -29,6 +29,9 @@ permissions:
   imageframe.clone:
     default: true
     description: Allow players to make deep copies of their own image maps
+  imageframe.pause:
+    default: true
+    description: Allow players to pause playback of their own image maps
   imageframe.select:
     default: true
     description: Allow players to select item frames

@@ -22,6 +22,7 @@ package com.loohp.imageframe.utils;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.MutablePair;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -30,6 +31,7 @@ import org.bukkit.entity.Player;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 public class ImageMapUtils {
 
@@ -56,10 +58,14 @@ public class ImageMapUtils {
     }
 
     public static Set<String> getImageMapNameSuggestions(CommandSender sender, String str) {
+        return getImageMapNameSuggestions(sender, str, ImageMapAccessPermissionType.BASE, imageMap -> true);
+    }
+
+    public static Set<String> getImageMapNameSuggestions(CommandSender sender, String str, ImageMapAccessPermissionType permissionType, Predicate<ImageMap> predicate) {
         Set<String> tab = new LinkedHashSet<>();
         if (sender instanceof Player) {
             for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(((Player) sender).getUniqueId())) {
-                if (imageMap.getName().toLowerCase().startsWith(str.toLowerCase())) {
+                if (imageMap.getName().toLowerCase().startsWith(str.toLowerCase()) && predicate.test(imageMap)) {
                     tab.add(imageMap.getName());
                 }
             }
@@ -73,9 +79,9 @@ public class ImageMapUtils {
             return tab;
         }
         for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(extraction.getFirst())) {
-            if (ImageFrame.hasImageMapPermission(imageMap, sender, ImageMap.ImageMapAccessPermissionType.BASE)) {
+            if (ImageFrame.hasImageMapPermission(imageMap, sender, permissionType)) {
                 String prefixedName = imageMap.getCreatorName() + ":" + imageMap.getName();
-                if (prefixedName.toLowerCase().startsWith(str.toLowerCase())) {
+                if (prefixedName.toLowerCase().startsWith(str.toLowerCase()) && predicate.test(imageMap)) {
                     tab.add(prefixedName);
                 }
             }

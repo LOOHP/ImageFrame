@@ -97,7 +97,7 @@ public class ImageMapManager implements AutoCloseable {
         return dataFolder;
     }
 
-    public int getCurrentAnimationTick() {
+    protected int getCurrentAnimationTick() {
         return tickCounter.get();
     }
 

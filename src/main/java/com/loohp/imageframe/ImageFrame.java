@@ -28,6 +28,7 @@ import com.loohp.imageframe.metrics.Metrics;
 import com.loohp.imageframe.objectholders.AnimatedFakeMapManager;
 import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
 import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
@@ -76,6 +77,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageImageMapRefreshed;
     public static String messageImageMapDeleted;
     public static String messageImageMapRenamed;
+    public static String messageImageMapTogglePaused;
     public static String messageSetCreator;
     public static String messageUnableToLoadMap;
     public static String messageUnknownError;
@@ -88,7 +90,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messagePlayerNotFound;
     public static String messageNotEnoughSpace;
     public static String messageAccessUpdated;
-    public static Map<ImageMap.ImageMapAccessPermissionType, String> messageAccessTypes;
+    public static Map<ImageMapAccessPermissionType, String> messageAccessTypes;
     public static String messageAccessNoneType;
     public static String messageNotEnoughMaps;
     public static String messageURLRestricted;
@@ -169,7 +171,7 @@ public class ImageFrame extends JavaPlugin {
         return limit;
     }
 
-    public static boolean hasImageMapPermission(ImageMap imageMap, CommandSender sender, ImageMap.ImageMapAccessPermissionType permissionType) {
+    public static boolean hasImageMapPermission(ImageMap imageMap, CommandSender sender, ImageMapAccessPermissionType permissionType) {
         if (permissionType == null) {
             return true;
         }
@@ -272,6 +274,7 @@ public class ImageFrame extends JavaPlugin {
         messageImageMapRefreshed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
         messageImageMapDeleted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
         messageImageMapRenamed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRenamed"));
+        messageImageMapTogglePaused = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapTogglePaused"));
         messageSetCreator = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.SetCreator"));
         messageUnableToLoadMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
         messageUnknownError = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnknownError"));
@@ -285,7 +288,7 @@ public class ImageFrame extends JavaPlugin {
         messageNotEnoughSpace = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughSpace"));
         messageAccessUpdated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.AccessPermission.Updated"));
         messageAccessTypes = new HashMap<>();
-        for (ImageMap.ImageMapAccessPermissionType type : ImageMap.ImageMapAccessPermissionType.values().values()) {
+        for (ImageMapAccessPermissionType type : ImageMapAccessPermissionType.values().values()) {
             messageAccessTypes.put(type, ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.AccessPermission.Types." + type.name())));
         }
         messageAccessNoneType = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.AccessPermission.Types.NONE"));

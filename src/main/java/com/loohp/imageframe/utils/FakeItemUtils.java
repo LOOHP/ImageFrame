@@ -102,12 +102,14 @@ public class FakeItemUtils {
         private final ItemStack itemStack;
         private final int realMapId;
         private final MapView mapView;
+        private final int currentPosition;
 
-        public ItemFrameUpdateData(ItemFrame itemFrame, ItemStack itemStack, int realMapId, MapView mapView) {
+        public ItemFrameUpdateData(ItemFrame itemFrame, ItemStack itemStack, int realMapId, MapView mapView, int currentPosition) {
             this.itemFrame = itemFrame;
             this.itemStack = itemStack;
             this.realMapId = realMapId;
             this.mapView = mapView;
+            this.currentPosition = currentPosition;
         }
 
         public ItemFrame getItemFrame() {
@@ -124,6 +126,10 @@ public class FakeItemUtils {
 
         public MapView getMapView() {
             return mapView;
+        }
+
+        public int getCurrentPosition() {
+            return currentPosition;
         }
     }
 

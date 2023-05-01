@@ -81,7 +81,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
         }
-        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new BufferedImage[mapsCount][], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
+        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new BufferedImage[mapsCount][], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis(), -1, 0);
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -154,7 +154,9 @@ public class URLAnimatedImageMap extends URLImageMap {
         for (Future<MapView> future : mapViewsFuture) {
             mapViews.add(future.get());
         }
-        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
+        int pausedAt = json.has("pausedAt") ? json.get("pausedAt").getAsInt() : -1;
+        int tickOffset = json.has("tickOffset") ? json.get("tickOffset").getAsInt() : 0;
+        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime, pausedAt, tickOffset);
         return FutureUtils.callSyncMethod(() -> {
             for (int u = 0; u < mapViews.size(); u++) {
                 MapView mapView = mapViews.get(u);
@@ -172,10 +174,14 @@ public class URLAnimatedImageMap extends URLImageMap {
     protected byte[][][] cachedColors;
     protected int[][] fakeMapIds;
     protected Set<Integer> fakeMapIdsSet;
+    protected int pausedAt;
+    protected int tickOffset;
 
-    protected URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[][] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+    protected URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[][] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime, int pausedAt, int tickOffset) {
         super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
+        this.pausedAt = pausedAt;
+        this.tickOffset = tickOffset;
         cacheColors();
     }
 
@@ -248,6 +254,42 @@ public class URLAnimatedImageMap extends URLImageMap {
     @Override
     public boolean requiresAnimationService() {
         return true;
+    }
+
+    @Override
+    public int getCurrentPositionInSequence() {
+        if (isAnimationPaused()) {
+            return pausedAt;
+        }
+        int sequenceLength = getSequenceLength();
+        int currentPosition = manager.getCurrentAnimationTick() % sequenceLength - tickOffset;
+        if (currentPosition < 0) {
+            currentPosition = sequenceLength + currentPosition;
+        }
+        return currentPosition;
+    }
+
+    @Override
+    public boolean isAnimationPaused() {
+        return pausedAt >= 0;
+    }
+
+    @Override
+    public synchronized void setAnimationPause(boolean pause) throws Exception {
+        if (pausedAt < 0 && pause) {
+            pausedAt = getCurrentPositionInSequence();
+            save();
+        } else if (pausedAt >= 0 && !pause) {
+            setCurrentPositionInSequence(pausedAt);
+            pausedAt = -1;
+            save();
+        }
+    }
+
+    @Override
+    public void setCurrentPositionInSequence(int position) {
+        int sequenceLength = getSequenceLength();
+        tickOffset = manager.getCurrentAnimationTick() % sequenceLength - position % sequenceLength;
     }
 
     @Override
@@ -330,6 +372,8 @@ public class URLAnimatedImageMap extends URLImageMap {
         json.addProperty("width", width);
         json.addProperty("height", height);
         json.addProperty("creator", creator.toString());
+        json.addProperty("pausedAt", pausedAt);
+        json.addProperty("tickOffset", tickOffset);
         JsonObject accessJson = new JsonObject();
         for (Map.Entry<UUID, ImageMapAccessPermissionType> entry : hasAccess.entrySet()) {
             accessJson.addProperty(entry.getKey().toString(), entry.getValue().name());
@@ -393,7 +437,7 @@ public class URLAnimatedImageMap extends URLImageMap {
 
         @Override
         public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
-            return renderMap(mapView, parent.getManager().getCurrentAnimationTick(), player);
+            return renderMap(mapView, parent.getCurrentPositionInSequence(), player);
         }
     }
 
