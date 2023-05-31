@@ -62,7 +62,9 @@ public class RateLimitedPacketSendingManager implements Listener {
         if (queue != null) {
             return queue.add(new ScheduleEntry(packet, completionCallback));
         }
-        completionCallback.accept(player, false);
+        if (completionCallback != null) {
+            completionCallback.accept(player, false);
+        }
         return false;
     }
 
