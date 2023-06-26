@@ -5,6 +5,7 @@ api-version: 1.13
 prefix: ImageFrame
 authors: [LOOHP]
 description: Put images on maps and walls!
+folia-supported: true
 depend: [ProtocolLib]
 softdepend: [ViaVersion]
 

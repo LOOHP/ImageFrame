@@ -67,7 +67,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 public class MapUtils {
@@ -451,19 +450,11 @@ public class MapUtils {
     }
 
     public static Future<MapView> createMap(World world) {
-        if (Bukkit.isPrimaryThread()) {
-            return CompletableFuture.completedFuture(Bukkit.createMap(world));
-        } else {
-            return Bukkit.getScheduler().callSyncMethod(ImageFrame.plugin, () -> Bukkit.createMap(world));
-        }
+        return FutureUtils.callSyncMethod(() -> Bukkit.createMap(world));
     }
 
     public static Future<MapView> getMap(int id) {
-        if (Bukkit.isPrimaryThread()) {
-            return CompletableFuture.completedFuture(Bukkit.getMap(id));
-        } else {
-            return Bukkit.getScheduler().callSyncMethod(ImageFrame.plugin, () -> Bukkit.getMap(id));
-        }
+        return FutureUtils.callSyncMethod(() -> Bukkit.getMap(id));
     }
 
     @SuppressWarnings("unchecked")

@@ -33,6 +33,7 @@ import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.RateLimitedPacketSendingManager;
+import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.MCVersion;
@@ -69,7 +70,7 @@ public class ImageFrame extends JavaPlugin {
     public static boolean viaDisableSmoothAnimationForLegacyPlayers = false;
 
     public static boolean updaterEnabled;
-    public static int updaterTaskID = -1;
+    public static Scheduler.ScheduledTask updaterTask = null;
 
     public static String messageReloaded;
     public static String messageImageMapProcessing;
@@ -239,7 +240,7 @@ public class ImageFrame extends JavaPlugin {
         combinedMapItemHandler = new CombinedMapItemHandler();
         animatedFakeMapManager = new AnimatedFakeMapManager();
         rateLimitedPacketSendingManager = new RateLimitedPacketSendingManager();
-        Bukkit.getScheduler().runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
+        Scheduler.runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
     }
@@ -337,8 +338,8 @@ public class ImageFrame extends JavaPlugin {
 
         rateLimit = config.getConfiguration().getInt("Settings.MapPacketSendingRateLimit");
 
-        if (updaterTaskID >= 0) {
-            Bukkit.getScheduler().cancelTask(updaterTaskID);
+        if (updaterTask != null) {
+            updaterTask.cancel();
         }
         updaterEnabled = config.getConfiguration().getBoolean("Updater");
         if (updaterEnabled) {

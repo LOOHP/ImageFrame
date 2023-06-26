@@ -73,7 +73,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         List<Integer> mapIds = new ArrayList<>(mapsCount);
         for (Future<MapView> future : mapViewsFuture) {
             MapView mapView = future.get();
-            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+            Scheduler.runTask(ImageFrame.plugin, () -> {
                 for (MapRenderer renderer : mapView.getRenderers()) {
                     mapView.removeRenderer(renderer);
                 }

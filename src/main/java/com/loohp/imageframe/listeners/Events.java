@@ -22,6 +22,7 @@ package com.loohp.imageframe.listeners;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
+import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.MapUtils;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import org.bukkit.Bukkit;
@@ -249,7 +250,7 @@ public class Events implements Listener {
                 MapView mapView = MapUtils.getItemMapView(itemStack);
                 if (mapView != null) {
                     if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
-                        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false));
+                        Scheduler.runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false), itemFrame);
                     }
                 }
             }
@@ -267,7 +268,7 @@ public class Events implements Listener {
                     MapView mapView = MapUtils.getItemMapView(itemStack);
                     if (mapView != null) {
                         if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
-                            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false));
+                            Scheduler.runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false), itemFrame);
                         }
                     }
                 }

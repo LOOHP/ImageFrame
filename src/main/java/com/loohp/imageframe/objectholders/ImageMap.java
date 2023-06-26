@@ -289,14 +289,12 @@ public abstract class ImageMap {
 
     public void giveMap(Collection<? extends Player> players, int x, int y, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
         ItemStack map = getMap(x, y, mapNameFormat, postCreationFunction);
-        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
-            players.forEach(p -> {
-                HashMap<Integer, ItemStack> result = p.getInventory().addItem(map.clone());
-                for (ItemStack stack : result.values()) {
-                    p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
-                }
-            });
-        });
+        players.forEach(p -> Scheduler.runTask(ImageFrame.plugin, () -> {
+            Map<Integer, ItemStack> result = p.getInventory().addItem(map.clone());
+            for (ItemStack stack : result.values()) {
+                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+            }
+        }, p));
     }
 
     public void giveMaps(Player player, String mapNameFormat) {
@@ -313,16 +311,14 @@ public abstract class ImageMap {
 
     public void giveMaps(Collection<? extends Player> players, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
         List<ItemStack> maps = getMaps(mapNameFormat, postCreationFunction);
-        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
-            for (ItemStack map : maps) {
-                players.forEach(p -> {
-                    HashMap<Integer, ItemStack> result = p.getInventory().addItem(map.clone());
-                    for (ItemStack stack : result.values()) {
-                        p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
-                    }
-                });
-            }
-        });
+        for (ItemStack map : maps) {
+            players.forEach(p -> Scheduler.runTask(ImageFrame.plugin, () -> {
+                HashMap<Integer, ItemStack> result = p.getInventory().addItem(map.clone());
+                for (ItemStack stack : result.values()) {
+                    p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
+                }
+            }, p));
+        }
     }
 
     public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiPredicate<ItemFrame, ItemStack> prePlaceCheck, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat) {
@@ -334,22 +330,22 @@ public abstract class ImageMap {
             throw new IllegalArgumentException("itemFrames size does not equal to mapView size");
         }
         List<ItemStack> items = getMaps(mapNameFormat, postCreationFunction);
-        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
-            Iterator<ItemFrame> itr0 = itemFrames.iterator();
-            Iterator<ItemStack> itr1 = items.iterator();
-            while (itr0.hasNext() && itr1.hasNext()) {
-                ItemFrame frame = itr0.next();
-                ItemStack item = itr1.next();
+        Iterator<ItemFrame> itr0 = itemFrames.iterator();
+        Iterator<ItemStack> itr1 = items.iterator();
+        while (itr0.hasNext() && itr1.hasNext()) {
+            ItemFrame frame = itr0.next();
+            ItemStack item = itr1.next();
+            Scheduler.runTask(ImageFrame.plugin, () -> {
                 if (frame.isValid()) {
                     if (prePlaceCheck.test(frame, item)) {
                         frame.setItem(item, false);
                         frame.setRotation(rotation);
-                        continue;
+                        return;
                     }
                 }
                 unableToPlaceAction.accept(frame, item);
-            }
-        });
+            }, frame);
+        }
     }
 
     public Set<Player> getViewers() {

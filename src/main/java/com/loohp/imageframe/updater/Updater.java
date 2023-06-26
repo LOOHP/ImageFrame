@@ -21,6 +21,7 @@
 package com.loohp.imageframe.updater;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -98,7 +99,7 @@ public class Updater implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        Bukkit.getScheduler().runTaskLaterAsynchronously(ImageFrame.plugin, () -> {
+        Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> {
             if (ImageFrame.updaterEnabled) {
                 Player player = event.getPlayer();
                 if (player.hasPermission("imageframe.update")) {

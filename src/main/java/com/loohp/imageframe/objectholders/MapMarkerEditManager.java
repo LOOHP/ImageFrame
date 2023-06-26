@@ -56,7 +56,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
 
     private final Map<Player, MapMarkerEditData> activeEditing;
     private final ImageMapRenderEventListener renderEventListener;
-    private final int taskId;
+    private final Scheduler.ScheduledTask task;
 
     public MapMarkerEditManager() {
         this.activeEditing = new ConcurrentHashMap<>();
@@ -75,14 +75,14 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             }
         };
         ImageFrame.imageMapManager.appendRenderEventListener(renderEventListener);
-        this.taskId = Bukkit.getScheduler().runTaskTimer(ImageFrame.plugin, () -> editTask(), 0, 1).getTaskId();
+        this.task = Scheduler.runTaskTimer(ImageFrame.plugin, () -> editTask(), 0, 1);
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
     }
 
     @Override
     public void close() {
         ImageFrame.imageMapManager.removeRenderEventListener(renderEventListener);
-        Bukkit.getScheduler().cancelTask(taskId);
+        task.cancel();
         HandlerList.unregisterAll(this);
     }
 
@@ -131,7 +131,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             editData.setCurrentTargetMap(mapView);
             editData.getMapCursor().setX((byte) target.getX());
             editData.getMapCursor().setY((byte) target.getY());
-            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> imageMap.send(imageMap.getViewers()));
+            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> imageMap.send(imageMap.getViewers()));
         }
     }
 
@@ -205,7 +205,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
         }
         event.setCancelled(true);
         activeEditing.remove(player);
-        Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+        Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
             try {
                 Map<String, MapCursor> markers = imageMap.getMapMarkers(mapView);
                 if (!player.hasPermission("imageframe.marker.unlimited") && markers.size() >= ImageFrame.mapMarkerLimit) {

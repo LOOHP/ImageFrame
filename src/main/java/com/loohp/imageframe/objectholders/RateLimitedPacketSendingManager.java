@@ -51,7 +51,7 @@ public class RateLimitedPacketSendingManager implements Listener {
         this.playerPacketQueue = new ConcurrentHashMap<>();
         this.packetSendingService = Executors.newFixedThreadPool(4);
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
-        Bukkit.getScheduler().runTaskTimerAsynchronously(ImageFrame.plugin, () -> run(), 0, 1);
+        Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> run(), 0, 1);
         for (Player player : Bukkit.getOnlinePlayers()) {
             playerPacketQueue.put(player, new ConcurrentLinkedQueue<>());
         }

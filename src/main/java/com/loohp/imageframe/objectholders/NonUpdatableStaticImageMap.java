@@ -81,7 +81,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         for (Future<MapView> future : mapViewsFuture) {
             try {
                 MapView mapView = future.get();
-                Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                Scheduler.runTask(ImageFrame.plugin, () -> {
                     for (MapRenderer renderer : mapView.getRenderers()) {
                         mapView.removeRenderer(renderer);
                     }

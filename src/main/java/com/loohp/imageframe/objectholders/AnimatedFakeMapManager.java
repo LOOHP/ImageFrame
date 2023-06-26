@@ -25,6 +25,7 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.hooks.viaversion.ViaHook;
 import com.loohp.imageframe.utils.FakeItemUtils;
+import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -56,6 +57,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public class AnimatedFakeMapManager implements Listener {
 
@@ -67,7 +70,7 @@ public class AnimatedFakeMapManager implements Listener {
         this.itemFrames = new ConcurrentHashMap<>();
         this.knownMapIds = new ConcurrentHashMap<>();
         this.pendingKnownMapIds = new ConcurrentHashMap<>();
-        Bukkit.getScheduler().runTaskTimer(ImageFrame.plugin, () -> tick(), 0, 1);
+        Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> tick(), 0, 1);
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
         Bukkit.getPluginManager().registerEvents(new ModernEvents(), ImageFrame.plugin);
         for (World world : Bukkit.getWorlds()) {
@@ -82,20 +85,27 @@ public class AnimatedFakeMapManager implements Listener {
     }
 
     private void tick() {
-        List<FilteredData> filtered = new ArrayList<>();
-        for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
-            ItemFrame itemFrame = entry.getKey();
-            if (!itemFrame.isValid()) {
-                itemFrames.remove(itemFrame);
-                continue;
+        List<FilteredData> filtered = itemFrames.entrySet().stream().map(e -> {
+            ItemFrame itemFrame = e.getKey();
+            return FutureUtils.callSyncMethod(() -> {
+                if (!itemFrame.isValid()) {
+                    itemFrames.remove(itemFrame);
+                    return null;
+                }
+                List<Player> players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
+                if (players.isEmpty()) {
+                    return null;
+                }
+                return new FilteredData(itemFrame, e.getValue(), players);
+            }, () -> null, itemFrame);
+        }).collect(Collectors.toList()).stream().map(f -> {
+            try {
+                return f.get();
+            } catch (InterruptedException | ExecutionException e) {
+                return null;
             }
-            List<Player> players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
-            if (players.isEmpty()) {
-                continue;
-            }
-            filtered.add(new FilteredData(itemFrame, entry.getValue(), players));
-        }
-        Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+        }).filter(d -> d != null).collect(Collectors.toList());
+        Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
             Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
             for (FilteredData entry : filtered) {
                 ItemFrame itemFrame = entry.getItemFrame();
@@ -182,7 +192,7 @@ public class AnimatedFakeMapManager implements Listener {
             }
         });
         for (Player player : Bukkit.getOnlinePlayers()) {
-            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                 ItemStack mainhand = player.getEquipment().getItemInMainHand();
                 ItemStack offhand = player.getEquipment().getItemInOffHand();
                 MapView mainHandView = MapUtils.getItemMapView(mainhand);
@@ -252,7 +262,7 @@ public class AnimatedFakeMapManager implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        Bukkit.getScheduler().runTaskLater(ImageFrame.plugin, () -> {
+        Scheduler.runTaskLater(ImageFrame.plugin, () -> {
             if (player.isOnline()) {
                 knownMapIds.put(player, ConcurrentHashMap.newKeySet());
                 pendingKnownMapIds.put(player, ConcurrentHashMap.newKeySet());
@@ -269,7 +279,7 @@ public class AnimatedFakeMapManager implements Listener {
     public void onEntityTeleport(EntityTeleportEvent event) {
         Entity entity = event.getEntity();
         if (entity instanceof ItemFrame) {
-            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                 ItemFrame itemFrame = (ItemFrame) entity;
                 Holder<AnimationData> holder = itemFrames.remove(itemFrame);
                 if (holder != null) {
@@ -285,7 +295,7 @@ public class AnimatedFakeMapManager implements Listener {
         if (!imageMap.requiresAnimationService()) {
             return;
         }
-        Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+        Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
             Set<Integer> ids = imageMap.getFakeMapIds();
             for (Set<Integer> knownIds : knownMapIds.values()) {
                 knownIds.removeAll(ids);

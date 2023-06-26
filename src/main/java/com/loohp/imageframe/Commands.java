@@ -29,6 +29,7 @@ import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
 import com.loohp.imageframe.objectholders.MutablePair;
+import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.objectholders.URLAnimatedImageMap;
 import com.loohp.imageframe.objectholders.URLImageMap;
 import com.loohp.imageframe.objectholders.URLStaticImageMap;
@@ -90,7 +91,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("imageframe.update")) {
                 sender.sendMessage(ChatColor.DARK_AQUA + "[ImageFrame] ImageFrame written by LOOHP!");
                 sender.sendMessage(ChatColor.GOLD + "[ImageFrame] You are running ImageFrame version: " + ImageFrame.plugin.getDescription().getVersion());
-                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                     Updater.UpdaterResponse version = Updater.checkUpdate();
                     if (version.getResult().equals("latest")) {
                         if (version.isDevBuildLatest()) {
@@ -177,7 +178,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 } else {
                                     takenMaps = 0;
                                 }
-                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                     try {
                                         String url = args[2];
                                         if (HTTPRequestUtils.getContentSize(url) > ImageFrame.maxImageFileSize) {
@@ -230,12 +231,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         sender.sendMessage(ImageFrame.messageUnableToLoadMap);
                                         e.printStackTrace();
                                         if (takenMaps > 0 && !isConsole) {
-                                            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                                            Scheduler.runTask(ImageFrame.plugin, () -> {
                                                 HashMap<Integer, ItemStack> result = player.getInventory().addItem(new ItemStack(Material.MAP, takenMaps));
                                                 for (ItemStack stack : result.values()) {
                                                     player.getWorld().dropItem(player.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
                                                 }
-                                            });
+                                            }, player);
                                         }
                                     }
                                 });
@@ -317,7 +318,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(ImageFrame.messageURLRestricted);
                                     return true;
                                 }
-                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                     try {
                                         ImageMap imageMap = MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, name, args[2], mapViews, width, height, player.getUniqueId()).get();
                                         ImageFrame.imageMapManager.addMap(imageMap);
@@ -403,7 +404,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 } else {
                                     takenMaps = 0;
                                 }
-                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                     try {
                                         ImageMap newImageMap = imageMap.deepClone(name, owner);
                                         ImageFrame.imageMapManager.addMap(newImageMap);
@@ -436,13 +437,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         sender.sendMessage(ImageFrame.messageUnableToLoadMap);
                                         e.printStackTrace();
                                         if (takenMaps > 0 && !isConsole) {
-                                            Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                                            Scheduler.runTask(ImageFrame.plugin, () -> {
                                                 Player p = (Player) sender;
                                                 HashMap<Integer, ItemStack> result = p.getInventory().addItem(new ItemStack(Material.MAP, takenMaps));
                                                 for (ItemStack stack : result.values()) {
                                                     p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
                                                 }
-                                            });
+                                            }, player);
                                         }
                                     }
                                 });
@@ -479,7 +480,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 sender.sendMessage(ImageFrame.messageNoPermission);
                                 return true;
                             }
-                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                 try {
                                     if (imageMap.requiresAnimationService()) {
                                         imageMap.setAnimationPause(!imageMap.isAnimationPaused());
@@ -565,7 +566,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (imageMap == null) {
                                     sender.sendMessage(ImageFrame.messageNotAnImageMap);
                                 } else {
-                                    Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                         for (Map<String, MapCursor> map : imageMap.getMapMarkers()) {
                                             if (map.remove(args[3]) != null) {
                                                 try {
@@ -591,7 +592,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (imageMap == null) {
                                     sender.sendMessage(ImageFrame.messageNotAnImageMap);
                                 } else {
-                                    Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                         try {
                                             imageMap.getMapMarkers().forEach(each -> each.clear());
                                             sender.sendMessage(ImageFrame.messageMarkersClear);
@@ -610,7 +611,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             MapMarkerEditManager.MapMarkerEditData editData = ImageFrame.mapMarkerEditManager.leaveActiveEditing(player);
                             sender.sendMessage(ImageFrame.messageMarkersCancel);
                             if (editData != null) {
-                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> editData.getImageMap().send(editData.getImageMap().getViewers()));
+                                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> editData.getImageMap().send(editData.getImageMap().getViewers()));
                             }
                         } else {
                             sender.sendMessage(ImageFrame.messageInvalidUsage);
@@ -629,7 +630,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("imageframe.refresh")) {
                 if (sender instanceof Player) {
                     Player player = (Player) sender;
-                    Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                         ImageMap imageMap = null;
                         String url = null;
                         if (args.length > 1) {
@@ -700,7 +701,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         } else {
                             String newName = args[2];
                             if (ImageFrame.imageMapManager.getFromCreator(player.getUniqueId(), newName) == null) {
-                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                     try {
                                         imageMap.rename(newName);
                                         sender.sendMessage(ImageFrame.messageImageMapRenamed);
@@ -781,7 +782,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             return true;
         } else if (args[0].equalsIgnoreCase("list")) {
             if (sender.hasPermission("imageframe.list")) {
-                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                     OfflinePlayer player = null;
                     if (args.length > 1) {
                         player = Bukkit.getOfflinePlayer(args[1]);
@@ -821,10 +822,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                             } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.ALL)) {
                                 sender.sendMessage(ImageFrame.messageNoPermission);
                             } else {
-                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                     ImageFrame.imageMapManager.deleteMap(imageMap.getImageIndex());
                                     sender.sendMessage(ImageFrame.messageImageMapDeleted);
-                                    Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+                                    Scheduler.runTask(ImageFrame.plugin, () -> {
                                         Inventory inventory = player.getInventory();
                                         for (int i = 0; i < inventory.getSize(); i++) {
                                             ItemStack currentItem = inventory.getItem(i);
@@ -835,7 +836,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 }
                                             }
                                         }
-                                    });
+                                    }, player);
                                 });
                             }
                         } catch (NumberFormatException e) {
@@ -863,7 +864,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             } else if (!ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.ALL)) {
                                 sender.sendMessage(ImageFrame.messageNoPermission);
                             } else {
-                                Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                     String targetPlayer = args[2];
                                     UUID uuid = Bukkit.getOfflinePlayer(targetPlayer).getUniqueId();
                                     String permissionTypeStr = args[3].toUpperCase();
@@ -998,12 +999,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
                         } else {
-                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                 ImageFrame.imageMapManager.deleteMap(imageMap.getImageIndex());
                                 sender.sendMessage(ImageFrame.messageImageMapDeleted);
-                                Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
-                                    if (sender instanceof Player) {
-                                        Inventory inventory = ((Player) sender).getInventory();
+                                if (sender instanceof Player) {
+                                    Player player = (Player) sender;
+                                    Scheduler.runTask(ImageFrame.plugin, () -> {
+                                        Inventory inventory = player.getInventory();
                                         for (int i = 0; i < inventory.getSize(); i++) {
                                             ItemStack currentItem = inventory.getItem(i);
                                             MapView currentMapView = MapUtils.getItemMapView(currentItem);
@@ -1013,8 +1015,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 }
                                             }
                                         }
-                                    }
-                                });
+                                    }, player);
+                                }
                             });
                         }
                     } catch (NumberFormatException e) {
@@ -1036,7 +1038,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (imageMap == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
                         } else {
-                            Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                 try {
                                     OfflinePlayer player = Bukkit.getOfflinePlayer(args[2]);
                                     imageMap.changeCreator(player.getUniqueId());
@@ -1062,7 +1064,7 @@ public class Commands implements CommandExecutor, TabCompleter {
         } else if (args[0].equalsIgnoreCase("adminmigrate")) {
             if (sender.hasPermission("imageframe.adminmigrate")) {
                 if (args.length > 1) {
-                    Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                         ExternalPluginMigration migration = PluginMigrationRegistry.getMigration(args[1]);
                         if (migration != null) {
                             if (migration.requirePlayer()) {

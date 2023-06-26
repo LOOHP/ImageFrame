@@ -78,7 +78,7 @@ public class ImageMapManager implements AutoCloseable {
     private final AtomicInteger mapIndexCounter;
     private final File dataFolder;
     private final AtomicInteger tickCounter;
-    private final int taskId;
+    private final Scheduler.ScheduledTask task;
     private final List<ImageMapRenderEventListener> renderEventListeners;
     private final Set<Integer> deletedMapIds;
 
@@ -90,7 +90,7 @@ public class ImageMapManager implements AutoCloseable {
         this.tickCounter = new AtomicInteger(0);
         this.renderEventListeners = new CopyOnWriteArrayList<>();
         this.deletedMapIds = ConcurrentHashMap.newKeySet();
-        this.taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(ImageFrame.plugin, () -> tickCounter.incrementAndGet(), 0, 1).getTaskId();
+        this.task = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> tickCounter.incrementAndGet(), 0, 1);
     }
 
     public File getDataFolder() {
@@ -104,7 +104,7 @@ public class ImageMapManager implements AutoCloseable {
     @Override
     public void close() {
         saveDeletedMaps();
-        Bukkit.getScheduler().cancelTask(taskId);
+        task.cancel();
     }
 
     public void appendRenderEventListener(ImageMapRenderEventListener listener) {
@@ -203,7 +203,7 @@ public class ImageMapManager implements AutoCloseable {
         }
         imageMap.stop();
         saveDeletedMaps();
-        Bukkit.getScheduler().runTask(ImageFrame.plugin, () -> {
+        Scheduler.runTask(ImageFrame.plugin, () -> {
             mapViews.forEach(each -> {
                 if (each.getRenderers().isEmpty()) {
                     each.addRenderer(DeletedMapRenderer.INSTANCE);
@@ -264,7 +264,7 @@ public class ImageMapManager implements AutoCloseable {
                 }
             }
         }
-        Bukkit.getScheduler().runTaskAsynchronously(ImageFrame.plugin, () -> {
+        Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
             int count = 0;
             for (MutablePair<File, Future<? extends ImageMap>> pair : futures) {
                 try {
@@ -306,7 +306,7 @@ public class ImageMapManager implements AutoCloseable {
         public void render(MapView map, MapCanvas canvas, Player player) {
             List<MapRenderer> mapRenderers = map.getRenderers();
             if (mapRenderers.size() != 1 || mapRenderers.get(0) != this) {
-                Bukkit.getScheduler().runTaskLater(ImageFrame.plugin, () -> map.removeRenderer(this), 1);
+                Scheduler.runTaskLater(ImageFrame.plugin, () -> map.removeRenderer(this), 1);
                 return;
             }
             for (int y = 0; y < MapUtils.MAP_WIDTH; y++) {

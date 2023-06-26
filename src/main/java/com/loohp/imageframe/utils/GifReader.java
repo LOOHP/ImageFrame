@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe.utils;
 
+import com.loohp.imageframe.objectholders.Scheduler;
 import com.madgag.gif.fmsware.GifDecoder;
 import org.bukkit.Bukkit;
 import org.w3c.dom.NamedNodeMap;
@@ -58,7 +59,7 @@ public class GifReader {
         stream.close();
         byte[] targetArray = buffer.toByteArray();
         CompletableFuture<List<ImageFrame>> future = new CompletableFuture<>();
-        Bukkit.getScheduler().runTaskAsynchronously(com.loohp.imageframe.ImageFrame.plugin, () -> {
+        Scheduler.runTaskAsynchronously(com.loohp.imageframe.ImageFrame.plugin, () -> {
             try {
                 List<ImageFrame> result;
                 result = returnOrNull(() -> readGifMethod0(new ByteArrayInputStream(targetArray)));

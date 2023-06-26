@@ -21,6 +21,7 @@
 package com.loohp.imageframe.api.events;
 
 import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.imageframe.objectholders.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -36,7 +37,7 @@ public class ImageMapUpdatedEvent extends Event {
     private final ImageMap imageMap;
 
     public ImageMapUpdatedEvent(ImageMap imageMap) {
-        super(!Bukkit.isPrimaryThread());
+        super(Scheduler.FOLIA || !Bukkit.isPrimaryThread());
         this.imageMap = imageMap;
     }
 
