@@ -96,7 +96,7 @@ public class AnimatedFakeMapManager implements Listener {
                 if (players.isEmpty()) {
                     return null;
                 }
-                return new FilteredData(itemFrame, e.getValue(), players);
+                return new FilteredData(itemFrame, itemFrame.getItem(), e.getValue(), players);
             }, () -> null, itemFrame);
         }).collect(Collectors.toList()).stream().map(f -> {
             try {
@@ -112,7 +112,7 @@ public class AnimatedFakeMapManager implements Listener {
                 Holder<AnimationData> holder = entry.getAnimationDataHolder();
                 List<Player> players = entry.getPlayers();
                 AnimationData animationData = holder.getValue();
-                MapView mapView = MapUtils.getItemMapView(itemFrame.getItem());
+                MapView mapView = MapUtils.getItemMapView(entry.getItemStack());
                 if (mapView == null) {
                     holder.setValue(AnimationData.EMPTY);
                     continue;
@@ -351,17 +351,23 @@ public class AnimatedFakeMapManager implements Listener {
     public static class FilteredData {
 
         private final ItemFrame itemFrame;
+        private final ItemStack itemStack;
         private final Holder<AnimationData> animationDataHolder;
         private final List<Player> players;
 
-        public FilteredData(ItemFrame itemFrame, Holder<AnimationData> animationDataHolder, List<Player> players) {
+        public FilteredData(ItemFrame itemFrame, ItemStack itemStack, Holder<AnimationData> animationDataHolder, List<Player> players) {
             this.itemFrame = itemFrame;
+            this.itemStack = itemStack;
             this.animationDataHolder = animationDataHolder;
             this.players = players;
         }
 
         public ItemFrame getItemFrame() {
             return itemFrame;
+        }
+
+        public ItemStack getItemStack() {
+            return itemStack;
         }
 
         public Holder<AnimationData> getAnimationDataHolder() {
