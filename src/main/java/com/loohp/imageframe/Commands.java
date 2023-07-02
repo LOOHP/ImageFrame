@@ -628,62 +628,61 @@ public class Commands implements CommandExecutor, TabCompleter {
             return true;
         } else if (args[0].equalsIgnoreCase("refresh")) {
             if (sender.hasPermission("imageframe.refresh")) {
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
-                        ImageMap imageMap = null;
-                        String url = null;
-                        if (args.length > 1) {
-                            imageMap = ImageMapUtils.getFromPlayerPrefixedName(player, args[1]);
-                            if (imageMap == null) {
-                                url = args[1];
-                            } else if (args.length > 2) {
-                                url = args[2];
-                            }
-                        }
+                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                    ImageMap imageMap = null;
+                    String url = null;
+                    if (args.length > 1) {
+                        imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
                         if (imageMap == null) {
-                            MapView mapView = MapUtils.getPlayerMapView(player);
-                            if (mapView == null) {
-                                sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                                return;
-                            }
-                            imageMap = ImageFrame.imageMapManager.getFromMapView(mapView);
+                            url = args[1];
+                        } else if (args.length > 2) {
+                            url = args[2];
                         }
-                        if (imageMap == null) {
+                    }
+                    if (imageMap == null) {
+                        if (!(sender instanceof Player)) {
+                            sender.sendMessage(ImageFrame.messageNoConsole);
+                            return;
+                        }
+                        MapView mapView = MapUtils.getPlayerMapView((Player) sender);
+                        if (mapView == null) {
                             sender.sendMessage(ImageFrame.messageNotAnImageMap);
-                        } else {
-                            if (ImageFrame.hasImageMapPermission(imageMap, player, ImageMapAccessPermissionType.EDIT)) {
-                                try {
-                                    if (imageMap instanceof URLImageMap) {
-                                        URLImageMap urlImageMap = (URLImageMap) imageMap;
-                                        String oldUrl = urlImageMap.getUrl();
-                                        if (url != null) {
-                                            urlImageMap.setUrl(url);
-                                        }
-                                        try {
-                                            imageMap.update();
-                                            sender.sendMessage(ImageFrame.messageImageMapRefreshed);
-                                        } catch (Throwable e) {
-                                            urlImageMap.setUrl(oldUrl);
-                                            sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                                            e.printStackTrace();
-                                        }
-                                    } else {
+                            return;
+                        }
+                        imageMap = ImageFrame.imageMapManager.getFromMapView(mapView);
+                    }
+                    if (imageMap == null) {
+                        sender.sendMessage(ImageFrame.messageNotAnImageMap);
+                    } else {
+                        if (ImageFrame.hasImageMapPermission(imageMap, sender, ImageMapAccessPermissionType.EDIT)) {
+                            try {
+                                if (imageMap instanceof URLImageMap) {
+                                    URLImageMap urlImageMap = (URLImageMap) imageMap;
+                                    String oldUrl = urlImageMap.getUrl();
+                                    if (url != null) {
+                                        urlImageMap.setUrl(url);
+                                    }
+                                    try {
                                         imageMap.update();
                                         sender.sendMessage(ImageFrame.messageImageMapRefreshed);
+                                    } catch (Throwable e) {
+                                        urlImageMap.setUrl(oldUrl);
+                                        sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                                        e.printStackTrace();
                                     }
-                                } catch (Exception e) {
-                                    sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                                    e.printStackTrace();
+                                } else {
+                                    imageMap.update();
+                                    sender.sendMessage(ImageFrame.messageImageMapRefreshed);
                                 }
-                            } else {
-                                sender.sendMessage(ImageFrame.messageNoPermission);
+                            } catch (Exception e) {
+                                sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                                e.printStackTrace();
                             }
+                        } else {
+                            sender.sendMessage(ImageFrame.messageNoPermission);
                         }
-                    });
-                } else {
-                    sender.sendMessage(ImageFrame.messageNoConsole);
-                }
+                    }
+                });
             } else {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
@@ -1374,11 +1373,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.refresh")) {
                     if ("refresh".equalsIgnoreCase(args[0])) {
-                        if (sender instanceof Player) {
-                            ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
-                            if (imageMap != null) {
-                                tab.add("[url]");
-                            }
+                        ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
+                        if (imageMap != null) {
+                            tab.add("[url]");
                         }
                     }
                 }
