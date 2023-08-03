@@ -79,6 +79,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageImageMapDeleted;
     public static String messageImageMapRenamed;
     public static String messageImageMapTogglePaused;
+    public static String messageImageMapPlaybackJumpTo;
     public static String messageSetCreator;
     public static String messageUnableToLoadMap;
     public static String messageUnknownError;
@@ -276,6 +277,7 @@ public class ImageFrame extends JavaPlugin {
         messageImageMapDeleted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
         messageImageMapRenamed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRenamed"));
         messageImageMapTogglePaused = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapTogglePaused"));
+        messageImageMapPlaybackJumpTo = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapPlaybackJumpTo"));
         messageSetCreator = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.SetCreator"));
         messageUnableToLoadMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
         messageUnknownError = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnknownError"));

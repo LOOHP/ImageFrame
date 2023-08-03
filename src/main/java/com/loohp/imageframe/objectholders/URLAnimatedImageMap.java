@@ -293,6 +293,25 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
+    public void setAnimationPlaybackTime(double seconds) throws Exception {
+        int totalTicks = getSequenceLength();
+        int ticks;
+        if (seconds < 0) {
+            ticks = totalTicks + (int) Math.ceil((seconds + 1) * 20);
+        } else {
+            ticks = (int) Math.floor(seconds * 20);
+        }
+        ticks = Math.min(Math.max(0, ticks), totalTicks);
+        if (isAnimationPaused()) {
+            pausedAt = ticks;
+            save();
+        } else {
+            setCurrentPositionInSequence(ticks);
+            save();
+        }
+    }
+
+    @Override
     public byte[] getRawAnimationColors(int currentTick, int index) {
         if (cachedColors == null) {
             return null;

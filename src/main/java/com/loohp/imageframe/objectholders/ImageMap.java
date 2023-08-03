@@ -177,6 +177,10 @@ public abstract class ImageMap {
         //do nothing
     }
 
+    public void setAnimationPlaybackTime(double seconds) throws Exception {
+        //do nothing
+    }
+
     public int getSequenceLength() {
         return 1;
     }

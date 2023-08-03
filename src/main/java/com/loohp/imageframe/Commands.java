@@ -462,9 +462,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
-        } else if (args[0].equalsIgnoreCase("pause")) {
-            if (sender.hasPermission("imageframe.pause")) {
-                if (args.length == 2) {
+        } else if (args[0].equalsIgnoreCase("playback")) {
+            if (sender.hasPermission("imageframe.playback")) {
+                if (args.length > 2) {
                     try {
                         MutablePair<UUID, String> pair = ImageMapUtils.extractImageMapPlayerPrefixedName(sender, args[1]);
                         boolean isConsole = !(sender instanceof Player);
@@ -482,10 +482,24 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                             Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                 try {
-                                    if (imageMap.requiresAnimationService()) {
-                                        imageMap.setAnimationPause(!imageMap.isAnimationPaused());
+                                    if (args[2].equalsIgnoreCase("pause")) {
+                                        if (imageMap.requiresAnimationService()) {
+                                            imageMap.setAnimationPause(!imageMap.isAnimationPaused());
+                                        }
+                                        sender.sendMessage(ImageFrame.messageImageMapTogglePaused);
+                                    } else if (args[2].equalsIgnoreCase("jumpto") && args.length > 3) {
+                                        try {
+                                            double seconds = Double.parseDouble(args[3]);
+                                            if (imageMap.requiresAnimationService()) {
+                                                imageMap.setAnimationPlaybackTime(seconds);
+                                            }
+                                            sender.sendMessage(ImageFrame.messageImageMapPlaybackJumpTo.replace("{Seconds}", String.valueOf(seconds)));
+                                        } catch (NumberFormatException e) {
+                                            sender.sendMessage(ImageFrame.messageInvalidUsage);
+                                        }
+                                    } else {
+                                        sender.sendMessage(ImageFrame.messageInvalidUsage);
                                     }
-                                    sender.sendMessage(ImageFrame.messageImageMapTogglePaused);
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
@@ -1112,8 +1126,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.clone")) {
                     tab.add("clone");
                 }
-                if (sender.hasPermission("imageframe.pause")) {
-                    tab.add("pause");
+                if (sender.hasPermission("imageframe.playback")) {
+                    tab.add("playback");
                 }
                 if (sender.hasPermission("imageframe.select")) {
                     tab.add("select");
@@ -1176,9 +1190,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("clone");
                     }
                 }
-                if (sender.hasPermission("imageframe.pause")) {
-                    if ("pause".startsWith(args[0].toLowerCase())) {
-                        tab.add("pause");
+                if (sender.hasPermission("imageframe.playback")) {
+                    if ("playback".startsWith(args[0].toLowerCase())) {
+                        tab.add("playback");
                     }
                 }
                 if (sender.hasPermission("imageframe.select")) {
@@ -1263,8 +1277,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                     }
                 }
-                if (sender.hasPermission("imageframe.pause")) {
-                    if ("pause".equalsIgnoreCase(args[0])) {
+                if (sender.hasPermission("imageframe.playback")) {
+                    if ("playback".equalsIgnoreCase(args[0])) {
                         tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1], ImageMapAccessPermissionType.ADJUST_PLAYBACK, imageMap -> imageMap.requiresAnimationService()));
                     }
                 }
@@ -1371,6 +1385,16 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("<new-name>");
                     }
                 }
+                if (sender.hasPermission("imageframe.playback")) {
+                    if ("playback".equalsIgnoreCase(args[0])) {
+                        if ("pause".startsWith(args[2].toUpperCase())) {
+                            tab.add("pause");
+                        }
+                        if ("jumpto".startsWith(args[2].toLowerCase())) {
+                            tab.add("jumpto");
+                        }
+                    }
+                }
                 if (sender.hasPermission("imageframe.refresh")) {
                     if ("refresh".equalsIgnoreCase(args[0])) {
                         ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
@@ -1458,6 +1482,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         if ("combined".startsWith(args[3].toLowerCase())) {
                             tab.add("combined");
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.playback")) {
+                    if ("playback".equalsIgnoreCase(args[0])) {
+                        if ("jumpto".equalsIgnoreCase(args[2])) {
+                            tab.add("0.0");
                         }
                     }
                 }
