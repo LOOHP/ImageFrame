@@ -20,9 +20,9 @@
 
 package com.loohp.imageframe.utils;
 
+import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.objectholders.Scheduler;
 import com.madgag.gif.fmsware.GifDecoder;
-import org.bukkit.Bukkit;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -51,42 +51,37 @@ public class GifReader {
 
     public static Future<List<ImageFrame>> readGif(InputStream stream) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        int nRead;
-        byte[] data = new byte[2048];
-        while ((nRead = stream.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
+        try {
+            int nRead;
+            byte[] data = new byte[4096];
+            while ((nRead = stream.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+        } finally {
+            stream.close();
         }
-        stream.close();
+
         byte[] targetArray = buffer.toByteArray();
         CompletableFuture<List<ImageFrame>> future = new CompletableFuture<>();
         Scheduler.runTaskAsynchronously(com.loohp.imageframe.ImageFrame.plugin, () -> {
-            try {
-                List<ImageFrame> result;
-                result = returnOrNull(() -> readGifMethod0(new ByteArrayInputStream(targetArray)));
-                if (result != null) {
-                    future.complete(result);
+            List<ThrowingSupplier<List<ImageFrame>>> tries = new ArrayList<>(3);
+            tries.add(() -> readGifMethod0(new ByteArrayInputStream(targetArray)));
+            tries.add(() -> readGifMethod1(new ByteArrayInputStream(targetArray)));
+            tries.add(() -> readGifFallbackMethod(new ByteArrayInputStream(targetArray)));
+            Throwable firstThrowable = null;
+            for (ThrowingSupplier<List<ImageFrame>> task : tries) {
+                try {
+                    future.complete(task.get());
                     return;
+                } catch (Throwable e) {
+                    if (firstThrowable == null) {
+                        firstThrowable = e;
+                    }
                 }
-                result = returnOrNull(() -> readGifMethod1(new ByteArrayInputStream(targetArray)));
-                if (result != null) {
-                    future.complete(result);
-                    return;
-                }
-                List<ImageFrame> frames = returnOrNull(() -> readGifFallbackMethod(new ByteArrayInputStream(targetArray)));
-                future.complete(frames);
-            } catch (Throwable e) {
-                future.completeExceptionally(e);
             }
+            future.completeExceptionally(firstThrowable);
         });
         return future;
-    }
-
-    private static List<ImageFrame> returnOrNull(ThrowingSupplier<List<ImageFrame>> supplier) {
-        try {
-            return supplier.get();
-        } catch (Throwable e) {
-            return null;
-        }
     }
 
     private static List<ImageFrame> readGifMethod0(InputStream stream) throws IOException {

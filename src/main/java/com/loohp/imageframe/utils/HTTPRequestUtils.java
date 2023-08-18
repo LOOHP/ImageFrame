@@ -47,8 +47,10 @@ public class HTTPRequestUtils {
             connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
             connection.addRequestProperty("Pragma", "no-cache");
             if (connection.getResponseCode() == HttpsURLConnection.HTTP_OK) {
-                String reply = new BufferedReader(new InputStreamReader(connection.getInputStream())).lines().collect(Collectors.joining());
-                return (JSONObject) new JSONParser().parse(reply);
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    String reply = reader.lines().collect(Collectors.joining());
+                    return (JSONObject) new JSONParser().parse(reply);
+                }
             } else {
                 return null;
             }
@@ -57,22 +59,26 @@ public class HTTPRequestUtils {
         }
     }
 
-    public static byte[] download(String link) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    public static InputStream getInputStream(String link) throws IOException {
         URLConnection connection = new URL(link).openConnection();
         connection.setUseCaches(false);
         connection.setDefaultUseCaches(false);
         connection.addRequestProperty("User-Agent", "Mozilla/5.0");
         connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
         connection.addRequestProperty("Pragma", "no-cache");
-        InputStream is = connection.getInputStream();
-        byte[] byteChunk = new byte[4096];
-        int n;
-        while ((n = is.read(byteChunk)) > 0) {
-            baos.write(byteChunk, 0, n);
+        return connection.getInputStream();
+    }
+
+    public static byte[] download(String link) throws IOException {
+        try (InputStream is = getInputStream(link)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] byteChunk = new byte[4096];
+            int n;
+            while ((n = is.read(byteChunk)) > 0) {
+                baos.write(byteChunk, 0, n);
+            }
+            return baos.toByteArray();
         }
-        is.close();
-        return baos.toByteArray();
     }
 
     public static long getContentSize(String link) {
