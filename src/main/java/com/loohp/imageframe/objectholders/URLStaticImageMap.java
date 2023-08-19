@@ -82,7 +82,7 @@ public class URLStaticImageMap extends URLImageMap {
                 throw new RuntimeException(e);
             }
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
+        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new FileLazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -119,7 +119,7 @@ public class URLStaticImageMap extends URLImageMap {
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
-        BufferedImage[] cachedImages = new BufferedImage[mapDataJson.size()];
+        FileLazyMappedBufferedImage[] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         int i = 0;
         for (JsonElement dataJson : mapDataJson) {
@@ -127,7 +127,7 @@ public class URLStaticImageMap extends URLImageMap {
             int mapId = jsonObject.get("mapid").getAsInt();
             mapIds.add(mapId);
             mapViewsFuture.add(MapUtils.getMap(mapId));
-            cachedImages[i] = ImageIO.read(new File(folder, jsonObject.get("image").getAsString()));
+            cachedImages[i] = FileLazyMappedBufferedImage.fromFile(new File(folder, jsonObject.get("image").getAsString()));
             Map<String, MapCursor> mapCursors = new ConcurrentHashMap<>();
             if (jsonObject.has("markers")) {
                 JsonArray markerArray = jsonObject.get("markers").getAsJsonArray();
@@ -163,11 +163,11 @@ public class URLStaticImageMap extends URLImageMap {
         });
     }
 
-    protected final BufferedImage[] cachedImages;
+    protected final FileLazyMappedBufferedImage[] cachedImages;
 
     protected byte[][] cachedColors;
 
-    protected URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+    protected URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
         cacheColors();
@@ -182,8 +182,8 @@ public class URLStaticImageMap extends URLImageMap {
         }
         cachedColors = new byte[cachedImages.length][];
         int i = 0;
-        for (BufferedImage image : cachedImages) {
-            cachedColors[i++] = MapPalette.imageToBytes(image);
+        for (FileLazyMappedBufferedImage image : cachedImages) {
+            cachedColors[i++] = MapPalette.imageToBytes(image.get());
         }
     }
 
@@ -212,7 +212,7 @@ public class URLStaticImageMap extends URLImageMap {
         int i = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                cachedImages[i++] = MapUtils.getSubImage(image, x, y);
+                cachedImages[i++] = FileLazyMappedBufferedImage.fromImage(MapUtils.getSubImage(image, x, y));
             }
         }
         cacheColors();
@@ -271,7 +271,7 @@ public class URLStaticImageMap extends URLImageMap {
             pw.flush();
         }
         for (int i = 0; i < cachedImages.length; i++) {
-            ImageIO.write(cachedImages[i], "png", new File(folder, i +".png"));
+            cachedImages[i].setFile(new File(folder, i +".png"));
         }
     }
 
@@ -290,7 +290,7 @@ public class URLStaticImageMap extends URLImageMap {
             if (parent.cachedColors != null && parent.cachedColors[index] != null) {
                 colors = parent.cachedColors[index];
             } else if (parent.cachedImages[index] != null) {
-                colors = MapPalette.imageToBytes(parent.cachedImages[index]);
+                colors = MapPalette.imageToBytes(parent.cachedImages[index].get());
             } else {
                 colors = null;
             }

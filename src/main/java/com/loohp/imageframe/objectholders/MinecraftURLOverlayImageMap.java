@@ -23,10 +23,8 @@ package com.loohp.imageframe.objectholders;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.MapUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapCursor;
@@ -34,8 +32,6 @@ import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,7 +59,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             }
             markers.add(new ConcurrentHashMap<>());
         }
-        MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, -1, name, url, new BufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
+        MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, -1, name, url, new FileLazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -100,7 +96,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
-        BufferedImage[] cachedImages = new BufferedImage[mapDataJson.size()];
+        FileLazyMappedBufferedImage[] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         int i = 0;
         for (JsonElement dataJson : mapDataJson) {
@@ -108,7 +104,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             int mapId = jsonObject.get("mapid").getAsInt();
             mapIds.add(mapId);
             mapViewsFuture.add(MapUtils.getMap(mapId));
-            cachedImages[i] = ImageIO.read(new File(folder, jsonObject.get("image").getAsString()));
+            cachedImages[i] = FileLazyMappedBufferedImage.fromFile(new File(folder, jsonObject.get("image").getAsString()));
             Map<String, MapCursor> mapCursors = new ConcurrentHashMap<>();
             if (jsonObject.has("markers")) {
                 JsonArray markerArray = jsonObject.get("markers").getAsJsonArray();
@@ -146,7 +142,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
         });
     }
 
-    protected MinecraftURLOverlayImageMap(ImageMapManager manager, int imageIndex, String name, String url, BufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+    protected MinecraftURLOverlayImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
     }
 
@@ -196,7 +192,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             if (parent.cachedColors != null && parent.cachedColors[index] != null) {
                 colors = parent.cachedColors[index];
             } else if (parent.cachedImages[index] != null) {
-                colors = MapPalette.imageToBytes(parent.cachedImages[index]);
+                colors = MapPalette.imageToBytes(parent.cachedImages[index].get());
             } else {
                 colors = null;
             }
