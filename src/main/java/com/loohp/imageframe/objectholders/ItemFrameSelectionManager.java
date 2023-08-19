@@ -28,6 +28,7 @@ import org.bukkit.Rotation;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
@@ -42,6 +43,7 @@ import org.bukkit.map.MapView;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.IntSummaryStatistics;
@@ -55,13 +57,13 @@ import java.util.stream.Collectors;
 public class ItemFrameSelectionManager implements Listener, AutoCloseable {
 
     private final Set<Player> inSelectionMode;
-    private final Map<Player, ItemFrame> playerFirstCorner;
-    private final Map<Player, SelectedItemFrameResult> playerSelection;
+    private final Map<Player, ItemFrame> activeFirstCorners;
+    private final Map<CommandSender, SelectedItemFrameResult> confirmedSelection;
 
     public ItemFrameSelectionManager() {
         this.inSelectionMode = ConcurrentHashMap.newKeySet();
-        this.playerFirstCorner = new ConcurrentHashMap<>();
-        this.playerSelection = new ConcurrentHashMap<>();
+        this.activeFirstCorners = new ConcurrentHashMap<>();
+        this.confirmedSelection = new ConcurrentHashMap<>();
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
     }
 
@@ -70,41 +72,47 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
         HandlerList.unregisterAll(this);
     }
 
-    public void setInSelection(Player player, boolean value) {
-        if (value) {
-            playerSelection.remove(player);
-            playerFirstCorner.remove(player);
-            inSelectionMode.add(player);
-        } else {
-            playerFirstCorner.remove(player);
-            inSelectionMode.remove(player);
+    public void setInSelection(CommandSender sender, boolean value) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            if (value) {
+                confirmedSelection.remove(player);
+                activeFirstCorners.remove(player);
+                inSelectionMode.add(player);
+            } else {
+                activeFirstCorners.remove(player);
+                inSelectionMode.remove(player);
+            }
         }
     }
 
-    public boolean isInSelection(Player player) {
-        return inSelectionMode.contains(player);
+    public boolean isInSelection(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            return false;
+        }
+        return inSelectionMode.contains((Player) sender);
     }
 
-    public SelectedItemFrameResult getPlayerSelection(Player player) {
-        return playerSelection.get(player);
+    public SelectedItemFrameResult getConfirmedSelections(CommandSender sender) {
+        return confirmedSelection.get(sender);
     }
 
-    public SelectedItemFrameResult clearPlayerSelection(Player player) {
-        playerFirstCorner.remove(player);
-        inSelectionMode.remove(player);
-        return playerSelection.remove(player);
+    public SelectedItemFrameResult clearConfirmedSelections(CommandSender sender) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            activeFirstCorners.remove(player);
+            inSelectionMode.remove(player);
+        }
+        return confirmedSelection.remove(sender);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        clearPlayerSelection(event.getPlayer());
+        clearConfirmedSelections(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
-        if (event.getHand().equals(EquipmentSlot.OFF_HAND)) {
-            return;
-        }
         Player player = event.getPlayer();
         if (!inSelectionMode.contains(player)) {
             return;
@@ -114,9 +122,12 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
             return;
         }
         event.setCancelled(true);
-        ItemFrame selection = playerFirstCorner.remove(player);
+        if (event.getHand().equals(EquipmentSlot.OFF_HAND)) {
+            return;
+        }
+        ItemFrame selection = activeFirstCorners.remove(player);
         if (selection == null) {
-            playerFirstCorner.put(player, (ItemFrame) entity);
+            activeFirstCorners.put(player, (ItemFrame) entity);
             player.sendMessage(ImageFrame.messageSelectionCorner1);
         } else {
             player.sendMessage(ImageFrame.messageSelectionCorner2);
@@ -127,10 +138,39 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
             } else if (result.isOverSize()) {
                 player.sendMessage(ImageFrame.messageSelectionOversize.replace("{MaxSize}", ImageFrame.mapMaxSize + ""));
             } else {
-                playerSelection.put(player, result);
+                confirmedSelection.put(player, result);
                 player.sendMessage(ImageFrame.messageSelectionSuccess.replace("{Width}", result.getWidth() + "").replace("{Height}", result.getHeight() + ""));
             }
         }
+    }
+
+    public boolean applyDirectItemFrameSelection(CommandSender sender, float yaw, BlockPosition pos1, BlockPosition pos2) {
+        Collection<Entity> pos1Entity = pos1.getWorld().getNearbyEntities(pos1.toBoundingBox());
+        Collection<Entity> pos2Entity = pos2.getWorld().getNearbyEntities(pos2.toBoundingBox());
+        MutablePair<ItemFrame, ItemFrame> pair = pos1Entity.stream().filter(e -> e instanceof ItemFrame).map(e -> {
+            ItemFrame i = (ItemFrame) e;
+            BlockFace facing = i.getAttachedFace();
+            return pos2Entity.stream()
+                    .filter(e2 -> e2 instanceof ItemFrame && ((ItemFrame) e2).getAttachedFace().equals(facing))
+                    .findFirst()
+                    .map(e2 -> new MutablePair<>(i, (ItemFrame) e2))
+                    .orElse(null);
+        }).filter(p -> p != null).findFirst().orElse(null);
+        if (pair == null) {
+            sender.sendMessage(ImageFrame.messageSelectionInvalid);
+            return false;
+        }
+        SelectedItemFrameResult result = getSelectedItemFrames(yaw, pair.getFirst(), pair.getSecond());
+        if (result == null) {
+            sender.sendMessage(ImageFrame.messageSelectionInvalid);
+        } else if (result.isOverSize()) {
+            sender.sendMessage(ImageFrame.messageSelectionOversize.replace("{MaxSize}", ImageFrame.mapMaxSize + ""));
+        } else {
+            confirmedSelection.put(sender, result);
+            sender.sendMessage(ImageFrame.messageSelectionSuccess.replace("{Width}", result.getWidth() + "").replace("{Height}", result.getHeight() + ""));
+            return true;
+        }
+        return false;
     }
 
     public SelectedItemFrameResult getSelectedItemFrames(float yaw, ItemFrame left, ItemFrame right) {

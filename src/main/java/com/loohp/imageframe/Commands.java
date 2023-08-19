@@ -23,6 +23,7 @@ package com.loohp.imageframe;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.migration.ExternalPluginMigration;
 import com.loohp.imageframe.migration.PluginMigrationRegistry;
+import com.loohp.imageframe.objectholders.BlockPosition;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
@@ -43,6 +44,7 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -130,7 +132,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         sender.sendMessage(ImageFrame.messageNoConsole);
                                         return true;
                                     }
-                                    selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
+                                    selection = ImageFrame.itemFrameSelectionManager.getConfirmedSelections(player);
                                     if (selection == null) {
                                         sender.sendMessage(ImageFrame.messageSelectionNoSelection);
                                         return true;
@@ -275,7 +277,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     int width;
                                     int height;
                                     if (args.length == 4 && args[3].equalsIgnoreCase("selection")) {
-                                        ItemFrameSelectionManager.SelectedItemFrameResult selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
+                                        ItemFrameSelectionManager.SelectedItemFrameResult selection = ImageFrame.itemFrameSelectionManager.getConfirmedSelections(player);
                                         if (selection == null) {
                                             player.sendMessage(ImageFrame.messageSelectionNoSelection);
                                             return true;
@@ -366,7 +368,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 boolean combined = args.length > 3 && args[3].equalsIgnoreCase("combined");
                                 ItemFrameSelectionManager.SelectedItemFrameResult selection;
                                 if (args.length > 3 && args[3].equalsIgnoreCase("selection")) {
-                                    selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(player);
+                                    selection = ImageFrame.itemFrameSelectionManager.getConfirmedSelections(player);
                                     if (selection == null) {
                                         sender.sendMessage(ImageFrame.messageSelectionNoSelection);
                                         return true;
@@ -524,17 +526,52 @@ public class Commands implements CommandExecutor, TabCompleter {
             return true;
         } else if (args[0].equalsIgnoreCase("select")) {
             if (sender.hasPermission("imageframe.select")) {
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    if (ImageFrame.itemFrameSelectionManager.isInSelection(player)) {
-                        ImageFrame.itemFrameSelectionManager.setInSelection(player, false);
-                        sender.sendMessage(ImageFrame.messageSelectionClear);
+                if (args.length == 1) {
+                    if (sender instanceof Player) {
+                        Player player = (Player) sender;
+                        if (ImageFrame.itemFrameSelectionManager.isInSelection(player)) {
+                            ImageFrame.itemFrameSelectionManager.setInSelection(player, false);
+                            sender.sendMessage(ImageFrame.messageSelectionClear);
+                        } else {
+                            ImageFrame.itemFrameSelectionManager.setInSelection(player, true);
+                            sender.sendMessage(ImageFrame.messageSelectionBegin);
+                        }
                     } else {
-                        ImageFrame.itemFrameSelectionManager.setInSelection(player, true);
-                        sender.sendMessage(ImageFrame.messageSelectionBegin);
+                        sender.sendMessage(ImageFrame.messageNoConsole);
+                    }
+                } else if (args.length == 8 || args.length == 9) {
+                    try {
+                        World world = Bukkit.getWorld(args[1]);
+                        if (world != null) {
+                            int x1 = Integer.parseInt(args[2]);
+                            int y1 = Integer.parseInt(args[3]);
+                            int z1 = Integer.parseInt(args[4]);
+                            int x2 = Integer.parseInt(args[5]);
+                            int y2 = Integer.parseInt(args[6]);
+                            int z2 = Integer.parseInt(args[7]);
+
+                            BlockPosition pos1 = new BlockPosition(world, x1, y1, z1);
+                            BlockPosition pos2 = new BlockPosition(world, x2, y2, z2);
+
+                            float yaw;
+                            if (args.length == 9) {
+                                yaw = Float.parseFloat(args[8]);
+                            } else {
+                                yaw = sender instanceof Player ? ((Player) sender).getLocation().getYaw() : 0F;
+                            }
+
+                            if (ImageFrame.itemFrameSelectionManager.isInSelection(sender)) {
+                                ImageFrame.itemFrameSelectionManager.setInSelection(sender, false);
+                            }
+                            ImageFrame.itemFrameSelectionManager.applyDirectItemFrameSelection(sender, yaw, pos1, pos2);
+                        } else {
+                            sender.sendMessage(ImageFrame.messageInvalidUsage);
+                        }
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(ImageFrame.messageInvalidUsage);
                     }
                 } else {
-                    sender.sendMessage(ImageFrame.messageNoConsole);
+                    sender.sendMessage(ImageFrame.messageInvalidUsage);
                 }
             } else {
                 sender.sendMessage(ImageFrame.messageNoPermission);
@@ -913,7 +950,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         boolean combined = args.length > 2 && args[2].equalsIgnoreCase("combined");
                         ItemFrameSelectionManager.SelectedItemFrameResult selection;
                         if (args.length > 2 && args[2].equalsIgnoreCase("selection") && senderPlayer != null) {
-                            selection = ImageFrame.itemFrameSelectionManager.getPlayerSelection(senderPlayer);
+                            selection = ImageFrame.itemFrameSelectionManager.getConfirmedSelections(senderPlayer);
                             if (selection == null) {
                                 sender.sendMessage(ImageFrame.messageSelectionNoSelection);
                                 return true;
