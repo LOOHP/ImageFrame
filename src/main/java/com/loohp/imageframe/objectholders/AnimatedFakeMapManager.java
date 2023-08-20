@@ -126,6 +126,12 @@ public class AnimatedFakeMapManager implements Listener {
                         continue;
                     }
                     holder.setValue(animationData = new AnimationData(map, mapView, map.getMapViews().indexOf(mapView)));
+                } else if (!animationData.isEmpty()) {
+                    if (!animationData.getImageMap().isValid()) {
+                        itemFrame.setItem(itemFrame.getItem(), false);
+                        holder.setValue(AnimationData.EMPTY);
+                        continue;
+                    }
                 }
                 ImageMap imageMap = animationData.getImageMap();
                 if (!imageMap.requiresAnimationService()) {

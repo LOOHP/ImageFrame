@@ -57,11 +57,13 @@ import java.util.stream.Collectors;
 public class ItemFrameSelectionManager implements Listener, AutoCloseable {
 
     private final Set<Player> inSelectionMode;
+    private final Set<Player> cancelOffhand;
     private final Map<Player, ItemFrame> activeFirstCorners;
     private final Map<CommandSender, SelectedItemFrameResult> confirmedSelection;
 
     public ItemFrameSelectionManager() {
         this.inSelectionMode = ConcurrentHashMap.newKeySet();
+        this.cancelOffhand = ConcurrentHashMap.newKeySet();
         this.activeFirstCorners = new ConcurrentHashMap<>();
         this.confirmedSelection = new ConcurrentHashMap<>();
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
@@ -114,6 +116,11 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         Player player = event.getPlayer();
+        boolean isOffhand = event.getHand().equals(EquipmentSlot.OFF_HAND);
+        if (isOffhand && cancelOffhand.contains(player)) {
+            event.setCancelled(true);
+            return;
+        }
         if (!inSelectionMode.contains(player)) {
             return;
         }
@@ -122,7 +129,7 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
             return;
         }
         event.setCancelled(true);
-        if (event.getHand().equals(EquipmentSlot.OFF_HAND)) {
+        if (isOffhand) {
             return;
         }
         ItemFrame selection = activeFirstCorners.remove(player);
@@ -132,6 +139,8 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
         } else {
             player.sendMessage(ImageFrame.messageSelectionCorner2);
             inSelectionMode.remove(player);
+            cancelOffhand.add(player);
+            Scheduler.runTaskLater(ImageFrame.plugin, () -> cancelOffhand.remove(player), 1, player);
             SelectedItemFrameResult result = getSelectedItemFrames(player.getLocation().getYaw(), selection, (ItemFrame) entity);
             if (result == null) {
                 player.sendMessage(ImageFrame.messageSelectionInvalid);
