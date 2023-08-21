@@ -30,6 +30,8 @@ import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.ImageMapManager;
+import com.loohp.imageframe.objectholders.IntRange;
+import com.loohp.imageframe.objectholders.IntRangeList;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.RateLimitedPacketSendingManager;
@@ -136,6 +138,8 @@ public class ImageFrame extends JavaPlugin {
 
     public static String combinedMapItemNameFormat;
     public static List<String> combinedMapItemLoreFormat;
+
+    public static IntRangeList exemptMapIdsFromDeletion;
 
     public static ImageMapManager imageMapManager;
     public static ItemFrameSelectionManager itemFrameSelectionManager;
@@ -337,6 +341,18 @@ public class ImageFrame extends JavaPlugin {
         maxImageFileSize = config.getConfiguration().getLong("Settings.MaxImageFileSize");
         combinedMapItemNameFormat = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Settings.CombinedMapItem.Name"));
         combinedMapItemLoreFormat = config.getConfiguration().getStringList("Settings.CombinedMapItem.Lore").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
+        exemptMapIdsFromDeletion = config.getConfiguration().getList("Settings.ExemptMapIdsFromDeletion").stream().map(v -> {
+            try {
+                if (v instanceof Number) {
+                    return IntRange.of(((Number) v).intValue());
+                } else {
+                    return IntRange.of(v.toString());
+                }
+            } catch (Throwable e) {
+                e.printStackTrace();
+                return null;
+            }
+        }).filter(v -> v != null).collect(Collectors.toCollection(IntRangeList::new));
 
         rateLimit = config.getConfiguration().getInt("Settings.MapPacketSendingRateLimit");
 

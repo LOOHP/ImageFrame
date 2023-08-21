@@ -113,6 +113,10 @@ Settings:
   #However maps might take longer to show to a player
   #To disable the rate limit, set to -1
   MapPacketSendingRateLimit: -1
+  #Exempt certain map ids from deletion if their ImageFrame map is deleted
+  #Values can be map ids (For example: "13") or ranges (inclusive) of map ids (For example: "10-13")
+  ExemptMapIdsFromDeletion:
+    - "-1"
 
 Hooks:
   ViaVersion:

@@ -877,7 +877,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             ItemStack currentItem = inventory.getItem(i);
                                             MapView currentMapView = MapUtils.getItemMapView(currentItem);
                                             if (currentMapView != null) {
-                                                if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+                                                if (ImageFrame.imageMapManager.isMapDeleted(currentMapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(currentMapView.getId())) {
                                                     inventory.setItem(i, new ItemStack(Material.MAP, currentItem.getAmount()));
                                                 }
                                             }
@@ -1056,7 +1056,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             ItemStack currentItem = inventory.getItem(i);
                                             MapView currentMapView = MapUtils.getItemMapView(currentItem);
                                             if (currentMapView != null) {
-                                                if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+                                                if (ImageFrame.imageMapManager.isMapDeleted(currentMapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(currentMapView.getId())) {
                                                     inventory.setItem(i, new ItemStack(Material.MAP, currentItem.getAmount()));
                                                 }
                                             }

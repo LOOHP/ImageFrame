@@ -62,7 +62,7 @@ public class Events implements Listener {
         ItemStack currentItem = event.getCurrentItem();
         MapView currentMapView = MapUtils.getItemMapView(currentItem);
         if (currentMapView != null) {
-            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(currentMapView.getId())) {
                 event.setCurrentItem(new ItemStack(Material.MAP, currentItem.getAmount()));
             }
         }
@@ -167,7 +167,7 @@ public class Events implements Listener {
         ItemStack currentItem = inventory.getItem(slot);
         MapView currentMapView = MapUtils.getItemMapView(currentItem);
         if (currentMapView != null) {
-            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(currentMapView.getId())) {
                 inventory.setItem(slot, new ItemStack(Material.MAP, currentItem.getAmount()));
             }
         }
@@ -183,7 +183,7 @@ public class Events implements Listener {
         ItemStack currentItem = equipment.getItem(hand);
         MapView currentMapView = MapUtils.getItemMapView(currentItem);
         if (currentMapView != null) {
-            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(currentMapView.getId())) {
                 equipment.setItem(hand, new ItemStack(Material.MAP, currentItem.getAmount()));
             }
         }
@@ -196,7 +196,7 @@ public class Events implements Listener {
         ItemStack currentItem = equipment.getItem(hand);
         MapView currentMapView = MapUtils.getItemMapView(currentItem);
         if (currentMapView != null) {
-            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(currentMapView.getId())) {
                 equipment.setItem(hand, new ItemStack(Material.MAP, currentItem.getAmount()));
             }
         }
@@ -207,7 +207,7 @@ public class Events implements Listener {
             ItemStack itemStack = itemFrame.getItem();
             MapView mapView = MapUtils.getItemMapView(itemStack);
             if (mapView != null) {
-                if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
+                if (ImageFrame.imageMapManager.isMapDeleted(mapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(mapView.getId())) {
                     itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false);
                 }
             }
@@ -222,7 +222,7 @@ public class Events implements Listener {
             ItemStack itemStack = itemFrame.getItem();
             MapView mapView = MapUtils.getItemMapView(itemStack);
             if (mapView != null) {
-                if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
+                if (ImageFrame.imageMapManager.isMapDeleted(mapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(mapView.getId())) {
                     itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false);
                 }
             }
@@ -235,7 +235,7 @@ public class Events implements Listener {
         ItemStack currentItem = item.getItemStack();
         MapView currentMapView = MapUtils.getItemMapView(currentItem);
         if (currentMapView != null) {
-            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView)) {
+            if (ImageFrame.imageMapManager.isMapDeleted(currentMapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(currentMapView.getId())) {
                 item.setItemStack(new ItemStack(Material.MAP, currentItem.getAmount()));
             }
         }
@@ -249,7 +249,7 @@ public class Events implements Listener {
                 ItemStack itemStack = itemFrame.getItem();
                 MapView mapView = MapUtils.getItemMapView(itemStack);
                 if (mapView != null) {
-                    if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
+                    if (ImageFrame.imageMapManager.isMapDeleted(mapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(mapView.getId())) {
                         Scheduler.runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false), itemFrame);
                     }
                 }
@@ -267,7 +267,7 @@ public class Events implements Listener {
                     ItemStack itemStack = itemFrame.getItem();
                     MapView mapView = MapUtils.getItemMapView(itemStack);
                     if (mapView != null) {
-                        if (ImageFrame.imageMapManager.isMapDeleted(mapView)) {
+                        if (ImageFrame.imageMapManager.isMapDeleted(mapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(mapView.getId())) {
                             Scheduler.runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false), itemFrame);
                         }
                     }
