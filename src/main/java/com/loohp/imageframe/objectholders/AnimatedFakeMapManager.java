@@ -92,11 +92,15 @@ public class AnimatedFakeMapManager implements Listener {
                     itemFrames.remove(itemFrame);
                     return null;
                 }
-                List<Player> players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
-                if (players.isEmpty()) {
+                try {
+                    List<Player> players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
+                    if (players.isEmpty()) {
+                        return null;
+                    }
+                    return new FilteredData(itemFrame, itemFrame.getItem(), e.getValue(), players);
+                } catch (IllegalArgumentException ex) {
                     return null;
                 }
-                return new FilteredData(itemFrame, itemFrame.getItem(), e.getValue(), players);
             }, () -> null, itemFrame);
         }).collect(Collectors.toList()).stream().map(f -> {
             try {

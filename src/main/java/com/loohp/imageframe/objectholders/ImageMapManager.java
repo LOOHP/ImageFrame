@@ -63,6 +63,7 @@ import java.util.stream.Collectors;
 
 public class ImageMapManager implements AutoCloseable {
 
+    @SuppressWarnings("deprecation")
     public static byte WHITE_PIXEL = MapPalette.matchColor(255, 255, 255);
     public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
     public static final int FAKE_MAP_ID_START_RANGE = Integer.MAX_VALUE / 4 * 3;
