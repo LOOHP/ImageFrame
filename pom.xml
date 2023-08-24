@@ -6,7 +6,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>1.7.4.6</version>
+    <version>1.7.5.0</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
