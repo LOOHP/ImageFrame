@@ -132,7 +132,10 @@ public class AnimatedFakeMapManager implements Listener {
                     holder.setValue(animationData = new AnimationData(map, mapView, map.getMapViews().indexOf(mapView)));
                 } else if (!animationData.isEmpty()) {
                     if (!animationData.getImageMap().isValid()) {
-                        itemFrame.setItem(itemFrame.getItem(), false);
+                        ItemStack itemStack = itemFrame.getItem();
+                        for (Player player : players) {
+                            FakeItemUtils.sendFakeItemChange(player, itemFrame, itemStack);
+                        }
                         holder.setValue(AnimationData.EMPTY);
                         continue;
                     }

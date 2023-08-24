@@ -60,6 +60,21 @@ public class FakeItemUtils {
         }
     }
 
+    public static void sendFakeItemChange(Player player, ItemFrame itemFrame, ItemStack itemStack) {
+        PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.ENTITY_METADATA);
+        packet.getIntegers().write(0, itemFrame.getEntityId());
+        WrappedDataWatcher watcher = new WrappedDataWatcher();
+        if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
+            watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(8, ITEM_SERIALIZER), itemStack);
+        } else {
+            watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(7, ITEM_SERIALIZER), itemStack);
+        }
+        writeMetadataPacket(packet, watcher);
+        if (player.isOnline()) {
+            ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
+        }
+    }
+
     private static WrappedDataWatcher fromDataValueList(List<WrappedDataValue> dataValues) {
         WrappedDataWatcher watcher = new WrappedDataWatcher();
         for (WrappedDataValue dataValue : dataValues) {
