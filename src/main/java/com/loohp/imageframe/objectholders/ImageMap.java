@@ -457,7 +457,7 @@ public abstract class ImageMap {
         protected final int index;
 
         public ImageMapRenderer(ImageMapManager manager, ImageMap imageMap, int index) {
-            super(true);
+            super(ImageFrame.mapRenderersContextual);
             this.manager = manager;
             this.imageMap = imageMap;
             this.index = index;

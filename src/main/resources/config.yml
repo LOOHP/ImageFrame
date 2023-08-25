@@ -118,6 +118,8 @@ Settings:
   #Values can be map ids (For example: "13") or ranges (inclusive) of map ids (For example: "10-13")
   ExemptMapIdsFromDeletion:
     - "-1"
+  #This option should only be useful to developers
+  MapRenderersContextual: false
 
 Hooks:
   ViaVersion:

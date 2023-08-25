@@ -142,6 +142,8 @@ public class ImageFrame extends JavaPlugin {
 
     public static IntRangeList exemptMapIdsFromDeletion;
 
+    public static boolean mapRenderersContextual;
+
     public static ImageMapManager imageMapManager;
     public static ItemFrameSelectionManager itemFrameSelectionManager;
     public static MapMarkerEditManager mapMarkerEditManager;
@@ -357,6 +359,8 @@ public class ImageFrame extends JavaPlugin {
         }).filter(v -> v != null).collect(Collectors.toCollection(IntRangeList::new));
 
         rateLimit = config.getConfiguration().getInt("Settings.MapPacketSendingRateLimit");
+
+        mapRenderersContextual = config.getConfiguration().getBoolean("Settings.MapRenderersContextual");
 
         if (updaterTask != null) {
             updaterTask.cancel();
