@@ -7,6 +7,7 @@ Messages:
   ImageMapRenamed: "&aImageMap had been renamed!"
   ImageMapTogglePaused: "&aToggled ImageMap playback pause!"
   ImageMapPlaybackJumpTo: "&aJumped to position at {Seconds} seconds!"
+  ImageMapPlayerPurge: "&ePurged {Amount} ImageMaps owned by {CreatorName} ({CreatorUUID}) - [{ImageMapNames}]"
   SetCreator: "&aImageMap creator of id {ImageID} set to {CreatorName} ({CreatorUUID})"
   InvalidOverlayMap: "&cOverlay only works on Vanilla Minecraft maps and without duplicates in selection!"
   UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image. Contact server administrators to check the server console for more info."

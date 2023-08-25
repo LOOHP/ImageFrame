@@ -60,6 +60,12 @@ permissions:
   imageframe.delete:
     default: true
     description: Allow players to delete an image map they've created
+  imageframe.purge:
+    default: false
+    description: Allow players to purge all image maps created by a specific player
+  imageframe.purge.all:
+    default: false
+    description: Allow players to purge all image maps at once
   imageframe.get:
     default: true
     description: Allow players to get an image map they've created

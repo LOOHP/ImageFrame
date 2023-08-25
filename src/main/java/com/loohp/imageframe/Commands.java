@@ -58,6 +58,7 @@ import org.bukkit.util.Vector;
 
 import java.io.IOException;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -898,6 +899,49 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
+        } else if (args[0].equalsIgnoreCase("purge")) {
+            if (sender.hasPermission("imageframe.purge")) {
+                if (args.length > 1) {
+                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                        Set<UUID> uuids;
+                        if (args[1].equalsIgnoreCase("*")) {
+                            if (sender.hasPermission("imageframe.purge.all")) {
+                                uuids = ImageFrame.imageMapManager.getCreators();
+                            } else {
+                                sender.sendMessage(ImageFrame.messageNoPermission);
+                                uuids = Collections.emptySet();
+                            }
+                        } else {
+                            UUID uuid;
+                            try {
+                                uuid = UUID.fromString(args[1]);
+                            } catch (IllegalArgumentException e) {
+                                uuid = Bukkit.getOfflinePlayer(args[1]).getUniqueId();
+                            }
+                            uuids = Collections.singleton(uuid);
+                        }
+                        for (UUID uuid : uuids) {
+                            List<String> names = new ArrayList<>();
+                            for (ImageMap imageMap : ImageFrame.imageMapManager.getFromCreator(uuid)) {
+                                if (ImageFrame.imageMapManager.deleteMap(imageMap.getImageIndex())) {
+                                    names.add(imageMap.getName());
+                                }
+                            }
+                            String playerName = Bukkit.getOfflinePlayer(uuid).getName();
+                            sender.sendMessage(ImageFrame.messageImageMapPlayerPurge
+                                    .replace("{Amount}", String.valueOf(names.size()))
+                                    .replace("{CreatorName}", playerName == null ? ImageMap.UNKNOWN_CREATOR_NAME : playerName)
+                                    .replace("{CreatorUUID}", uuid.toString())
+                                    .replace("{ImageMapNames}", String.join(", ", names)));
+                        }
+                    });
+                } else {
+                    sender.sendMessage(ImageFrame.messageInvalidUsage);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
         } else if (args[0].equalsIgnoreCase("setaccess")) {
             if (sender.hasPermission("imageframe.setaccess")) {
                 if (sender instanceof Player) {
@@ -1180,6 +1224,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.delete")) {
                     tab.add("delete");
                 }
+                if (sender.hasPermission("imageframe.purge")) {
+                    tab.add("purge");
+                }
                 if (sender.hasPermission("imageframe.get")) {
                     tab.add("get");
                 }
@@ -1256,6 +1303,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.delete")) {
                     if ("delete".startsWith(args[0].toLowerCase())) {
                         tab.add("delete");
+                    }
+                }
+                if (sender.hasPermission("imageframe.purge")) {
+                    if ("purge".startsWith(args[0].toLowerCase())) {
+                        tab.add("purge");
                     }
                 }
                 if (sender.hasPermission("imageframe.get")) {
@@ -1352,6 +1404,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.delete")) {
                     if ("delete".equalsIgnoreCase(args[0])) {
                         tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
+                    }
+                }
+                if (sender.hasPermission("imageframe.purge")) {
+                    if ("purge".equalsIgnoreCase(args[0])) {
+                        tab.add("<player>");
                     }
                 }
                 if (sender.hasPermission("imageframe.get")) {

@@ -184,10 +184,14 @@ public class ImageMapManager implements AutoCloseable {
         return maps.values().stream().filter(each -> each.getCreator().equals(uuid) && each.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
     }
 
-    public void deleteMap(int imageIndex) {
+    public Set<UUID> getCreators() {
+        return maps.values().stream().map(each -> each.getCreator()).collect(Collectors.toSet());
+    }
+
+    public boolean deleteMap(int imageIndex) {
         ImageMap imageMap = maps.remove(imageIndex);
         if (imageMap == null) {
-            return;
+            return false;
         }
         List<MapView> mapViews = imageMap.getMapViews();
         for (MapView mapView : mapViews) {
@@ -211,6 +215,7 @@ public class ImageMapManager implements AutoCloseable {
                 }
             });
         });
+        return true;
     }
 
     public boolean isMapDeleted(int mapId) {
