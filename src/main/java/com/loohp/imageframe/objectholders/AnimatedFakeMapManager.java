@@ -25,7 +25,6 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.hooks.viaversion.ViaHook;
 import com.loohp.imageframe.utils.FakeItemUtils;
-import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -57,10 +56,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
-public class AnimatedFakeMapManager implements Listener {
+public class AnimatedFakeMapManager implements Listener, Runnable {
 
     private final Map<ItemFrame, Holder<AnimationData>> itemFrames;
     private final Map<Player, Set<Integer>> knownMapIds;
@@ -70,7 +67,7 @@ public class AnimatedFakeMapManager implements Listener {
         this.itemFrames = new ConcurrentHashMap<>();
         this.knownMapIds = new ConcurrentHashMap<>();
         this.pendingKnownMapIds = new ConcurrentHashMap<>();
-        Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> tick(), 0, 1);
+        Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, this, 0, 1);
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
         Bukkit.getPluginManager().registerEvents(new ModernEvents(), ImageFrame.plugin);
         for (World world : Bukkit.getWorlds()) {
@@ -84,145 +81,121 @@ public class AnimatedFakeMapManager implements Listener {
         }
     }
 
-    private void tick() {
-        List<FilteredData> filtered = itemFrames.entrySet().stream().map(e -> {
-            ItemFrame itemFrame = e.getKey();
-            return FutureUtils.callSyncMethod(() -> {
-                if (!itemFrame.isValid()) {
-                    itemFrames.remove(itemFrame);
-                    return null;
-                }
-                try {
-                    List<Player> players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
-                    if (players.isEmpty()) {
-                        return null;
-                    }
-                    return new FilteredData(itemFrame, itemFrame.getItem(), e.getValue(), players);
-                } catch (IllegalArgumentException ex) {
-                    return null;
-                }
-            }, () -> null, itemFrame);
-        }).collect(Collectors.toList()).stream().map(f -> {
-            try {
-                return f.get();
-            } catch (InterruptedException | ExecutionException e) {
-                return null;
+    public void run() {
+        Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
+        for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
+            ItemFrame itemFrame = entry.getKey();
+            if (!itemFrame.isValid()) {
+                itemFrames.remove(itemFrame);
+                continue;
             }
-        }).filter(d -> d != null).collect(Collectors.toList());
-        Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
-            Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
-            for (FilteredData entry : filtered) {
-                ItemFrame itemFrame = entry.getItemFrame();
-                Holder<AnimationData> holder = entry.getAnimationDataHolder();
-                List<Player> players = entry.getPlayers();
-                AnimationData animationData = holder.getValue();
-                MapView mapView = MapUtils.getItemMapView(entry.getItemStack());
-                if (mapView == null) {
-                    holder.setValue(AnimationData.EMPTY);
-                    continue;
-                }
-                if (animationData.isEmpty() || !animationData.getMapView().equals(mapView)) {
-                    ImageMap map = ImageFrame.imageMapManager.getFromMapView(mapView);
-                    if (map == null || !map.requiresAnimationService()) {
-                        if (!animationData.isEmpty()) {
-                            holder.setValue(AnimationData.EMPTY);
-                        }
-                        continue;
-                    }
-                    holder.setValue(animationData = new AnimationData(map, mapView, map.getMapViews().indexOf(mapView)));
-                } else if (!animationData.isEmpty()) {
-                    if (!animationData.getImageMap().isValid()) {
-                        ItemStack itemStack = itemFrame.getItem();
-                        for (Player player : players) {
-                            FakeItemUtils.sendFakeItemChange(player, itemFrame, itemStack);
-                        }
+            Holder<AnimationData> holder = entry.getValue();
+            List<Player> players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
+            AnimationData animationData = holder.getValue();
+            MapView mapView = MapUtils.getItemMapView(itemFrame.getItem());
+            if (mapView == null) {
+                holder.setValue(AnimationData.EMPTY);
+                continue;
+            }
+            if (animationData.isEmpty() || !animationData.getMapView().equals(mapView)) {
+                ImageMap map = ImageFrame.imageMapManager.getFromMapView(mapView);
+                if (map == null || !map.requiresAnimationService()) {
+                    if (!animationData.isEmpty()) {
                         holder.setValue(AnimationData.EMPTY);
-                        continue;
                     }
+                    continue;
                 }
-                ImageMap imageMap = animationData.getImageMap();
-                if (!imageMap.requiresAnimationService()) {
+                holder.setValue(animationData = new AnimationData(map, mapView, map.getMapViews().indexOf(mapView)));
+            } else if (!animationData.isEmpty()) {
+                if (!animationData.getImageMap().isValid()) {
+                    ItemStack itemStack = itemFrame.getItem();
+                    for (Player player : players) {
+                        FakeItemUtils.sendFakeItemChange(player, itemFrame, itemStack);
+                    }
                     holder.setValue(AnimationData.EMPTY);
                     continue;
                 }
-                int index = animationData.getIndex();
-                int currentPosition = imageMap.getCurrentPositionInSequence();
-                int mapId = imageMap.getAnimationFakeMapId(currentPosition, index);
-                if (mapId < 0) {
+            }
+            ImageMap imageMap = animationData.getImageMap();
+            if (!imageMap.requiresAnimationService()) {
+                holder.setValue(AnimationData.EMPTY);
+                continue;
+            }
+            int index = animationData.getIndex();
+            int currentPosition = imageMap.getCurrentPositionInSequence();
+            int mapId = imageMap.getAnimationFakeMapId(currentPosition, index);
+            if (mapId < 0) {
+                continue;
+            }
+            Set<Player> requiresSending = new HashSet<>();
+            Set<Player> needReset = new HashSet<>();
+            Iterator<Player> itr = players.iterator();
+            while (itr.hasNext()) {
+                Player player = itr.next();
+                MapMarkerEditManager.MapMarkerEditData edit = ImageFrame.mapMarkerEditManager.getActiveEditing(player);
+                if (edit != null && Objects.equals(edit.getImageMap(), imageMap)) {
+                    needReset.add(player);
+                    itr.remove();
                     continue;
                 }
-                Set<Player> requiresSending = new HashSet<>();
-                Set<Player> needReset = new HashSet<>();
-                Iterator<Player> itr = players.iterator();
-                while (itr.hasNext()) {
-                    Player player = itr.next();
-                    MapMarkerEditManager.MapMarkerEditData edit = ImageFrame.mapMarkerEditManager.getActiveEditing(player);
-                    if (edit != null && Objects.equals(edit.getImageMap(), imageMap)) {
-                        needReset.add(player);
-                        itr.remove();
-                        continue;
+                Set<Integer> knownIds = knownMapIds.get(player);
+                Set<Integer> pendingKnownIds = pendingKnownMapIds.get(player);
+                if (knownIds != null && !knownIds.contains(mapId)) {
+                    if (pendingKnownIds != null && !pendingKnownIds.contains(mapId)) {
+                        pendingKnownIds.addAll(imageMap.getFakeMapIds());
+                        requiresSending.add(player);
                     }
-                    Set<Integer> knownIds = knownMapIds.get(player);
-                    Set<Integer> pendingKnownIds = pendingKnownMapIds.get(player);
-                    if (knownIds != null && !knownIds.contains(mapId)) {
-                        if (pendingKnownIds != null && !pendingKnownIds.contains(mapId)) {
-                            pendingKnownIds.addAll(imageMap.getFakeMapIds());
-                            requiresSending.add(player);
-                        }
-                        itr.remove();
-                    }
-                }
-                if (!requiresSending.isEmpty()) {
-                    imageMap.sendAnimationFakeMaps(requiresSending, (p, i, r) -> {
-                        Set<Integer> pendingKnownIds = pendingKnownMapIds.get(p);
-                        if (pendingKnownIds != null && pendingKnownIds.remove(i) && r) {
-                            Set<Integer> knownIds = knownMapIds.get(p);
-                            if (knownIds != null) {
-                                knownIds.add(i);
-                            }
-                        }
-                    });
-                }
-                if (!needReset.isEmpty()) {
-                    FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, itemFrame.getItem(), mapView.getId(), mapView, currentPosition);
-                    needReset.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
-                }
-                FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, getMapItem(mapId), mapView.getId(), mapView, currentPosition);
-                players.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
-            }
-            for (Map.Entry<Player, List<FakeItemUtils.ItemFrameUpdateData>> entry : updateData.entrySet()) {
-                Player player = entry.getKey();
-                if (ImageFrame.viaHook && ViaHook.isPlayerLegacy(player)) {
-                    if (!ImageFrame.viaDisableSmoothAnimationForLegacyPlayers) {
-                        List<FakeItemUtils.ItemFrameUpdateData> list = entry.getValue();
-                        for (FakeItemUtils.ItemFrameUpdateData data : list) {
-                            MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), data.getCurrentPosition(), Collections.singleton(player), true);
-                        }
-                    }
-                } else {
-                    FakeItemUtils.sendFakeItemChange(player, entry.getValue());
+                    itr.remove();
                 }
             }
-        });
+            if (!requiresSending.isEmpty()) {
+                imageMap.sendAnimationFakeMaps(requiresSending, (p, i, r) -> {
+                    Set<Integer> pendingKnownIds = pendingKnownMapIds.get(p);
+                    if (pendingKnownIds != null && pendingKnownIds.remove(i) && r) {
+                        Set<Integer> knownIds = knownMapIds.get(p);
+                        if (knownIds != null) {
+                            knownIds.add(i);
+                        }
+                    }
+                });
+            }
+            if (!needReset.isEmpty()) {
+                FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, itemFrame.getItem(), mapView.getId(), mapView, currentPosition);
+                needReset.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
+            }
+            FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, getMapItem(mapId), mapView.getId(), mapView, currentPosition);
+            players.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
+        }
+        for (Map.Entry<Player, List<FakeItemUtils.ItemFrameUpdateData>> entry : updateData.entrySet()) {
+            Player player = entry.getKey();
+            if (ImageFrame.viaHook && ViaHook.isPlayerLegacy(player)) {
+                if (!ImageFrame.viaDisableSmoothAnimationForLegacyPlayers) {
+                    List<FakeItemUtils.ItemFrameUpdateData> list = entry.getValue();
+                    for (FakeItemUtils.ItemFrameUpdateData data : list) {
+                        MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), data.getCurrentPosition(), Collections.singleton(player), true);
+                    }
+                }
+            } else {
+                FakeItemUtils.sendFakeItemChange(player, entry.getValue());
+            }
+        }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
-                ItemStack mainhand = player.getEquipment().getItemInMainHand();
-                ItemStack offhand = player.getEquipment().getItemInOffHand();
-                MapView mainHandView = MapUtils.getItemMapView(mainhand);
-                MapView offhandView = MapUtils.getItemMapView(offhand);
-                if (mainHandView != null) {
-                    ImageMap mainHandMap = ImageFrame.imageMapManager.getFromMapView(mainHandView);
-                    if (mainHandMap != null && mainHandMap.requiresAnimationService()) {
-                        mainHandMap.send(player);
-                    }
+            ItemStack mainhand = player.getEquipment().getItemInMainHand();
+            ItemStack offhand = player.getEquipment().getItemInOffHand();
+            MapView mainHandView = MapUtils.getItemMapView(mainhand);
+            MapView offhandView = MapUtils.getItemMapView(offhand);
+            if (mainHandView != null) {
+                ImageMap mainHandMap = ImageFrame.imageMapManager.getFromMapView(mainHandView);
+                if (mainHandMap != null && mainHandMap.requiresAnimationService()) {
+                    mainHandMap.send(player);
                 }
-                if (offhandView != null && !offhandView.equals(mainHandView)) {
-                    ImageMap offHandMap = ImageFrame.imageMapManager.getFromMapView(offhandView);
-                    if (offHandMap != null && offHandMap.requiresAnimationService()) {
-                        offHandMap.send(player);
-                    }
+            }
+            if (offhandView != null && !offhandView.equals(mainHandView)) {
+                ImageMap offHandMap = ImageFrame.imageMapManager.getFromMapView(offhandView);
+                if (offHandMap != null && offHandMap.requiresAnimationService()) {
+                    offHandMap.send(player);
                 }
-            });
+            }
         }
     }
 
@@ -358,37 +331,6 @@ public class AnimatedFakeMapManager implements Listener {
 
         public int getIndex() {
             return index;
-        }
-    }
-
-    public static class FilteredData {
-
-        private final ItemFrame itemFrame;
-        private final ItemStack itemStack;
-        private final Holder<AnimationData> animationDataHolder;
-        private final List<Player> players;
-
-        public FilteredData(ItemFrame itemFrame, ItemStack itemStack, Holder<AnimationData> animationDataHolder, List<Player> players) {
-            this.itemFrame = itemFrame;
-            this.itemStack = itemStack;
-            this.animationDataHolder = animationDataHolder;
-            this.players = players;
-        }
-
-        public ItemFrame getItemFrame() {
-            return itemFrame;
-        }
-
-        public ItemStack getItemStack() {
-            return itemStack;
-        }
-
-        public Holder<AnimationData> getAnimationDataHolder() {
-            return animationDataHolder;
-        }
-
-        public List<Player> getPlayers() {
-            return players;
         }
     }
 

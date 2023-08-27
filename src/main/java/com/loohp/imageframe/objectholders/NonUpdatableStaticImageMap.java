@@ -72,7 +72,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             if (mapIds == null) {
                 mapViewsFuture.add(MapUtils.createMap(world));
             } else {
-                mapViewsFuture.add(MapUtils.getMap(mapIds.get(i)));
+                mapViewsFuture.add(MapUtils.getMapOrCreateMissing(world, mapIds.get(i)));
             }
             markers.add(new ConcurrentHashMap<>());
         }
@@ -130,12 +130,13 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
         FileLazyMappedBufferedImage[] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
+        World world = Bukkit.getWorlds().get(0);
         int i = 0;
         for (JsonElement dataJson : mapDataJson) {
             JsonObject jsonObject = dataJson.getAsJsonObject();
             int mapId = jsonObject.get("mapid").getAsInt();
             mapIds.add(mapId);
-            mapViewsFuture.add(MapUtils.getMap(mapId));
+            mapViewsFuture.add(MapUtils.getMapOrCreateMissing(world, mapId));
             cachedImages[i] = FileLazyMappedBufferedImage.fromFile(new File(folder, jsonObject.get("image").getAsString()));
             Map<String, MapCursor> mapCursors = new ConcurrentHashMap<>();
             if (jsonObject.has("markers")) {

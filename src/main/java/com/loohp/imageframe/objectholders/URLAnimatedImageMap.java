@@ -118,12 +118,13 @@ public class URLAnimatedImageMap extends URLImageMap {
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
         FileLazyMappedBufferedImage[][] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()][];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
+        World world = Bukkit.getWorlds().get(0);
         int i = 0;
         for (JsonElement dataJson : mapDataJson) {
             JsonObject jsonObject = dataJson.getAsJsonObject();
             int mapId = jsonObject.get("mapid").getAsInt();
             mapIds.add(mapId);
-            mapViewsFuture.add(MapUtils.getMap(mapId));
+            mapViewsFuture.add(MapUtils.getMapOrCreateMissing(world, mapId));
             JsonArray framesArray = jsonObject.get("images").getAsJsonArray();
             FileLazyMappedBufferedImage[] images = new FileLazyMappedBufferedImage[framesArray.size()];
             int u = 0;

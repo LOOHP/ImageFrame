@@ -82,10 +82,6 @@ public class ImageMapMigration implements ExternalPluginMigration {
                     ImageMap data = (ImageMap) entry.getValue();
                     String fileName = data.getFilename();
                     BufferedImage[] images = new BufferedImage[] {MapUtils.getSubImage(ImageIO.read(new File(folder, fileName)), data.getX(), data.getY())};
-                    if (MapUtils.getMap(mapId).get() == null) {
-                        Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + "[ImageFrame] Changed a mapId of ImageMaps " + key + " as it could not be found on the server, you might need to redistribute this ImageMap to players and item frames.");
-                        mapId = MapUtils.createMap(world).get().getId();
-                    }
                     String name = "ImageMaps_" + mapId;
                     NonUpdatableStaticImageMap imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, owner).get();
                     ImageFrame.imageMapManager.addMap(imageMap);

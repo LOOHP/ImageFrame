@@ -96,6 +96,13 @@ public class MapUtils {
     private static Class<?> craftRenderDataClass;
     private static Field craftRenderDataBufferField;
     private static Field craftRenderDataCursorsField;
+    private static Class<?> craftWorldClass;
+    private static Method craftWorldGetHandleMethod;
+    private static Method nmsWorldMapCreateFreshMethod;
+    private static Method nmsWorldServerSetMapDataMethod;
+    private static Class<?> nmsItemWorldMapClass;
+    private static Method nmsItemWorldMapMakeKeyMethod;
+    private static Method nmsWorldServerDimensionMethod;
 
     static {
         try {
@@ -131,6 +138,14 @@ public class MapUtils {
             craftRenderDataClass = NMSUtils.getNMSClass("org.bukkit.craftbukkit.%s.map.RenderData");
             craftRenderDataBufferField = craftRenderDataClass.getField("buffer");
             craftRenderDataCursorsField = craftRenderDataClass.getField("cursors");
+
+            craftWorldClass = NMSUtils.getNMSClass("org.bukkit.craftbukkit.%s.CraftWorld");
+            craftWorldGetHandleMethod = craftWorldClass.getMethod("getHandle");
+            nmsWorldMapCreateFreshMethod = Arrays.stream(nmsWorldMapClass.getMethods()).filter(e -> e.getName().equals("a") && e.getParameterCount() == 6).findFirst().get();
+            nmsWorldServerSetMapDataMethod = craftWorldGetHandleMethod.getReturnType().getMethod("a", String.class, nmsWorldMapClass);
+            nmsItemWorldMapClass = NMSUtils.getNMSClass("net.minecraft.server.%s.ItemWorldMap", "net.minecraft.world.item.ItemWorldMap");
+            nmsItemWorldMapMakeKeyMethod = nmsItemWorldMapClass.getMethod("a", int.class);
+            nmsWorldServerDimensionMethod = Arrays.stream(craftWorldGetHandleMethod.getReturnType().getMethods()).filter(e -> e.getParameterCount() == 0 && e.getReturnType().equals(nmsWorldMapCreateFreshMethod.getParameterTypes()[5])).findFirst().get();
         } catch (ReflectiveOperationException e) {
             e.printStackTrace();
         }
@@ -455,6 +470,22 @@ public class MapUtils {
 
     public static Future<MapView> getMap(int id) {
         return FutureUtils.callSyncMethod(() -> Bukkit.getMap(id));
+    }
+
+    public static Future<MapView> getMapOrCreateMissing(World world, int id) {
+        return FutureUtils.callSyncMethod(() -> {
+            MapView mapView = Bukkit.getMap(id);
+            if (mapView != null) {
+                return mapView;
+            }
+            Location spawnLocation = world.getSpawnLocation();
+            Object nmsWorld = craftWorldGetHandleMethod.invoke(craftWorldClass.cast(world));
+            Object nmsDimension = nmsWorldServerDimensionMethod.invoke(nmsWorld);
+            Object worldMap = nmsWorldMapCreateFreshMethod.invoke(null, spawnLocation.getX(), spawnLocation.getZ(), (byte) 3, false, false, nmsDimension);
+            Object mapStringId = nmsItemWorldMapMakeKeyMethod.invoke(null, id);
+            nmsWorldServerSetMapDataMethod.invoke(nmsWorld, mapStringId, worldMap);
+            return Bukkit.getMap(id);
+        });
     }
 
     @SuppressWarnings("unchecked")

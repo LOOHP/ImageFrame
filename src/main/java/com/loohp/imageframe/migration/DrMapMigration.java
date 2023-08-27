@@ -69,10 +69,6 @@ public class DrMapMigration implements ExternalPluginMigration {
             try {
                 BufferedImage[] images = new BufferedImage[] {ImageIO.read(file)};
                 int mapId = Integer.parseInt(file.getName().substring(0, file.getName().lastIndexOf(".")));
-                if (MapUtils.getMap(mapId).get() == null) {
-                    Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + "[ImageFrame] Changed a mapId of DrMap " + file.getName() + " as it could not be found on the server, you might need to redistribute this ImageMap to players and item frames.");
-                    mapId = MapUtils.createMap(world).get().getId();
-                }
                 String name = "DrMap_" + mapId;
                 NonUpdatableStaticImageMap imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, owner).get();
                 ImageFrame.imageMapManager.addMap(imageMap);

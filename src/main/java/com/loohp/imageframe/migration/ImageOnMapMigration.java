@@ -97,23 +97,12 @@ public class ImageOnMapMigration implements ExternalPluginMigration {
                         int height;
                         if (type.equalsIgnoreCase("SINGLE")) {
                             int mapId = (int) section.get("mapID");
-                            if (MapUtils.getMap(mapId).get() == null) {
-                                Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + "[ImageFrame] Changed a mapId of " + name + " ImageOnMap from user file " + file.getName() + " as it could not be found on the server, you might need to redistribute this ImageMap to players and item frames.");
-                                mapId = MapUtils.createMap(world).get().getId();
-                            }
                             mapIds = Collections.singletonList(mapId);
                             images = new BufferedImage[] {ImageIO.read(new File(imageFolder, "map" + mapId + ".png"))};
                             width = 1;
                             height = 1;
                         } else if (type.equalsIgnoreCase("POSTER")) {
                             mapIds = new ArrayList<>((List<Integer>) section.get("mapsIDs"));
-                            for (int i = 0; i < mapIds.size(); i++) {
-                                int mapId = mapIds.get(i);
-                                if (MapUtils.getMap(mapId).get() == null) {
-                                    Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + "[ImageFrame] Changed a mapId of " + name + " ImageOnMap from user file " + file.getName() + " as it could not be found on the server, you might need to redistribute this ImageMap to players and item frames.");
-                                    mapIds.set(i, MapUtils.createMap(world).get().getId());
-                                }
-                            }
                             images = new BufferedImage[mapIds.size()];
                             width = (int) section.get("columns");
                             height = (int) section.get("rows");
