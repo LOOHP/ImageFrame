@@ -27,6 +27,8 @@ import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
 import com.loohp.imageframe.objectholders.AnimatedFakeMapManager;
 import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
+import com.loohp.imageframe.objectholders.IFPlayerManager;
+import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.ImageMapManager;
@@ -126,6 +128,10 @@ public class ImageFrame extends JavaPlugin {
 
     public static SimpleDateFormat dateFormat;
 
+    public static String messagePreferencesUpdate;
+    public static Map<IFPlayerPreference<?>, String> preferenceNames;
+    public static Map<String, String> preferencesValues;
+
     public static String mapItemFormat;
     public static boolean requireEmptyMaps;
     public static int mapMaxSize;
@@ -145,6 +151,7 @@ public class ImageFrame extends JavaPlugin {
     public static boolean mapRenderersContextual;
 
     public static ImageMapManager imageMapManager;
+    public static IFPlayerManager ifPlayerManager;
     public static ItemFrameSelectionManager itemFrameSelectionManager;
     public static MapMarkerEditManager mapMarkerEditManager;
     public static CombinedMapItemHandler combinedMapItemHandler;
@@ -157,6 +164,15 @@ public class ImageFrame extends JavaPlugin {
         }
         String normalized = url.trim().toLowerCase();
         return restrictImageUrls.stream().anyMatch(each -> normalized.startsWith(each.toLowerCase()));
+    }
+
+    public static String getPreferenceTranslatedName(IFPlayerPreference<?> preference) {
+        return preferenceNames.getOrDefault(preference, preference.name().toLowerCase());
+    }
+
+    public static String getPreferenceTranslatedValue(Object value) {
+        String str = String.valueOf(value);
+        return preferencesValues.getOrDefault(str.toUpperCase(), str);
     }
 
     public static int getPlayerCreationLimit(Player player) {
@@ -243,6 +259,7 @@ public class ImageFrame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new Events.ModernEvents(), this);
 
         imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
+        ifPlayerManager = new IFPlayerManager(new File(getDataFolder(), "players"));
         itemFrameSelectionManager = new ItemFrameSelectionManager();
         mapMarkerEditManager = new MapMarkerEditManager();
         combinedMapItemHandler = new CombinedMapItemHandler();
@@ -331,6 +348,18 @@ public class ImageFrame extends JavaPlugin {
         messageInvalidOverlayMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidOverlayMap"));
 
         dateFormat = new SimpleDateFormat(config.getConfiguration().getString("Messages.DateFormat"));
+
+        messagePreferencesUpdate = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Preferences.UpdateMessage"));
+        preferenceNames = new HashMap<>();
+        for (IFPlayerPreference<?> preference : IFPlayerPreference.values()) {
+            if (config.getConfiguration().contains("Messages.Preferences.Keys." + preference.name())) {
+                preferenceNames.put(preference, ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Preferences.Keys." + preference.name())));
+            }
+        }
+        preferencesValues = new HashMap<>();
+        for (String key : config.getConfiguration().getConfigurationSection("Messages.Preferences.Values").getKeys(false)) {
+            preferencesValues.put(key, ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Preferences.Values." + key)));
+        }
 
         mapItemFormat = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Settings.MapItemFormat"));
         requireEmptyMaps = config.getConfiguration().getBoolean("Settings.RequireEmptyMaps");

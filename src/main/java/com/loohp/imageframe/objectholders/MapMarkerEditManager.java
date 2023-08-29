@@ -209,7 +209,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             try {
                 Map<String, MapCursor> markers = imageMap.getMapMarkers(mapView);
                 if (!player.hasPermission("imageframe.marker.unlimited") && markers.size() >= ImageFrame.mapMarkerLimit) {
-                    player.sendMessage(ImageFrame.messageMarkersLimitReached.replace("<Limit>", ImageFrame.mapMarkerLimit + ""));
+                    player.sendMessage(ImageFrame.messageMarkersLimitReached.replace("{Limit}", ImageFrame.mapMarkerLimit + ""));
                 } else {
                     MapCursor mapCursor = editData.getMapCursor();
                     markers.put(editData.getName(), mapCursor);

@@ -24,6 +24,8 @@ import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.migration.ExternalPluginMigration;
 import com.loohp.imageframe.migration.PluginMigrationRegistry;
 import com.loohp.imageframe.objectholders.BlockPosition;
+import com.loohp.imageframe.objectholders.IFPlayer;
+import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
@@ -1179,6 +1181,51 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
+        } else if (args[0].equalsIgnoreCase("preference")) {
+            if (sender.hasPermission("imageframe.preference")) {
+                if (args.length > 2) {
+                    IFPlayerPreference<?> preference = IFPlayerPreference.valueOf(args[1].toUpperCase());
+                    if (preference == null) {
+                        sender.sendMessage(ImageFrame.messageInvalidUsage);
+                    } else {
+                        IFPlayerPreference.StringDeserializerResult<?> result = preference.getStringDeserializer().apply(args[2]);
+                        if (result.isAccepted()) {
+                            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                UUID player;
+                                if (args.length > 3) {
+                                    if (sender.hasPermission("imageframe.preference.others")) {
+                                        player = Bukkit.getOfflinePlayer(args[3]).getUniqueId();
+                                    } else {
+                                        sender.sendMessage(ImageFrame.messageNoPermission);
+                                        return;
+                                    }
+                                } else if (sender instanceof Player) {
+                                    player = ((Player) sender).getUniqueId();
+                                } else {
+                                    sender.sendMessage(ImageFrame.messageNoConsole);
+                                    return;
+                                }
+                                Object value = result.getValue();
+                                IFPlayer ifPlayer = ImageFrame.ifPlayerManager.getIFPlayer(player);
+                                ifPlayer.setPreference(preference, value);
+                                try {
+                                    ifPlayer.save();
+                                    sender.sendMessage(ImageFrame.messagePreferencesUpdate.replace("{Preference}", ImageFrame.getPreferenceTranslatedName(preference)).replace("{Value}", ImageFrame.getPreferenceTranslatedValue(value)));
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        } else {
+                            sender.sendMessage(ImageFrame.messageInvalidUsage);
+                        }
+                    }
+                } else {
+                    sender.sendMessage(ImageFrame.messageInvalidUsage);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageNoPermission);
+            }
+            return true;
         }
 
         sender.sendMessage(ChatColorUtils.translateAlternateColorCodes('&', Bukkit.spigot().getConfig().getString("messages.unknown-command")));
@@ -1247,6 +1294,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.adminmigrate")) {
                     tab.add("adminmigrate");
+                }
+                if (sender.hasPermission("imageframe.preference")) {
+                    tab.add("preference");
                 }
                 return tab;
             case 1:
@@ -1343,6 +1393,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.adminmigrate")) {
                     if ("adminmigrate".startsWith(args[0].toLowerCase())) {
                         tab.add("adminmigrate");
+                    }
+                }
+                if (sender.hasPermission("imageframe.preference")) {
+                    if ("preference".startsWith(args[0].toLowerCase())) {
+                        tab.add("preference");
                     }
                 }
                 return tab;
@@ -1458,6 +1513,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.preference")) {
+                    if ("preference".equalsIgnoreCase(args[0])) {
+                        for (IFPlayerPreference<?> preference : IFPlayerPreference.values()) {
+                            if (preference.name().toLowerCase().startsWith(args[1].toLowerCase())) {
+                                tab.add(preference.name().toLowerCase());
+                            }
+                        }
+                    }
+                }
                 return tab;
             case 3:
                 if (sender.hasPermission("imageframe.create")) {
@@ -1546,6 +1610,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.preference")) {
+                    if ("preference".equalsIgnoreCase(args[0])) {
+                        IFPlayerPreference<?> preference = IFPlayerPreference.valueOf(args[1].toUpperCase());
+                        if (preference != null) {
+                            tab.addAll(preference.getSuggestedValues());
+                        }
+                    }
+                }
                 return tab;
             case 4:
                 if (sender.hasPermission("imageframe.create")) {
@@ -1625,6 +1697,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         if ("NONE".toLowerCase().startsWith(args[3].toLowerCase())) {
                             tab.add("NONE");
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.preference.others")) {
+                    if ("preference".equalsIgnoreCase(args[0])) {
+                        for (Player player : Bukkit.getOnlinePlayers()) {
+                            if (player.getName().toLowerCase().startsWith(args[3].toLowerCase())) {
+                                tab.add(player.getName());
+                            }
                         }
                     }
                 }

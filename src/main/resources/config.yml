@@ -63,9 +63,16 @@ Messages:
     DuplicateName: "&cThere is already a marker with that name!"
     NotAMarker: "&cThat is not a valid marker"
     NotRenderOnFrameWarning: "&eWarning: This marker type does not render on Item Frames!"
-    LimitReached: "&cYou can only create <Limit> markers on one map!"
+    LimitReached: "&cYou can only create {Limit} markers on one map!"
   #Date format used where a time based variable is displayed
   DateFormat: "dd/MM/yyyy HH:mm:ss zzz"
+  Preferences:
+    Keys:
+      VIEW_ANIMATED_MAPS: "View Animated Maps"
+    Values:
+      "TRUE": "&aEnabled"
+      "FALSE": "&cDisabled"
+    UpdateMessage: "&ePlayer Preference {Preference}&e has been updated to {Value}&e!"
 
 Settings:
   MapItemFormat: "&f{Name} &7({X}, {Y})"

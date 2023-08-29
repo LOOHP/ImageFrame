@@ -84,6 +84,12 @@ permissions:
   imageframe.adminmigrate:
     default: op
     description: Allow players to migrate maps from supported plugins to ImageFrame
+  imageframe.preference:
+    default: true
+    description: Allow players to update their player preferences
+  imageframe.preference.others:
+    default: op
+    description: Allow players to update other players' player preferences
   imageframe.update:
     default: op
     description: Allows you receive update messages

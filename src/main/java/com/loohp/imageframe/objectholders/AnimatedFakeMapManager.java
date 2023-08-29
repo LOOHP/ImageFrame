@@ -168,32 +168,36 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
         for (Map.Entry<Player, List<FakeItemUtils.ItemFrameUpdateData>> entry : updateData.entrySet()) {
             Player player = entry.getKey();
-            if (ImageFrame.viaHook && ViaHook.isPlayerLegacy(player)) {
-                if (!ImageFrame.viaDisableSmoothAnimationForLegacyPlayers) {
-                    List<FakeItemUtils.ItemFrameUpdateData> list = entry.getValue();
-                    for (FakeItemUtils.ItemFrameUpdateData data : list) {
-                        MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), data.getCurrentPosition(), Collections.singleton(player), true);
+            if (ImageFrame.ifPlayerManager.getIFPlayer(player.getUniqueId()).getPreference(IFPlayerPreference.VIEW_ANIMATED_MAPS, boolean.class)) {
+                if (ImageFrame.viaHook && ViaHook.isPlayerLegacy(player)) {
+                    if (!ImageFrame.viaDisableSmoothAnimationForLegacyPlayers) {
+                        List<FakeItemUtils.ItemFrameUpdateData> list = entry.getValue();
+                        for (FakeItemUtils.ItemFrameUpdateData data : list) {
+                            MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), data.getCurrentPosition(), Collections.singleton(player), true);
+                        }
                     }
+                } else {
+                    FakeItemUtils.sendFakeItemChange(player, entry.getValue());
                 }
-            } else {
-                FakeItemUtils.sendFakeItemChange(player, entry.getValue());
             }
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            ItemStack mainhand = player.getEquipment().getItemInMainHand();
-            ItemStack offhand = player.getEquipment().getItemInOffHand();
-            MapView mainHandView = MapUtils.getItemMapView(mainhand);
-            MapView offhandView = MapUtils.getItemMapView(offhand);
-            if (mainHandView != null) {
-                ImageMap mainHandMap = ImageFrame.imageMapManager.getFromMapView(mainHandView);
-                if (mainHandMap != null && mainHandMap.requiresAnimationService()) {
-                    mainHandMap.send(player);
+            if (ImageFrame.ifPlayerManager.getIFPlayer(player.getUniqueId()).getPreference(IFPlayerPreference.VIEW_ANIMATED_MAPS, boolean.class)) {
+                ItemStack mainhand = player.getEquipment().getItemInMainHand();
+                ItemStack offhand = player.getEquipment().getItemInOffHand();
+                MapView mainHandView = MapUtils.getItemMapView(mainhand);
+                MapView offhandView = MapUtils.getItemMapView(offhand);
+                if (mainHandView != null) {
+                    ImageMap mainHandMap = ImageFrame.imageMapManager.getFromMapView(mainHandView);
+                    if (mainHandMap != null && mainHandMap.requiresAnimationService()) {
+                        mainHandMap.send(player);
+                    }
                 }
-            }
-            if (offhandView != null && !offhandView.equals(mainHandView)) {
-                ImageMap offHandMap = ImageFrame.imageMapManager.getFromMapView(offhandView);
-                if (offHandMap != null && offHandMap.requiresAnimationService()) {
-                    offHandMap.send(player);
+                if (offhandView != null && !offhandView.equals(mainHandView)) {
+                    ImageMap offHandMap = ImageFrame.imageMapManager.getFromMapView(offhandView);
+                    if (offHandMap != null && offHandMap.requiresAnimationService()) {
+                        offHandMap.send(player);
+                    }
                 }
             }
         }
