@@ -21,12 +21,9 @@
 package com.loohp.imageframe.objectholders;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,7 +33,7 @@ public class IFPlayerPreference<T> {
 
     private static final Map<String, IFPlayerPreference<?>> VALUES = new ConcurrentHashMap<>();
 
-    public static final IFPlayerPreference<Boolean> VIEW_ANIMATED_MAPS = new IFPlayerPreference<>("VIEW_ANIMATED_MAPS", "viewAnimatedMaps", boolean.class, Arrays.asList("true", "false"), i -> true, v -> new JsonPrimitive(v), j -> j.getAsBoolean(), s -> StringDeserializerResult.accepted(Boolean.parseBoolean(s)));
+    public static final IFPlayerPreference<BooleanState> VIEW_ANIMATED_MAPS = new IFPlayerPreference<>("VIEW_ANIMATED_MAPS", "viewAnimatedMaps", BooleanState.class, BooleanState.STRING_VALUES_MAP, i -> BooleanState.UNSET, v -> v.getJsonValue(), j -> BooleanState.fromJsonValue(j), s -> StringDeserializerResult.accepted(BooleanState.fromString(s)));
 
     static {
         register(VIEW_ANIMATED_MAPS);
@@ -57,17 +54,17 @@ public class IFPlayerPreference<T> {
     private final String name;
     private final String jsonName;
     private final Class<T> type;
-    private final List<String> suggestedValues;
+    private final Map<String, T> suggestedValues;
     private final Function<IFPlayer, T> defaultValue;
     private final Function<T, JsonElement> serializer;
     private final Function<JsonElement, T> deserializer;
     private final Function<String, StringDeserializerResult<T>> stringDeserializer;
 
-    IFPlayerPreference(String name, String jsonName, Class<T> type, List<String> suggestedValues, Function<IFPlayer, T> defaultValue, Function<T, JsonElement> serializer, Function<JsonElement, T> deserializer, Function<String, StringDeserializerResult<T>> stringDeserializer) {
+    IFPlayerPreference(String name, String jsonName, Class<T> type, Map<String, T> suggestedValues, Function<IFPlayer, T> defaultValue, Function<T, JsonElement> serializer, Function<JsonElement, T> deserializer, Function<String, StringDeserializerResult<T>> stringDeserializer) {
         this.name = name;
         this.jsonName = jsonName;
         this.type = type;
-        this.suggestedValues = suggestedValues;
+        this.suggestedValues = Collections.unmodifiableMap(suggestedValues);
         this.defaultValue = defaultValue;
         this.serializer = serializer;
         this.deserializer = deserializer;
@@ -86,7 +83,7 @@ public class IFPlayerPreference<T> {
         return type;
     }
 
-    public List<String> getSuggestedValues() {
+    public Map<String, T> getSuggestedValues() {
         return suggestedValues;
     }
 

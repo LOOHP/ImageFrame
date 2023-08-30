@@ -168,7 +168,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
         for (Map.Entry<Player, List<FakeItemUtils.ItemFrameUpdateData>> entry : updateData.entrySet()) {
             Player player = entry.getKey();
-            if (ImageFrame.ifPlayerManager.getIFPlayer(player.getUniqueId()).getPreference(IFPlayerPreference.VIEW_ANIMATED_MAPS, boolean.class)) {
+            if (ImageFrame.ifPlayerManager.getIFPlayer(player.getUniqueId()).getPreference(IFPlayerPreference.VIEW_ANIMATED_MAPS, BooleanState.class).getCalculatedValue(() -> ImageFrame.getPreferenceUnsetValue(player, IFPlayerPreference.VIEW_ANIMATED_MAPS).getRawValue(true))) {
                 if (ImageFrame.viaHook && ViaHook.isPlayerLegacy(player)) {
                     if (!ImageFrame.viaDisableSmoothAnimationForLegacyPlayers) {
                         List<FakeItemUtils.ItemFrameUpdateData> list = entry.getValue();
@@ -182,7 +182,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             }
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (ImageFrame.ifPlayerManager.getIFPlayer(player.getUniqueId()).getPreference(IFPlayerPreference.VIEW_ANIMATED_MAPS, boolean.class)) {
+            if (ImageFrame.ifPlayerManager.getIFPlayer(player.getUniqueId()).getPreference(IFPlayerPreference.VIEW_ANIMATED_MAPS, BooleanState.class).getCalculatedValue(() -> ImageFrame.getPreferenceUnsetValue(player, IFPlayerPreference.VIEW_ANIMATED_MAPS).getRawValue(true))) {
                 ItemStack mainhand = player.getEquipment().getItemInMainHand();
                 ItemStack offhand = player.getEquipment().getItemInOffHand();
                 MapView mainHandView = MapUtils.getItemMapView(mainhand);

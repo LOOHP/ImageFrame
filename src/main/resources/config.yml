@@ -72,6 +72,7 @@ Messages:
     Values:
       "TRUE": "&aEnabled"
       "FALSE": "&cDisabled"
+      UNSET: "&7Unset"
     UpdateMessage: "&ePlayer Preference {Preference}&e has been updated to {Value}&e!"
 
 Settings:

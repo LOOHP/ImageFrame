@@ -1614,7 +1614,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if ("preference".equalsIgnoreCase(args[0])) {
                         IFPlayerPreference<?> preference = IFPlayerPreference.valueOf(args[1].toUpperCase());
                         if (preference != null) {
-                            tab.addAll(preference.getSuggestedValues());
+                            tab.addAll(preference.getSuggestedValues().keySet());
                         }
                     }
                 }

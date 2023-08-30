@@ -38,6 +38,7 @@ import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.RateLimitedPacketSendingManager;
 import com.loohp.imageframe.objectholders.Scheduler;
+import com.loohp.imageframe.objectholders.UnsetState;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.MCVersion;
@@ -164,6 +165,17 @@ public class ImageFrame extends JavaPlugin {
         }
         String normalized = url.trim().toLowerCase();
         return restrictImageUrls.stream().anyMatch(each -> normalized.startsWith(each.toLowerCase()));
+    }
+
+    public static <T extends UnsetState> T getPreferenceUnsetValue(Player player, IFPlayerPreference<T> preference) {
+        String prefix = "imageframe.preference.unsetdefault." + preference.name().toLowerCase() + ".";
+        for (Map.Entry<String, T> entry : preference.getSuggestedValues().entrySet()) {
+            T value = entry.getValue();
+            if (!value.isUnset() && player.hasPermission(prefix + entry.getKey().toLowerCase())) {
+                return value;
+            }
+        }
+        return preference.getDefaultValue(ifPlayerManager.getIFPlayer(player.getUniqueId()));
     }
 
     public static String getPreferenceTranslatedName(IFPlayerPreference<?> preference) {
