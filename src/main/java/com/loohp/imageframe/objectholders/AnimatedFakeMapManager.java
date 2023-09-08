@@ -166,6 +166,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, getMapItem(mapId), mapView.getId(), mapView, currentPosition);
             players.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
         }
+        Map<Player, List<Runnable>> sendingTasks = new HashMap<>();
         for (Map.Entry<Player, List<FakeItemUtils.ItemFrameUpdateData>> entry : updateData.entrySet()) {
             Player player = entry.getKey();
             if (ImageFrame.ifPlayerManager.getIFPlayer(player.getUniqueId()).getPreference(IFPlayerPreference.VIEW_ANIMATED_MAPS, BooleanState.class).getCalculatedValue(() -> ImageFrame.getPreferenceUnsetValue(player, IFPlayerPreference.VIEW_ANIMATED_MAPS).getRawValue(true))) {
@@ -173,11 +174,11 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                     if (!ImageFrame.viaDisableSmoothAnimationForLegacyPlayers) {
                         List<FakeItemUtils.ItemFrameUpdateData> list = entry.getValue();
                         for (FakeItemUtils.ItemFrameUpdateData data : list) {
-                            MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), data.getCurrentPosition(), Collections.singleton(player), true);
+                            sendingTasks.computeIfAbsent(player, k -> new ArrayList<>()).add(() -> MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), data.getCurrentPosition(), Collections.singleton(player), true));
                         }
                     }
                 } else {
-                    FakeItemUtils.sendFakeItemChange(player, entry.getValue());
+                    sendingTasks.computeIfAbsent(player, k -> new ArrayList<>()).add(() -> FakeItemUtils.sendFakeItemChange(player, entry.getValue()));
                 }
             }
         }
@@ -190,16 +191,23 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 if (mainHandView != null) {
                     ImageMap mainHandMap = ImageFrame.imageMapManager.getFromMapView(mainHandView);
                     if (mainHandMap != null && mainHandMap.requiresAnimationService()) {
-                        mainHandMap.send(player);
+                        sendingTasks.computeIfAbsent(player, k -> new ArrayList<>()).add(() -> mainHandMap.send(player));
                     }
                 }
                 if (offhandView != null && !offhandView.equals(mainHandView)) {
                     ImageMap offHandMap = ImageFrame.imageMapManager.getFromMapView(offhandView);
                     if (offHandMap != null && offHandMap.requiresAnimationService()) {
-                        offHandMap.send(player);
+                        sendingTasks.computeIfAbsent(player, k -> new ArrayList<>()).add(() -> offHandMap.send(player));
                     }
                 }
             }
+        }
+        if (ImageFrame.sendAnimatedMapsOnMainThread) {
+            for (Map.Entry<Player, List<Runnable>> entry : sendingTasks.entrySet()) {
+                Scheduler.runTask(ImageFrame.plugin, () -> entry.getValue().forEach(Runnable::run), entry.getKey());
+            }
+        } else {
+            sendingTasks.values().forEach(l -> l.forEach(Runnable::run));
         }
     }
 

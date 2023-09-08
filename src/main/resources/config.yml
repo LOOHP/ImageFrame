@@ -107,7 +107,7 @@ Settings:
     default: 10
     vip: 15
     moderator: 20
-  #Max amount of markers on a individual map
+  #Max amount of markers on an individual map
   MapMarkerLimit: 20
   CombinedMapItem:
     Name: "&bImageMap &f- &f{Name} &7({Width} x {Height})"
@@ -126,8 +126,9 @@ Settings:
   #Values can be map ids (For example: "13") or ranges (inclusive) of map ids (For example: "10-13")
   ExemptMapIdsFromDeletion:
     - "-1"
-  #This option should only be useful to developers
+  #This option should only be useful to developers and people who knew what they are doing
   MapRenderersContextual: false
+  SendAnimatedMapsOnMainThread: false
 
 Hooks:
   ViaVersion:

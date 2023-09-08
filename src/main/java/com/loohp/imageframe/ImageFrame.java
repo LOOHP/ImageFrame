@@ -150,6 +150,7 @@ public class ImageFrame extends JavaPlugin {
     public static IntRangeList exemptMapIdsFromDeletion;
 
     public static boolean mapRenderersContextual;
+    public static boolean sendAnimatedMapsOnMainThread;
 
     public static ImageMapManager imageMapManager;
     public static IFPlayerManager ifPlayerManager;
@@ -402,6 +403,7 @@ public class ImageFrame extends JavaPlugin {
         rateLimit = config.getConfiguration().getInt("Settings.MapPacketSendingRateLimit");
 
         mapRenderersContextual = config.getConfiguration().getBoolean("Settings.MapRenderersContextual");
+        sendAnimatedMapsOnMainThread = config.getConfiguration().getBoolean("Settings.SendAnimatedMapsOnMainThread");
 
         if (updaterTask != null) {
             updaterTask.cancel();
