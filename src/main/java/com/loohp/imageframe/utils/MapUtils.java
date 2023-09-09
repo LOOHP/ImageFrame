@@ -312,7 +312,7 @@ public class MapUtils {
                 return 0;
             }
         }
-        if (player.getInventory().contains(Material.MAP, count)) {
+        if (player.getInventory().containsAtLeast(new ItemStack(Material.MAP), count)) {
             player.getInventory().removeItem(new ItemStack(Material.MAP, count));
             return count;
         }
