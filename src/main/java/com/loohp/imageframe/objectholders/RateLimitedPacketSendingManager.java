@@ -70,8 +70,12 @@ public class RateLimitedPacketSendingManager implements Listener {
 
     private void run() {
         int rateLimit = ImageFrame.rateLimit;
+        long now = System.currentTimeMillis();
         for (Map.Entry<Player, Queue<ScheduleEntry>> entry : playerPacketQueue.entrySet()) {
             Player player = entry.getKey();
+            if (now - player.getLastLogin() < 500) {
+                continue;
+            }
             Queue<ScheduleEntry> queue = entry.getValue();
             for (int counter = 0; rateLimit < 0 || counter < rateLimit; counter++) {
                 ScheduleEntry scheduleEntry = queue.poll();
