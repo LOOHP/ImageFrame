@@ -76,7 +76,7 @@ public class IFPlayerManager implements AutoCloseable, Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
-        IFPlayer ifPlayer = getIFPlayer(event.getPlayer().getUniqueId());
+        IFPlayer ifPlayer = loadedPlayers.get(event.getPlayer().getUniqueId());
         if (ifPlayer != null) {
             Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                 try {

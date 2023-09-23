@@ -43,11 +43,13 @@ import java.util.function.BiConsumer;
 public class RateLimitedPacketSendingManager implements Listener {
 
     private final ProtocolManager protocolManager;
+    private final Map<Player, Long> loginTime;
     private final Map<Player, Queue<ScheduleEntry>> playerPacketQueue;
     private final ExecutorService packetSendingService;
 
     public RateLimitedPacketSendingManager() {
         this.protocolManager = ProtocolLibrary.getProtocolManager();
+        this.loginTime = new ConcurrentHashMap<>();
         this.playerPacketQueue = new ConcurrentHashMap<>();
         this.packetSendingService = Executors.newFixedThreadPool(4);
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
@@ -73,7 +75,7 @@ public class RateLimitedPacketSendingManager implements Listener {
         long now = System.currentTimeMillis();
         for (Map.Entry<Player, Queue<ScheduleEntry>> entry : playerPacketQueue.entrySet()) {
             Player player = entry.getKey();
-            if (now - player.getLastLogin() < 500) {
+            if (now - loginTime.getOrDefault(player, now) < 500) {
                 continue;
             }
             Queue<ScheduleEntry> queue = entry.getValue();
@@ -95,12 +97,16 @@ public class RateLimitedPacketSendingManager implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        playerPacketQueue.put(event.getPlayer(), new ConcurrentLinkedQueue<>());
+        Player player = event.getPlayer();
+        loginTime.put(player, System.currentTimeMillis());
+        playerPacketQueue.put(player, new ConcurrentLinkedQueue<>());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        playerPacketQueue.remove(event.getPlayer());
+        Player player = event.getPlayer();
+        loginTime.remove(player);
+        playerPacketQueue.remove(player);
     }
 
     @EventHandler
