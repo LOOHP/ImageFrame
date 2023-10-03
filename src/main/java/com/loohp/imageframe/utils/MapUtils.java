@@ -142,7 +142,11 @@ public class MapUtils {
             craftWorldClass = NMSUtils.getNMSClass("org.bukkit.craftbukkit.%s.CraftWorld");
             craftWorldGetHandleMethod = craftWorldClass.getMethod("getHandle");
             nmsWorldMapCreateFreshMethod = Arrays.stream(nmsWorldMapClass.getMethods()).filter(e -> e.getName().equals("a") && e.getParameterCount() == 6).findFirst().get();
-            nmsWorldServerSetMapDataMethod = craftWorldGetHandleMethod.getReturnType().getMethod("a", String.class, nmsWorldMapClass);
+            if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
+                nmsWorldServerSetMapDataMethod = craftWorldGetHandleMethod.getReturnType().getMethod("a", String.class, nmsWorldMapClass);
+            } else {
+                nmsWorldServerSetMapDataMethod = craftWorldGetHandleMethod.getReturnType().getMethod("a", nmsWorldMapClass);
+            }
             nmsItemWorldMapClass = NMSUtils.getNMSClass("net.minecraft.server.%s.ItemWorldMap", "net.minecraft.world.item.ItemWorldMap");
             nmsItemWorldMapMakeKeyMethod = nmsItemWorldMapClass.getMethod("a", int.class);
             nmsWorldServerDimensionMethod = Arrays.stream(craftWorldGetHandleMethod.getReturnType().getMethods()).filter(e -> e.getParameterCount() == 0 && e.getReturnType().equals(nmsWorldMapCreateFreshMethod.getParameterTypes()[5])).findFirst().get();
@@ -482,8 +486,12 @@ public class MapUtils {
             Object nmsWorld = craftWorldGetHandleMethod.invoke(craftWorldClass.cast(world));
             Object nmsDimension = nmsWorldServerDimensionMethod.invoke(nmsWorld);
             Object worldMap = nmsWorldMapCreateFreshMethod.invoke(null, spawnLocation.getX(), spawnLocation.getZ(), (byte) 3, false, false, nmsDimension);
-            Object mapStringId = nmsItemWorldMapMakeKeyMethod.invoke(null, id);
-            nmsWorldServerSetMapDataMethod.invoke(nmsWorld, mapStringId, worldMap);
+            if (nmsWorldServerSetMapDataMethod.getParameterCount() == 1) {
+                nmsWorldServerSetMapDataMethod.invoke(nmsWorld, worldMap);
+            } else {
+                Object mapStringId = nmsItemWorldMapMakeKeyMethod.invoke(null, id);
+                nmsWorldServerSetMapDataMethod.invoke(nmsWorld, mapStringId, worldMap);
+            }
             return Bukkit.getMap(id);
         });
     }
