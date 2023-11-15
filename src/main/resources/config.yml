@@ -128,6 +128,8 @@ Settings:
     - "-1"
   #This option should only be useful to developers and people who knew what they are doing
   MapRenderersContextual: false
+  #Changing this option requires a restart
+  HandleAnimatedMapsOnMainThread: false
   SendAnimatedMapsOnMainThread: false
 
 Hooks:

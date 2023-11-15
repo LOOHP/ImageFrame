@@ -54,8 +54,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class AnimatedFakeMapManager implements Listener, Runnable {
 
@@ -82,15 +87,47 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
     }
 
     public void run() {
+        Map<ItemFrame, FutureTask<Optional<List<Player>>>> entityTrackers = new HashMap<>();
+        if (ImageFrame.handleAnimatedMapsOnMainThread) {
+            for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
+                ItemFrame itemFrame = entry.getKey();
+                FutureTask<Optional<List<Player>>> future = new FutureTask<>(() -> {
+                    if (!itemFrame.isValid()) {
+                        return Optional.empty();
+                    }
+                    return Optional.of(ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame));
+                });
+                Scheduler.executeOrScheduleSync(ImageFrame.plugin, future, itemFrame);
+                entityTrackers.put(itemFrame, future);
+            }
+
+        }
         Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
         for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
             ItemFrame itemFrame = entry.getKey();
-            if (!itemFrame.isValid()) {
-                itemFrames.remove(itemFrame);
-                continue;
+            FutureTask<Optional<List<Player>>> future = entityTrackers.get(itemFrame);
+            List<Player> players;
+            if (future == null) {
+                if (!itemFrame.isValid()) {
+                    itemFrames.remove(itemFrame);
+                    continue;
+                }
+                players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
+            } else {
+                List<Player> syncPlayers;
+                try {
+                    Optional<List<Player>> result = future.get(1, TimeUnit.SECONDS);
+                    if (!result.isPresent()) {
+                        continue;
+                    }
+                    syncPlayers = result.get();
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    e.printStackTrace();
+                    syncPlayers = Collections.emptyList();
+                }
+                players = syncPlayers;
             }
             Holder<AnimationData> holder = entry.getValue();
-            List<Player> players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
             AnimationData animationData = holder.getValue();
             MapView mapView = MapUtils.getItemMapView(itemFrame.getItem());
             if (mapView == null) {
