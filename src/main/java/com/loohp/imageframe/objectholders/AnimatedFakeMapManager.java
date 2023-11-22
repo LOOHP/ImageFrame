@@ -86,6 +86,14 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
     }
 
+    private List<Player> getEntityTrackers(Entity entity) {
+        try {
+            return ProtocolLibrary.getProtocolManager().getEntityTrackers(entity);
+        } catch (IllegalArgumentException e) {
+            return Collections.emptyList();
+        }
+    }
+
     public void run() {
         Map<ItemFrame, FutureTask<Optional<List<Player>>>> entityTrackers = new HashMap<>();
         if (ImageFrame.handleAnimatedMapsOnMainThread) {
@@ -95,7 +103,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                     if (!itemFrame.isValid()) {
                         return Optional.empty();
                     }
-                    return Optional.of(ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame));
+                    return Optional.of(getEntityTrackers(itemFrame));
                 });
                 Scheduler.executeOrScheduleSync(ImageFrame.plugin, future, itemFrame);
                 entityTrackers.put(itemFrame, future);
@@ -112,7 +120,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                     itemFrames.remove(itemFrame);
                     continue;
                 }
-                players = ProtocolLibrary.getProtocolManager().getEntityTrackers(itemFrame);
+                players = getEntityTrackers(itemFrame);
             } else {
                 List<Player> syncPlayers;
                 try {
