@@ -127,7 +127,6 @@ public class MapUtils {
 
             nmsMapIconClass = NMSUtils.getNMSClass("net.minecraft.server.%s.MapIcon", "net.minecraft.world.level.saveddata.maps.MapIcon");
             nmsMapIconConstructor = nmsMapIconClass.getConstructors()[0];
-            nmsWorldMapClass = NMSUtils.getNMSClass("net.minecraft.server.%s.WorldMap", "net.minecraft.world.level.saveddata.maps.WorldMap");
             if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
                 //noinspection OptionalGetWithoutIsPresent
                 nmsWorldMapBClass = Arrays.stream(nmsWorldMapClass.getClasses()).filter(each -> each.getName().endsWith("$b")).findFirst().get();

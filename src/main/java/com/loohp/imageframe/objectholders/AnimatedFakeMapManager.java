@@ -64,6 +64,8 @@ import java.util.concurrent.TimeoutException;
 
 public class AnimatedFakeMapManager implements Listener, Runnable {
 
+    private static final ItemStack ITEM_EMPTY = new ItemStack(Material.AIR);
+
     private final Map<ItemFrame, Holder<AnimationData>> itemFrames;
     private final Map<Player, Set<Integer>> knownMapIds;
     private final Map<Player, Set<Integer>> pendingKnownMapIds;
@@ -95,15 +97,15 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
     }
 
     public void run() {
-        Map<ItemFrame, FutureTask<Optional<List<Player>>>> entityTrackers = new HashMap<>();
+        Map<ItemFrame, FutureTask<Optional<ItemFrameInfo>>> entityTrackers = new HashMap<>();
         if (ImageFrame.handleAnimatedMapsOnMainThread) {
             for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
                 ItemFrame itemFrame = entry.getKey();
-                FutureTask<Optional<List<Player>>> future = new FutureTask<>(() -> {
+                FutureTask<Optional<ItemFrameInfo>> future = new FutureTask<>(() -> {
                     if (!itemFrame.isValid()) {
                         return Optional.empty();
                     }
-                    return Optional.of(getEntityTrackers(itemFrame));
+                    return Optional.of(new ItemFrameInfo(getEntityTrackers(itemFrame), itemFrame.getItem()));
                 });
                 Scheduler.executeOrScheduleSync(ImageFrame.plugin, future, itemFrame);
                 entityTrackers.put(itemFrame, future);
@@ -113,7 +115,8 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
         for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
             ItemFrame itemFrame = entry.getKey();
-            FutureTask<Optional<List<Player>>> future = entityTrackers.get(itemFrame);
+            FutureTask<Optional<ItemFrameInfo>> future = entityTrackers.get(itemFrame);
+            ItemStack itemStack;
             List<Player> players;
             if (future == null) {
                 if (!itemFrame.isValid()) {
@@ -121,23 +124,29 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                     continue;
                 }
                 players = getEntityTrackers(itemFrame);
+                itemStack = itemFrame.getItem();
             } else {
                 List<Player> syncPlayers;
+                ItemStack syncItemStack;
                 try {
-                    Optional<List<Player>> result = future.get(1, TimeUnit.SECONDS);
+                    Optional<ItemFrameInfo> result = future.get(30, TimeUnit.SECONDS);
                     if (!result.isPresent()) {
                         continue;
                     }
-                    syncPlayers = result.get();
+                    ItemFrameInfo info = result.get();
+                    syncPlayers = info.getTrackedPlayers();
+                    syncItemStack = info.getItemStack();
                 } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     e.printStackTrace();
                     syncPlayers = Collections.emptyList();
+                    syncItemStack = ITEM_EMPTY;
                 }
                 players = syncPlayers;
+                itemStack = syncItemStack;
             }
             Holder<AnimationData> holder = entry.getValue();
             AnimationData animationData = holder.getValue();
-            MapView mapView = MapUtils.getItemMapView(itemFrame.getItem());
+            MapView mapView = MapUtils.getItemMapView(itemStack);
             if (mapView == null) {
                 holder.setValue(AnimationData.EMPTY);
                 continue;
@@ -153,7 +162,6 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 holder.setValue(animationData = new AnimationData(map, mapView, map.getMapViews().indexOf(mapView)));
             } else if (!animationData.isEmpty()) {
                 if (!animationData.getImageMap().isValid()) {
-                    ItemStack itemStack = itemFrame.getItem();
                     for (Player player : players) {
                         FakeItemUtils.sendFakeItemChange(player, itemFrame, itemStack);
                     }
@@ -388,6 +396,25 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
 
         public int getIndex() {
             return index;
+        }
+    }
+
+    public static class ItemFrameInfo {
+
+        private final List<Player> trackedPlayers;
+        private final ItemStack itemStack;
+
+        public ItemFrameInfo(List<Player> trackedPlayers, ItemStack itemStack) {
+            this.trackedPlayers = trackedPlayers;
+            this.itemStack = itemStack;
+        }
+
+        public List<Player> getTrackedPlayers() {
+            return trackedPlayers;
+        }
+
+        public ItemStack getItemStack() {
+            return itemStack;
         }
     }
 
