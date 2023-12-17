@@ -42,6 +42,9 @@ public class ImageMapUtils {
         }
         String playerName = str.substring(0, index);
         String imageMapName = str.substring(index + 1);
+        if (playerName.isEmpty() || playerName.trim().isEmpty()) {
+            return new MutablePair<>(sender instanceof Player ? ((Player) sender).getUniqueId() : null, imageMapName);
+        }
         UUID playerUUID = Bukkit.getOfflinePlayer(playerName).getUniqueId();
         return new MutablePair<>(playerUUID, imageMapName);
     }
