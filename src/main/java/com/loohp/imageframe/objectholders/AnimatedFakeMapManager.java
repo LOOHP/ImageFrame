@@ -46,16 +46,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapView;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -97,7 +88,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
     }
 
     public void run() {
-        Map<ItemFrame, FutureTask<Optional<ItemFrameInfo>>> entityTrackers = new HashMap<>();
+        Map<ItemFrame, FutureTask<Optional<ItemFrameInfo>>> entityTrackers = new IdentityHashMap<>();
         if (ImageFrame.handleAnimatedMapsOnMainThread) {
             for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
                 ItemFrame itemFrame = entry.getKey();
