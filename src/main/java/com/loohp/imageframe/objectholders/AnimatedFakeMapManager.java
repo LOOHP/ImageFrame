@@ -26,6 +26,7 @@ import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.hooks.viaversion.ViaHook;
 import com.loohp.imageframe.utils.FakeItemUtils;
 import com.loohp.imageframe.utils.MapUtils;
+import net.bytebuddy.implementation.bytecode.Throw;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -93,10 +94,18 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
                 ItemFrame itemFrame = entry.getKey();
                 FutureTask<Optional<ItemFrameInfo>> future = new FutureTask<>(() -> {
-                    if (!itemFrame.isValid()) {
+                    System.out.println("DEBUG :: run() :: build future: " + itemFrame.hashCode());
+                    try {
+                        if (!itemFrame.isValid()) {
+                            System.out.println(" - Not Valid");
+                            return Optional.empty();
+                        }
+                        System.out.println(" - Is Valid");
+                        return Optional.of(new ItemFrameInfo(getEntityTrackers(itemFrame), itemFrame.getItem()));
+                    } catch (Throwable t) {
+                        t.printStackTrace();
                         return Optional.empty();
                     }
-                    return Optional.of(new ItemFrameInfo(getEntityTrackers(itemFrame), itemFrame.getItem()));
                 });
                 Scheduler.executeOrScheduleSync(ImageFrame.plugin, future, itemFrame);
                 entityTrackers.put(itemFrame, future);
@@ -120,7 +129,9 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 List<Player> syncPlayers;
                 ItemStack syncItemStack;
                 try {
+                    System.out.println("DEBUG :: run() :: pre get: " + itemFrame.hashCode());
                     Optional<ItemFrameInfo> result = future.get(30, TimeUnit.SECONDS);
+                    System.out.println("DEBUG :: run() :: post get: " + itemFrame.hashCode());
                     if (!result.isPresent()) {
                         continue;
                     }
@@ -128,6 +139,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                     syncPlayers = info.getTrackedPlayers();
                     syncItemStack = info.getItemStack();
                 } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    System.out.println("DEBUG :: run() :: FAIL get: " + itemFrame.hashCode());
                     e.printStackTrace();
                     syncPlayers = Collections.emptyList();
                     syncItemStack = ITEM_EMPTY;
