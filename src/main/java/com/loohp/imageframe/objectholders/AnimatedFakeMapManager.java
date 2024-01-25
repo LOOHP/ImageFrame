@@ -21,6 +21,7 @@
 package com.loohp.imageframe.objectholders;
 
 import com.comphenix.protocol.ProtocolLibrary;
+import com.google.common.collect.ImmutableMap;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.hooks.viaversion.ViaHook;
@@ -54,11 +55,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -96,61 +96,74 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
     }
 
-    public void run() {
-        Map<ItemFrame, FutureTask<Optional<ItemFrameInfo>>> entityTrackers = new HashMap<>();
-        if (ImageFrame.handleAnimatedMapsOnMainThread) {
-            for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
-                ItemFrame itemFrame = entry.getKey();
-                FutureTask<Optional<ItemFrameInfo>> future = new FutureTask<>(() -> {
-                    if (!itemFrame.isValid()) {
-                        return Optional.empty();
+    private ImmutableMap<ItemFrame, ItemFrameInfo> buildAllItemFrameInfo(Set<Map.Entry<ItemFrame, Holder<AnimationData>>> dataToProcess, boolean async) {
+        ImmutableMap.Builder<ItemFrame, ItemFrameInfo> builder = ImmutableMap.builder();
+        List<CompletableFuture<ItemFrameInfo>> futures = new ArrayList<>();
+        Map<CompletableFuture<ItemFrameInfo>, ItemFrame> localReverseMap = new HashMap<>();
+
+        for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : dataToProcess) {
+            ItemFrame itemFrame = entry.getKey();
+            CompletableFuture<ItemFrameInfo> future = new CompletableFuture<>();
+
+            // Collect frame info
+            Runnable task = () -> {
+                try {
+                    if (itemFrame.isValid()) {
+                        ItemFrameInfo frameInfo = new ItemFrameInfo(getEntityTrackers(itemFrame), itemFrame.getItem());
+                        builder.put(itemFrame, frameInfo);
+                        future.complete(frameInfo);
                     }
-                    return Optional.of(new ItemFrameInfo(getEntityTrackers(itemFrame), itemFrame.getItem()));
-                });
-                Scheduler.executeOrScheduleSync(ImageFrame.plugin, future, itemFrame);
-                entityTrackers.put(itemFrame, future);
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                }
+                future.complete(null);
+            };
+
+            if (async) task.run(); // We're already async
+            else Scheduler.executeOrScheduleSync(ImageFrame.plugin, task, itemFrame); // Execute on entity's thread
+
+            futures.add(future);
+            localReverseMap.put(future, itemFrame);
+        }
+
+        // Wait for all futures to complete
+        futures.parallelStream().forEach(future -> {
+            try {
+                // Max wait time is 2 seconds per frame
+                future.get(2, TimeUnit.SECONDS);
+            } catch (InterruptedException | TimeoutException | ExecutionException e) {
+                new RuntimeException("Failed to get item frame info for " + localReverseMap.get(future) + "! Removing from cache...", e).printStackTrace();
+                ItemFrame itemFrame = localReverseMap.get(future);
+                if (itemFrame != null) itemFrames.remove(itemFrame);
+            }
+        });
+
+        return builder.build();
+    }
+
+    public void run() {
+        ImmutableMap<ItemFrame, ItemFrameInfo> entityTrackers = buildAllItemFrameInfo(itemFrames.entrySet(), !ImageFrame.handleAnimatedMapsOnMainThread);
+        Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
+        for (Map.Entry<ItemFrame, ItemFrameInfo> entry : entityTrackers.entrySet()) {
+            ItemFrame itemFrame = entry.getKey();
+            ItemFrameInfo frameInfo = entry.getValue();
+
+            List<Player> players = frameInfo.getTrackedPlayers();
+            ItemStack itemStack = frameInfo.getItemStack();
+
+            Holder<AnimationData> holder = itemFrames.get(itemFrame);
+            if (holder == null) {
+                continue;
             }
 
-        }
-        Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
-        for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : itemFrames.entrySet()) {
-            ItemFrame itemFrame = entry.getKey();
-            FutureTask<Optional<ItemFrameInfo>> future = entityTrackers.get(itemFrame);
-            ItemStack itemStack;
-            List<Player> players;
-            if (future == null) {
-                if (!itemFrame.isValid()) {
-                    itemFrames.remove(itemFrame);
-                    continue;
-                }
-                players = getEntityTrackers(itemFrame);
-                itemStack = itemFrame.getItem();
-            } else {
-                List<Player> syncPlayers;
-                ItemStack syncItemStack;
-                try {
-                    Optional<ItemFrameInfo> result = future.get(30, TimeUnit.SECONDS);
-                    if (!result.isPresent()) {
-                        continue;
-                    }
-                    ItemFrameInfo info = result.get();
-                    syncPlayers = info.getTrackedPlayers();
-                    syncItemStack = info.getItemStack();
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    e.printStackTrace();
-                    syncPlayers = Collections.emptyList();
-                    syncItemStack = ITEM_EMPTY;
-                }
-                players = syncPlayers;
-                itemStack = syncItemStack;
-            }
-            Holder<AnimationData> holder = entry.getValue();
             AnimationData animationData = holder.getValue();
             MapView mapView = MapUtils.getItemMapView(itemStack);
+
             if (mapView == null) {
                 holder.setValue(AnimationData.EMPTY);
                 continue;
             }
+
             if (animationData.isEmpty() || !animationData.getMapView().equals(mapView)) {
                 ImageMap map = ImageFrame.imageMapManager.getFromMapView(mapView);
                 if (map == null || !map.requiresAnimationService()) {
