@@ -301,7 +301,11 @@ public class MapUtils {
         if (!(meta instanceof MapMeta)) {
             return null;
         }
-        return ((MapMeta) meta).getMapView();
+        MapMeta mapMeta = (MapMeta) meta;
+        if (!mapMeta.hasMapView()) {
+            return null;
+        }
+        return mapMeta.getMapView();
     }
 
     public static MapView getPlayerMapView(Player player) {
