@@ -25,6 +25,8 @@ import com.loohp.imageframe.utils.ItemFrameUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.imageframe.utils.UUIDUtils;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import me.clip.placeholderapi.PlaceholderAPI;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -85,14 +87,18 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                 .replace("{CreatorName}", imageMap.getCreatorName())
                 .replace("{CreatorUUID}", imageMap.getCreator().toString())
                 .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime()))));
-        meta.setLore(ImageFrame.combinedMapItemLoreFormat.stream().map(each -> each
+        List<String> lore = ImageFrame.combinedMapItemLoreFormat.stream().map(each -> each
                 .replace("{ImageID}", imageMap.getImageIndex() + "")
                 .replace("{Name}", imageMap.getName())
                 .replace("{Width}", imageMap.getWidth() + "")
                 .replace("{Height}", imageMap.getHeight() + "")
                 .replace("{CreatorName}", imageMap.getCreatorName())
                 .replace("{CreatorUUID}", imageMap.getCreator().toString())
-                .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))).collect(Collectors.toList()));
+                .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))).collect(Collectors.toList());
+        if ((!lore.isEmpty()) && (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)) {
+            lore = lore.stream().map(each -> PlaceholderAPI.setPlaceholders(null, each)).collect(Collectors.toList());
+        }
+        meta.setLore(lore);
         itemStack.setItemMeta(meta);
         return NBTEditor.set(itemStack, imageMap.getImageIndex(), COMBINED_MAP_KEY);
     }
