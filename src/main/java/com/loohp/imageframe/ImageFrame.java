@@ -54,6 +54,8 @@ import javax.imageio.ImageIO;
 import javax.imageio.spi.IIORegistry;
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
@@ -137,7 +139,7 @@ public class ImageFrame extends JavaPlugin {
     public static boolean requireEmptyMaps;
     public static int mapMaxSize;
     public static boolean restrictImageUrlEnabled;
-    public static List<String> restrictImageUrls;
+    public static List<URL> restrictImageUrls;
     public static Map<String, Integer> playerCreationLimit;
     public static int mapMarkerLimit;
     public static long maxImageFileSize;
@@ -161,12 +163,24 @@ public class ImageFrame extends JavaPlugin {
     public static AnimatedFakeMapManager animatedFakeMapManager;
     public static RateLimitedPacketSendingManager rateLimitedPacketSendingManager;
 
-    public static boolean isURLAllowed(String url) {
+    public static boolean isURLAllowed(String link) {
         if (!restrictImageUrlEnabled) {
             return true;
         }
-        String normalized = url.trim().toLowerCase();
-        return restrictImageUrls.stream().anyMatch(each -> normalized.startsWith(each.toLowerCase()));
+        try {
+            URL url = new URL(link);
+            return restrictImageUrls.stream().anyMatch(whitelisted -> {
+                if (!url.getProtocol().equalsIgnoreCase(whitelisted.getProtocol())) {
+                   return false;
+                }
+                if (!url.getHost().equalsIgnoreCase(whitelisted.getHost())) {
+                    return false;
+                }
+                return url.getPath().toLowerCase().startsWith(whitelisted.getPath().toLowerCase());
+            });
+        } catch (MalformedURLException e) {
+            return false;
+        }
     }
 
     public static <T extends UnsetState> T getPreferenceUnsetValue(Player player, IFPlayerPreference<T> preference) {
@@ -379,7 +393,14 @@ public class ImageFrame extends JavaPlugin {
         requireEmptyMaps = config.getConfiguration().getBoolean("Settings.RequireEmptyMaps");
         mapMaxSize = config.getConfiguration().getInt("Settings.MaxSize");
         restrictImageUrlEnabled = config.getConfiguration().getBoolean("Settings.RestrictImageUrl.Enabled");
-        restrictImageUrls = config.getConfiguration().getStringList("Settings.RestrictImageUrl.Whitelist");
+        restrictImageUrls = config.getConfiguration().getStringList("Settings.RestrictImageUrl.Whitelist").stream().map(s -> {
+            try {
+                return new URL(s);
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }).filter(u -> u != null).collect(Collectors.toList());
         playerCreationLimit = new HashMap<>();
         for (String group : config.getConfiguration().getConfigurationSection("Settings.PlayerCreationLimit").getKeys(false)) {
             playerCreationLimit.put(group, config.getConfiguration().getInt("Settings.PlayerCreationLimit." + group));
