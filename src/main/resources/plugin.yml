@@ -73,7 +73,7 @@ permissions:
     default: true
     description: Allow players to change access permissions of their image maps
   imageframe.adminbypass:
-    default: true
+    default: op
     description: Bypass all access restrictions and allow users to use and modify any image map
   imageframe.adminsetcreator:
     default: op
