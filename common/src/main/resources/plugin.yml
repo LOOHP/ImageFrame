@@ -1,0 +1,94 @@
+name: ImageFrame
+version: '${project.version}'
+main: com.loohp.imageframe.ImageFrame
+api-version: 1.13
+prefix: ImageFrame
+authors: [LOOHP]
+description: Put images on maps and walls!
+folia-supported: true
+softdepend: [ViaVersion]
+
+commands:
+  imageframe:
+    aliases: [iframe, if, frame]
+    description: Plugin main command
+
+permissions:
+  imageframe.create:
+    default: true
+    description: Allow players to create new image maps
+  imageframe.create.animated:
+    default: op
+    description: Allow players to create new animated image maps
+  imageframe.create.others:
+    default: op
+    description: Allow players to create image maps for other players, applies to overlay and clone, bypasses owning limit
+  imageframe.overlay:
+    default: true
+    description: Allow players to overlay images on Vanilla maps
+  imageframe.clone:
+    default: true
+    description: Allow players to make deep copies of their own image maps
+  imageframe.playback:
+    default: true
+    description: Allow players to pause or set position of playback of their own animated image maps
+  imageframe.select:
+    default: true
+    description: Allow players to select item frames
+  imageframe.marker:
+    default: true
+    description: Allow players to add and remove markers on image maps
+  imageframe.marker.unlimited:
+    default: op
+    description: Allow players to add unlimited markers on image maps
+  imageframe.refresh:
+    default: true
+    description: Allow players to refresh image maps
+  imageframe.rename:
+    default: true
+    description: Allow players to rename image maps
+  imageframe.info:
+    default: true
+    description: Allow players to view image map data
+  imageframe.list:
+    default: true
+    description: Allow players to list all image maps they've created
+  imageframe.list.others:
+    default: op
+    description: Allow players to list all image maps a player have created
+  imageframe.delete:
+    default: true
+    description: Allow players to delete an image map they've created
+  imageframe.purge:
+    default: false
+    description: Allow players to purge all image maps created by a specific player
+  imageframe.purge.all:
+    default: false
+    description: Allow players to purge all image maps at once
+  imageframe.get:
+    default: true
+    description: Allow players to get an image map they've created
+  imageframe.setaccess:
+    default: true
+    description: Allow players to change access permissions of their image maps
+  imageframe.adminbypass:
+    default: op
+    description: Bypass all access restrictions and allow users to use and modify any image map
+  imageframe.adminsetcreator:
+    default: op
+    description: Allow players to change the creator of any image map via the image map id
+  imageframe.admindelete:
+    default: op
+    description: Allow players to delete any image map via the image map id
+  imageframe.adminmigrate:
+    default: op
+    description: Allow players to migrate maps from supported plugins to ImageFrame
+  imageframe.preference:
+    default: true
+    description: Allow players to update their player preferences
+  imageframe.preference.others:
+    default: op
+    description: Allow players to update other players' player preferences
+  imageframe.update:
+    default: op
+    description: Allows you receive update messages
