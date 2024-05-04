@@ -139,7 +139,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 // Max wait time is 2 seconds per frame
                 future.get(2, TimeUnit.SECONDS);
             } catch (InterruptedException | TimeoutException | ExecutionException e) {
-                new RuntimeException("Failed to get item frame info for " + localReverseMap.get(future) + "! Removing from cache...", e).printStackTrace();
+                new RuntimeException("Failed to get item frame info for an item frame! Removing from cache...", e).printStackTrace();
                 ItemFrame itemFrame = localReverseMap.get(future);
                 if (itemFrame != null) itemFrames.remove(itemFrame);
             }
