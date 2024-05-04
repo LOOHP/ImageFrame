@@ -1,5 +1,5 @@
 /*
- * This file is part of anvilgui-1_20_R3.
+ * This file is part of ImageFrame.
  *
  * Copyright (C) 2024. LoohpJames <jamesloohp@gmail.com>
  * Copyright (C) 2024. Contributors
