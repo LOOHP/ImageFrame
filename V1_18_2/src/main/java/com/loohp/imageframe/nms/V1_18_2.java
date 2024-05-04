@@ -67,15 +67,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unused")
 public class V1_18_2 extends NMSWrapper {
 
     private final Field craftMapViewWorldMapField;
     private final Field[] nmsPacketPlayOutEntityMetadataFields;
+    private final Field nmsItemFrameItemStackDataWatcherField;
 
     public V1_18_2() {
         try {
             craftMapViewWorldMapField = CraftMapView.class.getDeclaredField("worldMap");
             nmsPacketPlayOutEntityMetadataFields = PacketPlayOutEntityMetadata.class.getDeclaredFields();
+            nmsItemFrameItemStackDataWatcherField = EntityItemFrame.class.getDeclaredField("ao");
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
@@ -176,11 +179,13 @@ public class V1_18_2 extends NMSWrapper {
         return new PacketPlayOutMap(mapId, (byte) 0, false, mapIcons, b);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public PacketPlayOutEntityMetadata createItemFrameItemChangePacket(ItemFrame itemFrame, ItemStack itemStack) {
-        DataWatcherObject<net.minecraft.world.item.ItemStack> dataWatcherObject = DataWatcher.a(EntityItemFrame.class, DataWatcherRegistry.g);
-        List<DataWatcher.Item<?>> dataWatchers = Collections.singletonList(new DataWatcher.Item<>(dataWatcherObject, CraftItemStack.asNMSCopy(itemStack)));
         try {
+            nmsItemFrameItemStackDataWatcherField.setAccessible(true);
+            DataWatcherObject<net.minecraft.world.item.ItemStack> dataWatcherObject = (DataWatcherObject<net.minecraft.world.item.ItemStack>) nmsItemFrameItemStackDataWatcherField.get(null);
+            List<DataWatcher.Item<?>> dataWatchers = Collections.singletonList(new DataWatcher.Item<>(dataWatcherObject, CraftItemStack.asNMSCopy(itemStack)));
             PacketPlayOutEntityMetadata packet = (PacketPlayOutEntityMetadata) Unsafe.getUnsafe().allocateInstance(PacketPlayOutEntityMetadata.class);
             nmsPacketPlayOutEntityMetadataFields[0].setAccessible(true);
             nmsPacketPlayOutEntityMetadataFields[0].setInt(packet, itemFrame.getEntityId());

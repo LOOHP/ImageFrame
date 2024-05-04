@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unused")
 public class V1_20_2 extends NMSWrapper {
 
     private final Field craftMapViewWorldMapField;
