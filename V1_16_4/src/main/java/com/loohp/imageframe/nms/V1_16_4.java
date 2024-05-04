@@ -24,7 +24,6 @@ import com.loohp.imageframe.objectholders.MutablePair;
 import net.minecraft.server.v1_16_R3.ChunkProviderServer;
 import net.minecraft.server.v1_16_R3.DataWatcher;
 import net.minecraft.server.v1_16_R3.DataWatcherObject;
-import net.minecraft.server.v1_16_R3.DataWatcherRegistry;
 import net.minecraft.server.v1_16_R3.EntityHuman;
 import net.minecraft.server.v1_16_R3.EntityItemFrame;
 import net.minecraft.server.v1_16_R3.EntityPlayer;

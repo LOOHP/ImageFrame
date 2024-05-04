@@ -29,7 +29,6 @@ import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import net.minecraft.network.protocol.game.PacketPlayOutMap;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.network.syncher.DataWatcherObject;
-import net.minecraft.network.syncher.DataWatcherRegistry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ChunkProviderServer;
 import net.minecraft.server.level.PlayerChunkMap;
@@ -56,7 +55,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
-import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

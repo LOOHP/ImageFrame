@@ -26,7 +26,6 @@ import com.loohp.imageframe.utils.MapUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.simpleyaml.configuration.ConfigurationSection;
 import org.simpleyaml.configuration.file.YamlConfiguration;
 import org.simpleyaml.configuration.serialization.ConfigurationSerializable;
 import org.simpleyaml.configuration.serialization.ConfigurationSerialization;
