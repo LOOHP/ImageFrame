@@ -21,6 +21,7 @@
 package com.loohp.imageframe.nms;
 
 import com.loohp.imageframe.objectholders.MutablePair;
+import com.loohp.imageframe.utils.UnsafeAccessor;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
@@ -186,7 +187,7 @@ public class V1_19 extends NMSWrapper {
             nmsItemFrameItemStackDataWatcherField.setAccessible(true);
             DataWatcherObject<net.minecraft.world.item.ItemStack> dataWatcherObject = (DataWatcherObject<net.minecraft.world.item.ItemStack>) nmsItemFrameItemStackDataWatcherField.get(null);
             List<DataWatcher.Item<?>> dataWatchers = Collections.singletonList(new DataWatcher.Item<>(dataWatcherObject, CraftItemStack.asNMSCopy(itemStack)));
-            PacketPlayOutEntityMetadata packet = (PacketPlayOutEntityMetadata) Unsafe.getUnsafe().allocateInstance(PacketPlayOutEntityMetadata.class);
+            PacketPlayOutEntityMetadata packet = (PacketPlayOutEntityMetadata) UnsafeAccessor.getUnsafe().allocateInstance(PacketPlayOutEntityMetadata.class);
             nmsPacketPlayOutEntityMetadataFields[0].setAccessible(true);
             nmsPacketPlayOutEntityMetadataFields[0].setInt(packet, itemFrame.getEntityId());
             nmsPacketPlayOutEntityMetadataFields[1].setAccessible(true);

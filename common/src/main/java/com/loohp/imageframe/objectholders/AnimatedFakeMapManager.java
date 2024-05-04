@@ -101,18 +101,33 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             Runnable task = () -> {
                 try {
                     if (itemFrame.isValid()) {
-                        ItemFrameInfo frameInfo = new ItemFrameInfo(NMS.getInstance().getEntityTrackers(itemFrame), itemFrame.getItem());
+                        Set<Player> trackedPlayers;
+                        if (Scheduler.FOLIA) {
+                            try {
+                                //noinspection deprecation
+                                trackedPlayers = itemFrame.getTrackedPlayers();
+                            } catch (Throwable e) {
+                                trackedPlayers = NMS.getInstance().getEntityTrackers(itemFrame);
+                            }
+                        } else {
+                            trackedPlayers = NMS.getInstance().getEntityTrackers(itemFrame);
+                        }
+                        ItemFrameInfo frameInfo = new ItemFrameInfo(trackedPlayers, itemFrame.getItem());
                         builder.put(itemFrame, frameInfo);
                         future.complete(frameInfo);
+                    } else {
+                        future.complete(null);
                     }
-                } catch (Throwable t) {
-                    t.printStackTrace();
+                } catch (Throwable e) {
+                    future.completeExceptionally(e);
                 }
-                future.complete(null);
             };
 
-            if (async) task.run(); // We're already async
-            else Scheduler.executeOrScheduleSync(ImageFrame.plugin, task, itemFrame); // Execute on entity's thread
+            if (async) {
+                task.run(); // We're already async
+            } else {
+                Scheduler.executeOrScheduleSync(ImageFrame.plugin, task, itemFrame); // Execute on entity's thread
+            }
 
             futures.add(future);
             localReverseMap.put(future, itemFrame);

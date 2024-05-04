@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.loohp</groupId>
         <artifactId>ImageFrame-Parent</artifactId>
-        <version>1.7.8.0</version>
+        <version>1.7.8.1</version>
     </parent>
 
     <artifactId>ImageFrame-V1_20_3</artifactId>
@@ -32,6 +32,13 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

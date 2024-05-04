@@ -21,7 +21,6 @@
 package com.loohp.imageframe.nms;
 
 import com.loohp.imageframe.objectholders.MutablePair;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
@@ -29,11 +28,7 @@ import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import net.minecraft.network.protocol.game.PacketPlayOutMap;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ChunkProviderServer;
-import net.minecraft.server.level.PlayerChunkMap;
 import net.minecraft.server.level.WorldServer;
-import net.minecraft.server.network.PlayerConnection;
-import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.world.entity.decoration.EntityItemFrame;
 import net.minecraft.world.entity.player.EntityHuman;
 import net.minecraft.world.level.saveddata.maps.MapDecorationType;
@@ -61,7 +56,6 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -151,22 +145,7 @@ public class V1_20_5 extends NMSWrapper {
 
     @Override
     public Set<Player> getEntityTrackers(Entity entity) {
-        WorldServer worldServer = ((CraftWorld) entity.getWorld()).getHandle();
-        ChunkProviderServer chunkProviderServer = worldServer.l();
-        PlayerChunkMap playerChunkMap = chunkProviderServer.a;
-        Int2ObjectMap<PlayerChunkMap.EntityTracker> entityTrackers = playerChunkMap.J;
-        PlayerChunkMap.EntityTracker entityTracker = entityTrackers.get(entity.getEntityId());
-        if (entityTracker == null) {
-            return Collections.emptySet();
-        } else {
-            Set<Player> players = new HashSet<>();
-            for (ServerPlayerConnection connection : entityTracker.f) {
-                if (connection instanceof PlayerConnection) {
-                    players.add(((PlayerConnection) connection).getCraftPlayer());
-                }
-            }
-            return players;
-        }
+        return entity.getTrackedBy();
     }
 
     @Override
