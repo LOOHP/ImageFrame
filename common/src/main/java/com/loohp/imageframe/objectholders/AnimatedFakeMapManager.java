@@ -47,15 +47,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapView;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -88,8 +80,15 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
     }
 
-    private ImmutableMap<ItemFrame, ItemFrameInfo> buildAllItemFrameInfo(Set<Map.Entry<ItemFrame, Holder<AnimationData>>> dataToProcess, boolean async) {
-        ImmutableMap.Builder<ItemFrame, ItemFrameInfo> builder = ImmutableMap.builder();
+    private Map<ItemFrame, ItemFrameInfo> buildAllItemFrameInfo(Set<Map.Entry<ItemFrame, Holder<AnimationData>>> dataToProcess, boolean async) {
+        // DO NOT USE DIRECTLY - Use the synchronized map in this method and return the unmodifiable map
+        IdentityHashMap<ItemFrame, ItemFrameInfo> identityMap = new IdentityHashMap<>();
+        // Allows for safe async insertion
+        Map<ItemFrame, ItemFrameInfo> syncMap = Collections.synchronizedMap(identityMap);
+        // Prevent modification of the returned map
+        Map<ItemFrame, ItemFrameInfo> immutableMap = Collections.unmodifiableMap(identityMap);
+
+        // Our list of futures that need to complete before returning
         List<CompletableFuture<ItemFrameInfo>> futures = new ArrayList<>();
         Map<CompletableFuture<ItemFrameInfo>, ItemFrame> localReverseMap = new HashMap<>();
 
@@ -113,7 +112,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                             trackedPlayers = NMS.getInstance().getEntityTrackers(itemFrame);
                         }
                         ItemFrameInfo frameInfo = new ItemFrameInfo(trackedPlayers, itemFrame.getItem());
-                        builder.put(itemFrame, frameInfo);
+                        syncMap.put(itemFrame, frameInfo);
                         future.complete(frameInfo);
                     } else {
                         future.complete(null);
@@ -145,11 +144,11 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             }
         });
 
-        return builder.build();
+        return immutableMap;
     }
 
     public void run() {
-        ImmutableMap<ItemFrame, ItemFrameInfo> entityTrackers = buildAllItemFrameInfo(itemFrames.entrySet(), !ImageFrame.handleAnimatedMapsOnMainThread);
+        Map<ItemFrame, ItemFrameInfo> entityTrackers = buildAllItemFrameInfo(itemFrames.entrySet(), !ImageFrame.handleAnimatedMapsOnMainThread);
         Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
         for (Map.Entry<ItemFrame, ItemFrameInfo> entry : entityTrackers.entrySet()) {
             ItemFrame itemFrame = entry.getKey();
