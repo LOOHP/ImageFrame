@@ -21,10 +21,9 @@
 package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.ItemFrameUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
-import com.loohp.imageframe.utils.UUIDUtils;
-import io.github.bananapuncher714.nbteditor.NBTEditor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -61,10 +60,6 @@ import java.util.stream.Collectors;
 
 public class CombinedMapItemHandler implements Listener, AutoCloseable {
 
-    public static final String COMBINED_MAP_KEY = "CombinedImageMap";
-    public static final String COMBINED_MAP_PLACEMENT_YAW_KEY = "CombinedImageMapPlacementYaw";
-    public static final String COMBINED_MAP_PLACEMENT_UUID_KEY = "CombinedImageMapPlacementUUID";
-
     private final Set<Player> entityInteractionChecking;
     private final Set<Player> entityDamageChecking;
 
@@ -94,7 +89,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                 .replace("{CreatorUUID}", imageMap.getCreator().toString())
                 .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))).collect(Collectors.toList()));
         itemStack.setItemMeta(meta);
-        return NBTEditor.set(itemStack, imageMap.getImageIndex(), COMBINED_MAP_KEY);
+        return NMS.getInstance().withCombinedMapItemInfo(itemStack, new CombinedMapItemInfo(imageMap.getImageIndex()));
     }
 
     public void giveCombinedMap(ImageMap imageMap, Player player) {
@@ -205,7 +200,8 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
             if (itemStack == null || !itemStack.getType().equals(Material.PAPER)) {
                 return;
             }
-            if (!NBTEditor.contains(itemStack, COMBINED_MAP_KEY)) {
+            CombinedMapItemInfo mapItemInfo = NMS.getInstance().getCombinedMapItemInfo(itemStack);
+            if (mapItemInfo == null) {
                 return;
             }
             Entity entity = event.getRightClicked();
@@ -214,7 +210,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                 return;
             }
             ItemFrame itemFrame = (ItemFrame) entity;
-            int id = NBTEditor.getInt(itemStack, COMBINED_MAP_KEY);
+            int id = mapItemInfo.getImageMapIndex();
             ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(id);
             if (imageMap == null) {
                 event.setCancelled(true);
@@ -236,11 +232,10 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                     return;
                 }
             }
-            int[] uuid = UUIDUtils.toIntArray(UUID.randomUUID());
+            UUID uuid = UUID.randomUUID();
             imageMap.fillItemFrames(selectedFrames, selection.getRotation(), (frame, item) -> true, (frame, item) -> {}, ImageFrame.mapItemFormat, item -> {
-                item = NBTEditor.set(item, imageMap.getImageIndex(), COMBINED_MAP_KEY);
-                item = NBTEditor.set(item, yaw, COMBINED_MAP_PLACEMENT_YAW_KEY);
-                return NBTEditor.set(item, uuid, COMBINED_MAP_PLACEMENT_UUID_KEY);
+                CombinedMapItemInfo newInfo = new CombinedMapItemInfo(imageMap.getImageIndex(), new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
+                return NMS.getInstance().withCombinedMapItemInfo(item, newInfo);
             });
         } finally {
             entityInteractionChecking.remove(player);
@@ -284,21 +279,15 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
             entityDamageChecking.remove(player);
             return;
         }
-        if (!NBTEditor.contains(itemStack, COMBINED_MAP_KEY)) {
+        CombinedMapItemInfo mapItemInfo = NMS.getInstance().getCombinedMapItemInfo(itemStack);
+        if (mapItemInfo == null || !mapItemInfo.hasPlacement()) {
             entityDamageChecking.remove(player);
             return;
         }
-        if (!NBTEditor.contains(itemStack, COMBINED_MAP_PLACEMENT_YAW_KEY)) {
-            entityDamageChecking.remove(player);
-            return;
-        }
-        if (!NBTEditor.contains(itemStack, COMBINED_MAP_PLACEMENT_UUID_KEY)) {
-            entityDamageChecking.remove(player);
-            return;
-        }
-        float yaw = NBTEditor.getFloat(itemStack, COMBINED_MAP_PLACEMENT_YAW_KEY);
-        int id = NBTEditor.getInt(itemStack, COMBINED_MAP_KEY);
-        UUID uuid = UUIDUtils.fromIntArray(NBTEditor.getIntArray(itemStack, COMBINED_MAP_PLACEMENT_UUID_KEY));
+        CombinedMapItemInfo.PlacementInfo placement = mapItemInfo.getPlacement();
+        int id = mapItemInfo.getImageMapIndex();
+        float yaw = placement.getYaw();
+        UUID uuid = placement.getUniqueId();
         ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(id);
         if (imageMap == null) {
             entityDamageChecking.remove(player);
@@ -308,13 +297,11 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
             if (item == null || !item.getType().equals(Material.FILLED_MAP)) {
                 return false;
             }
-            if (!NBTEditor.contains(item, COMBINED_MAP_KEY)) {
+            CombinedMapItemInfo info = NMS.getInstance().getCombinedMapItemInfo(item);
+            if (info == null || !info.hasPlacement()) {
                 return false;
             }
-            if (!NBTEditor.contains(item, COMBINED_MAP_PLACEMENT_UUID_KEY)) {
-                return false;
-            }
-            return NBTEditor.getInt(item, COMBINED_MAP_KEY) == id && UUIDUtils.fromIntArray(NBTEditor.getIntArray(item, COMBINED_MAP_PLACEMENT_UUID_KEY)).equals(uuid);
+            return info.getImageMapIndex() == id && info.getPlacement().getUniqueId().equals(uuid);
         });
         if (selection == null) {
             entityDamageChecking.remove(player);

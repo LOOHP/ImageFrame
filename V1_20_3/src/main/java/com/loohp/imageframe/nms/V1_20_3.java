@@ -20,7 +20,10 @@
 
 package com.loohp.imageframe.nms;
 
+import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
+import com.loohp.imageframe.utils.UUIDUtils;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
@@ -57,6 +60,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -161,5 +165,34 @@ public class V1_20_3 extends NMSWrapper {
     @Override
     public void sendPacket(Player player, Object packet) {
         ((CraftPlayer) player).getHandle().c.b((Packet<?>) packet);
+    }
+
+    @Override
+    public CombinedMapItemInfo getCombinedMapItemInfo(ItemStack itemStack) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        NBTTagCompound tag = nmsItemStack.v();
+        if (tag == null || !tag.e(CombinedMapItemInfo.KEY)) {
+            return null;
+        }
+        int imageMapIndex = tag.h(CombinedMapItemInfo.KEY);
+        if (!tag.e(CombinedMapItemInfo.PLACEMENT_UUID_KEY) || !tag.e(CombinedMapItemInfo.PLACEMENT_YAW_KEY)) {
+            return new CombinedMapItemInfo(imageMapIndex);
+        }
+        float yaw = tag.j(CombinedMapItemInfo.PLACEMENT_YAW_KEY);
+        UUID uuid = UUIDUtils.fromIntArray(tag.n(CombinedMapItemInfo.PLACEMENT_UUID_KEY));
+        return new CombinedMapItemInfo(imageMapIndex, new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
+    }
+
+    @Override
+    public ItemStack withCombinedMapItemInfo(ItemStack itemStack, CombinedMapItemInfo combinedMapItemInfo) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        NBTTagCompound tag = nmsItemStack.w();
+        tag.a(CombinedMapItemInfo.KEY, combinedMapItemInfo.getImageMapIndex());
+        if (combinedMapItemInfo.hasPlacement()) {
+            CombinedMapItemInfo.PlacementInfo placement = combinedMapItemInfo.getPlacement();
+            tag.a(CombinedMapItemInfo.PLACEMENT_YAW_KEY, placement.getYaw());
+            tag.a(CombinedMapItemInfo.PLACEMENT_UUID_KEY, UUIDUtils.toIntArray(placement.getUniqueId()));
+        }
+        return CraftItemStack.asCraftMirror(nmsItemStack);
     }
 }

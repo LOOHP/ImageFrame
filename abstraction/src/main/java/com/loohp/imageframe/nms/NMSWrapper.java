@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe.nms;
 
+import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -59,5 +60,9 @@ public abstract class NMSWrapper {
     public abstract Object createItemFrameItemChangePacket(ItemFrame itemFrame, ItemStack itemStack);
 
     public abstract void sendPacket(Player player, Object packet);
+
+    public abstract CombinedMapItemInfo getCombinedMapItemInfo(ItemStack itemStack);
+
+    public abstract ItemStack withCombinedMapItemInfo(ItemStack itemStack, CombinedMapItemInfo combinedMapItemInfo);
 
 }

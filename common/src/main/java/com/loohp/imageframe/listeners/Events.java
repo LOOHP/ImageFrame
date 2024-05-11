@@ -21,10 +21,9 @@
 package com.loohp.imageframe.listeners;
 
 import com.loohp.imageframe.ImageFrame;
-import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
+import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.MapUtils;
-import io.github.bananapuncher714.nbteditor.NBTEditor;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -154,7 +153,7 @@ public class Events implements Listener {
 
     public boolean isCombinedMaps(ItemStack itemStack) {
         if (itemStack != null && itemStack.getType().equals(Material.PAPER)) {
-            return NBTEditor.contains(itemStack, CombinedMapItemHandler.COMBINED_MAP_KEY);
+            return NMS.getInstance().getCombinedMapItemInfo(itemStack) != null;
         }
         return false;
     }
@@ -179,6 +178,9 @@ public class Events implements Listener {
         }
         EntityEquipment equipment = event.getPlayer().getEquipment();
         EquipmentSlot hand = event.getHand();
+        if (hand == null) {
+            return;
+        }
         ItemStack currentItem = equipment.getItem(hand);
         MapView currentMapView = MapUtils.getItemMapView(currentItem);
         if (currentMapView != null) {

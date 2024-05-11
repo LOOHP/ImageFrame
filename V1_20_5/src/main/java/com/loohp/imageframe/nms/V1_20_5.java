@@ -20,8 +20,13 @@
 
 package com.loohp.imageframe.nms;
 
+import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
+import com.loohp.imageframe.utils.UUIDUtils;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
@@ -31,6 +36,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.entity.decoration.EntityItemFrame;
 import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.saveddata.maps.MapDecorationType;
 import net.minecraft.world.level.saveddata.maps.MapIcon;
 import net.minecraft.world.level.saveddata.maps.MapId;
@@ -61,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -165,5 +172,40 @@ public class V1_20_5 extends NMSWrapper {
     @Override
     public void sendPacket(Player player, Object packet) {
         ((CraftPlayer) player).getHandle().c.sendPacket((Packet<?>) packet);
+    }
+
+    @Override
+    public CombinedMapItemInfo getCombinedMapItemInfo(ItemStack itemStack) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        CustomData customData = nmsItemStack.a(DataComponents.b);
+        if (customData == null) {
+            return null;
+        }
+        NBTTagCompound tag = customData.c();
+        if (!tag.e(CombinedMapItemInfo.KEY)) {
+            return null;
+        }
+        int imageMapIndex = tag.h(CombinedMapItemInfo.KEY);
+        if (!tag.e(CombinedMapItemInfo.PLACEMENT_UUID_KEY) || !tag.e(CombinedMapItemInfo.PLACEMENT_YAW_KEY)) {
+            return new CombinedMapItemInfo(imageMapIndex);
+        }
+        float yaw = tag.j(CombinedMapItemInfo.PLACEMENT_YAW_KEY);
+        UUID uuid = UUIDUtils.fromIntArray(tag.n(CombinedMapItemInfo.PLACEMENT_UUID_KEY));;
+        return new CombinedMapItemInfo(imageMapIndex, new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
+    }
+
+    @Override
+    public ItemStack withCombinedMapItemInfo(ItemStack itemStack, CombinedMapItemInfo combinedMapItemInfo) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        CustomData customData = nmsItemStack.a(DataComponents.b, CustomData.a);
+        NBTTagCompound tag = customData.c();
+        tag.a(CombinedMapItemInfo.KEY, combinedMapItemInfo.getImageMapIndex());
+        if (combinedMapItemInfo.hasPlacement()) {
+            CombinedMapItemInfo.PlacementInfo placement = combinedMapItemInfo.getPlacement();
+            tag.a(CombinedMapItemInfo.PLACEMENT_YAW_KEY, placement.getYaw());
+            tag.a(CombinedMapItemInfo.PLACEMENT_UUID_KEY, UUIDUtils.toIntArray(placement.getUniqueId()));
+        }
+        nmsItemStack.b(DataComponentPatch.a().a(DataComponents.b, CustomData.a(tag)).a());
+        return CraftItemStack.asCraftMirror(nmsItemStack);
     }
 }

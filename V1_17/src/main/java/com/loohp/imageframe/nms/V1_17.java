@@ -20,8 +20,11 @@
 
 package com.loohp.imageframe.nms;
 
+import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
+import com.loohp.imageframe.utils.UUIDUtils;
 import com.loohp.imageframe.utils.UnsafeAccessor;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
@@ -64,6 +67,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -199,5 +203,34 @@ public class V1_17 extends NMSWrapper {
     @Override
     public void sendPacket(Player player, Object packet) {
         ((CraftPlayer) player).getHandle().b.sendPacket((Packet<?>) packet);
+    }
+
+    @Override
+    public CombinedMapItemInfo getCombinedMapItemInfo(ItemStack itemStack) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        NBTTagCompound tag = nmsItemStack.getTag();
+        if (tag == null || !tag.hasKey(CombinedMapItemInfo.KEY)) {
+            return null;
+        }
+        int imageMapIndex = tag.getInt(CombinedMapItemInfo.KEY);
+        if (!tag.hasKey(CombinedMapItemInfo.PLACEMENT_UUID_KEY) || !tag.hasKey(CombinedMapItemInfo.PLACEMENT_YAW_KEY)) {
+            return new CombinedMapItemInfo(imageMapIndex);
+        }
+        float yaw = tag.getFloat(CombinedMapItemInfo.PLACEMENT_YAW_KEY);
+        UUID uuid = UUIDUtils.fromIntArray(tag.getIntArray(CombinedMapItemInfo.PLACEMENT_YAW_KEY));
+        return new CombinedMapItemInfo(imageMapIndex, new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
+    }
+
+    @Override
+    public ItemStack withCombinedMapItemInfo(ItemStack itemStack, CombinedMapItemInfo combinedMapItemInfo) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        NBTTagCompound tag = nmsItemStack.getOrCreateTag();
+        tag.setInt(CombinedMapItemInfo.KEY, combinedMapItemInfo.getImageMapIndex());
+        if (combinedMapItemInfo.hasPlacement()) {
+            CombinedMapItemInfo.PlacementInfo placement = combinedMapItemInfo.getPlacement();
+            tag.setFloat(CombinedMapItemInfo.PLACEMENT_YAW_KEY, placement.getYaw());
+            tag.setIntArray(CombinedMapItemInfo.PLACEMENT_UUID_KEY, UUIDUtils.toIntArray(placement.getUniqueId()));
+        }
+        return CraftItemStack.asCraftMirror(nmsItemStack);
     }
 }
