@@ -233,7 +233,7 @@ public class V1_17 extends NMSWrapper {
             return new CombinedMapItemInfo(imageMapIndex);
         }
         float yaw = tag.getFloat(CombinedMapItemInfo.PLACEMENT_YAW_KEY);
-        UUID uuid = UUIDUtils.fromIntArray(tag.getIntArray(CombinedMapItemInfo.PLACEMENT_YAW_KEY));
+        UUID uuid = UUIDUtils.fromIntArray(tag.getIntArray(CombinedMapItemInfo.PLACEMENT_UUID_KEY));
         return new CombinedMapItemInfo(imageMapIndex, new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
     }
 

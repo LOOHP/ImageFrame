@@ -116,6 +116,10 @@ public class Commands implements CommandExecutor, TabCompleter {
         } else if (args[0].equalsIgnoreCase("create")) {
             if (sender.hasPermission("imageframe.create")) {
                 if (args.length == 4 || args.length == 5 || args.length == 6) {
+                    if (!ImageFrame.processingMapCreation.add(sender)) {
+                        sender.sendMessage(ImageFrame.messageImageMapAlreadyCreating);
+                        return true;
+                    }
                     try {
                         MutablePair<UUID, String> pair = ImageMapUtils.extractImageMapPlayerPrefixedName(sender, args[1]);
                         String name = pair.getSecond();
@@ -204,7 +208,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         sender.sendMessage(ImageFrame.messageImageMapProcessing);
                                         if (player != null && !ImageFrame.messageImageMapProcessingActionBar.isEmpty()) {
-                                            actionBarTask = new ImageMapProcessingActionBarTask(player);
+                                            actionBarTask = new ImageMapProcessingActionBarTask(player, name, width, height);
                                         }
                                         ImageMap imageMap;
                                         if (imageType.equals(MapUtils.GIF_CONTENT_TYPE) && sender.hasPermission("imageframe.create.animated")) {
@@ -264,6 +268,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } catch (Exception e) {
                         sender.sendMessage(ImageFrame.messageUnableToLoadMap);
                         e.printStackTrace();
+                    } finally {
+                        ImageFrame.processingMapCreation.remove(sender);
                     }
                 } else {
                     sender.sendMessage(ImageFrame.messageInvalidUsage);

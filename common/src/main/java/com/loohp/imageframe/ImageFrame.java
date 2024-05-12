@@ -42,6 +42,7 @@ import com.loohp.imageframe.objectholders.UnsetState;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.MCVersion;
+import com.loohp.imageframe.utils.ModernEventsUtils;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -58,8 +59,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ImageFrame extends JavaPlugin {
@@ -80,6 +83,7 @@ public class ImageFrame extends JavaPlugin {
     public static Scheduler.ScheduledTask updaterTask = null;
 
     public static String messageReloaded;
+    public static String messageImageMapAlreadyCreating;
     public static String messageImageMapProcessing;
     public static String messageImageMapProcessingActionBar;
     public static String messageImageMapCreated;
@@ -156,6 +160,8 @@ public class ImageFrame extends JavaPlugin {
     public static boolean mapRenderersContextual;
     public static boolean handleAnimatedMapsOnMainThread;
     public static boolean sendAnimatedMapsOnMainThread;
+
+    public static Set<CommandSender> processingMapCreation;
 
     public static ImageMapManager imageMapManager;
     public static IFPlayerManager ifPlayerManager;
@@ -286,7 +292,11 @@ public class ImageFrame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new Debug(), this);
         getServer().getPluginManager().registerEvents(new Updater(), this);
         getServer().getPluginManager().registerEvents(new Events(), this);
-        getServer().getPluginManager().registerEvents(new Events.ModernEvents(), this);
+        if (ModernEventsUtils.modernEventsExists()) {
+            getServer().getPluginManager().registerEvents(new Events.ModernEvents(), this);
+        }
+
+        processingMapCreation = new HashSet<>();
 
         imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
         ifPlayerManager = new IFPlayerManager(new File(getDataFolder(), "players"));
@@ -325,6 +335,7 @@ public class ImageFrame extends JavaPlugin {
         viaDisableSmoothAnimationForLegacyPlayers = config.getConfiguration().getBoolean("Hooks.ViaVersion.DisableSmoothAnimationForLegacyPlayers");
 
         messageReloaded = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Reloaded"));
+        messageImageMapAlreadyCreating = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapAlreadyCreating"));
         messageImageMapProcessing = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapProcessing"));
         messageImageMapProcessingActionBar = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapProcessingActionBar"));
         messageImageMapCreated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapCreated"));

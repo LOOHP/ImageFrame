@@ -199,7 +199,16 @@ public class V1_16_4 extends NMSWrapper {
     @Override
     public PacketPlayOutMap createMapPacket(int mapId, byte[] colors, Collection<MapCursor> cursors) {
         List<MapIcon> mapIcons = cursors == null ? Collections.emptyList() : cursors.stream().map(this::toNMSMapIcon).collect(Collectors.toList());
-        return new PacketPlayOutMap(mapId, (byte) 0, false, false, mapIcons, colors == null ? null : EMPTY_BYTE_ARRAY, 0, 0, 128, 128);
+        byte[] colors0;
+        int size;
+        if (colors == null) {
+            colors0 = EMPTY_BYTE_ARRAY;
+            size = 0;
+        } else {
+            colors0 = colors;
+            size = 128;
+        }
+        return new PacketPlayOutMap(mapId, (byte) 0, false, false, mapIcons, colors0, 0, 0, size, size);
     }
 
     @SuppressWarnings("unchecked")
@@ -237,7 +246,7 @@ public class V1_16_4 extends NMSWrapper {
             return new CombinedMapItemInfo(imageMapIndex);
         }
         float yaw = tag.getFloat(CombinedMapItemInfo.PLACEMENT_YAW_KEY);
-        UUID uuid = UUIDUtils.fromIntArray(tag.getIntArray(CombinedMapItemInfo.PLACEMENT_YAW_KEY));
+        UUID uuid = UUIDUtils.fromIntArray(tag.getIntArray(CombinedMapItemInfo.PLACEMENT_UUID_KEY));
         return new CombinedMapItemInfo(imageMapIndex, new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
     }
 

@@ -1,8 +1,9 @@
 Messages:
   Reloaded: "&eImageFrame has been reloaded!"
+  ImageMapAlreadyCreating: "&cAn ImageMap is already being processed, please wait!"
   ImageMapProcessing: "&eImageMap is being processed, please wait!"
   #Leave this empty ("") to disable action bar message
-  ImageMapProcessingActionBar: "&eImageMap is being processed{Dots}"
+  ImageMapProcessingActionBar: "&eImageMap &a{Name} &eis being processed{Dots}"
   ImageMapCreated: "&aImageMap has been created!"
   ImageMapRefreshed: "&aImageMap has been refreshed!"
   ImageMapDeleted: "&eImageMap had been deleted!"

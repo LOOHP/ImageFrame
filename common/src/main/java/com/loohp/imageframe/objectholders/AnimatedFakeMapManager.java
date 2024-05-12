@@ -27,6 +27,7 @@ import com.loohp.imageframe.hooks.viaversion.ViaHook;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.FakeItemUtils;
 import com.loohp.imageframe.utils.MapUtils;
+import com.loohp.imageframe.utils.ModernEventsUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -76,7 +77,9 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         this.pendingKnownMapIds = new ConcurrentHashMap<>();
         Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, this, 0, 1);
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
-        Bukkit.getPluginManager().registerEvents(new ModernEvents(), ImageFrame.plugin);
+        if (ModernEventsUtils.modernEventsExists()) {
+            Bukkit.getPluginManager().registerEvents(new ModernEvents(), ImageFrame.plugin);
+        }
         for (World world : Bukkit.getWorlds()) {
             for (Entity entity : world.getEntities()) {
                 handleEntity(entity);

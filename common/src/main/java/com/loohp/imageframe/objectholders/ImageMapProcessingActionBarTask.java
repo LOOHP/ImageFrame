@@ -29,11 +29,18 @@ public class ImageMapProcessingActionBarTask implements Runnable {
 
     private final Player player;
     private final Scheduler.ScheduledTask task;
+    private final String messageTemplate;
+
+
     private int tick;
 
-    public ImageMapProcessingActionBarTask(Player player) {
+    public ImageMapProcessingActionBarTask(Player player, String imageMapName, int imageMapWidth, int imageMapHeight) {
         this.player = player;
         this.tick = 0;
+        this.messageTemplate = ImageFrame.messageImageMapProcessingActionBar
+                .replace("{Name}", imageMapName)
+                .replace("{Width}", imageMapWidth + "")
+                .replace("{Height}", imageMapHeight + "");
         this.task = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, this, 0, 10);
     }
 
@@ -45,14 +52,20 @@ public class ImageMapProcessingActionBarTask implements Runnable {
         for (int i = 0; i < dots; i++) {
             dotString.append(".");
         }
-        String message = ImageFrame.messageImageMapProcessingActionBar.replace("{Dots}", dotString.toString());
+        String message = messageTemplate.replace("{Dots}", dotString.toString());
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
+    }
+
+    public boolean isCompleted() {
+        return task.isCancelled();
     }
 
     @SuppressWarnings("deprecation")
     public void complete(String message) {
-        task.cancel();
-        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
+        if (!isCompleted()) {
+            task.cancel();
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
+        }
     }
 
 }
