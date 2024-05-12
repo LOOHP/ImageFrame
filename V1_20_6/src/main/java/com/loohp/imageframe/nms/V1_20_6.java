@@ -22,7 +22,9 @@ package com.loohp.imageframe.nms;
 
 import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
+import com.loohp.imageframe.utils.ReflectionUtils;
 import com.loohp.imageframe.utils.UUIDUtils;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
@@ -40,6 +42,7 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.saveddata.maps.MapDecorationType;
 import net.minecraft.world.level.saveddata.maps.MapIcon;
 import net.minecraft.world.level.saveddata.maps.MapId;
+import net.minecraft.world.level.saveddata.maps.PersistentIdCounts;
 import net.minecraft.world.level.saveddata.maps.WorldMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -74,10 +77,12 @@ import java.util.stream.Collectors;
 public class V1_20_6 extends NMSWrapper {
 
     private final Field craftMapViewWorldMapField;
+    private final Field persistentIdCountsUsedAuxIdsField;
 
     public V1_20_6() {
         try {
             craftMapViewWorldMapField = CraftMapView.class.getDeclaredField("worldMap");
+            persistentIdCountsUsedAuxIdsField = ReflectionUtils.findDeclaredField(PersistentIdCounts.class, Object2IntMap.class, "usedAuxIds", "b");
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
@@ -127,20 +132,32 @@ public class V1_20_6 extends NMSWrapper {
         return decorationTypeHolder.a().c();
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "unchecked"})
     @Override
     public MapView getMapOrCreateMissing(World world, int id) {
-        MapView mapView = Bukkit.getMap(id);
-        if (mapView != null) {
-            return mapView;
+        try {
+            MapView mapView = Bukkit.getMap(id);
+            if (mapView != null) {
+                return mapView;
+            }
+            persistentIdCountsUsedAuxIdsField.setAccessible(true);
+            Location spawnLocation = world.getSpawnLocation();
+            WorldServer worldServer = ((CraftWorld) world).getHandle();
+            ResourceKey<net.minecraft.world.level.World> worldTypeKey = worldServer.af();
+            WorldMap worldMap = WorldMap.a(spawnLocation.getX(), spawnLocation.getZ(), (byte) 3, false, false, worldTypeKey);
+            MapId mapId = new MapId(id);
+            worldServer.a(mapId, worldMap);
+            PersistentIdCounts persistentIdCounts = worldServer.o().I().u().a(PersistentIdCounts.a(), PersistentIdCounts.a);
+            Object2IntMap<String> usedAuxIds = (Object2IntMap<String>) persistentIdCountsUsedAuxIdsField.get(persistentIdCounts);
+            int freeAuxValue = usedAuxIds.getInt("map");
+            if (freeAuxValue < id) {
+                usedAuxIds.put("map", id);
+                persistentIdCounts.c();
+            }
+            return Bukkit.getMap(id);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
-        Location spawnLocation = world.getSpawnLocation();
-        WorldServer worldServer = ((CraftWorld) world).getHandle();
-        ResourceKey<net.minecraft.world.level.World> worldTypeKey = worldServer.af();
-        WorldMap worldMap = WorldMap.a(spawnLocation.getX(), spawnLocation.getZ(), (byte) 3, false, false, worldTypeKey);
-        MapId mapId = new MapId(id);
-        worldServer.a(mapId, worldMap);
-        return Bukkit.getMap(id);
     }
 
     @Override
@@ -190,7 +207,7 @@ public class V1_20_6 extends NMSWrapper {
             return new CombinedMapItemInfo(imageMapIndex);
         }
         float yaw = tag.j(CombinedMapItemInfo.PLACEMENT_YAW_KEY);
-        UUID uuid = UUIDUtils.fromIntArray(tag.n(CombinedMapItemInfo.PLACEMENT_UUID_KEY));;
+        UUID uuid = UUIDUtils.fromIntArray(tag.n(CombinedMapItemInfo.PLACEMENT_UUID_KEY));
         return new CombinedMapItemInfo(imageMapIndex, new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
     }
 

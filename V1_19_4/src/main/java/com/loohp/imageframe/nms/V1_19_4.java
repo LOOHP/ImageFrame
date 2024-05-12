@@ -24,6 +24,7 @@ import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.UUIDUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
@@ -40,6 +41,7 @@ import net.minecraft.world.entity.decoration.EntityItemFrame;
 import net.minecraft.world.entity.player.EntityHuman;
 import net.minecraft.world.item.ItemWorldMap;
 import net.minecraft.world.level.saveddata.maps.MapIcon;
+import net.minecraft.world.level.saveddata.maps.PersistentIdCounts;
 import net.minecraft.world.level.saveddata.maps.WorldMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -72,10 +74,12 @@ import java.util.stream.Collectors;
 public class V1_19_4 extends NMSWrapper {
 
     private final Field craftMapViewWorldMapField;
+    private final Field persistentIdCountsUsedAuxIdsField;
 
     public V1_19_4() {
         try {
             craftMapViewWorldMapField = CraftMapView.class.getDeclaredField("worldMap");
+            persistentIdCountsUsedAuxIdsField = PersistentIdCounts.class.getDeclaredField("b");
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
@@ -126,19 +130,31 @@ public class V1_19_4 extends NMSWrapper {
         return mapIconType.b();
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "unchecked"})
     @Override
     public MapView getMapOrCreateMissing(World world, int id) {
-        MapView mapView = Bukkit.getMap(id);
-        if (mapView != null) {
-            return mapView;
+        try {
+            MapView mapView = Bukkit.getMap(id);
+            if (mapView != null) {
+                return mapView;
+            }
+            persistentIdCountsUsedAuxIdsField.setAccessible(true);
+            Location spawnLocation = world.getSpawnLocation();
+            WorldServer worldServer = ((CraftWorld) world).getHandle();
+            ResourceKey<net.minecraft.world.level.World> worldTypeKey = worldServer.ab();
+            WorldMap worldMap = WorldMap.a(spawnLocation.getX(), spawnLocation.getZ(), (byte) 3, false, false, worldTypeKey);
+            worldServer.a(ItemWorldMap.a(id), worldMap);
+            PersistentIdCounts persistentIdCounts = worldServer.n().D().s().a(PersistentIdCounts::b, PersistentIdCounts::new, PersistentIdCounts.a);
+            Object2IntMap<String> usedAuxIds = (Object2IntMap<String>) persistentIdCountsUsedAuxIdsField.get(persistentIdCounts);
+            int freeAuxValue = usedAuxIds.getInt("map");
+            if (freeAuxValue < id) {
+                usedAuxIds.put("map", id);
+                persistentIdCounts.b();
+            }
+            return Bukkit.getMap(id);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
-        Location spawnLocation = world.getSpawnLocation();
-        WorldServer worldServer = ((CraftWorld) world).getHandle();
-        ResourceKey<net.minecraft.world.level.World> worldTypeKey = worldServer.ab();
-        WorldMap worldMap = WorldMap.a(spawnLocation.getX(), spawnLocation.getZ(), (byte) 3, false, false, worldTypeKey);
-        worldServer.a(ItemWorldMap.a(id), worldMap);
-        return Bukkit.getMap(id);
     }
 
     @Override
@@ -199,7 +215,7 @@ public class V1_19_4 extends NMSWrapper {
             return new CombinedMapItemInfo(imageMapIndex);
         }
         float yaw = tag.j(CombinedMapItemInfo.PLACEMENT_YAW_KEY);
-        UUID uuid = UUIDUtils.fromIntArray(tag.n(CombinedMapItemInfo.PLACEMENT_UUID_KEY));;
+        UUID uuid = UUIDUtils.fromIntArray(tag.n(CombinedMapItemInfo.PLACEMENT_UUID_KEY));
         return new CombinedMapItemInfo(imageMapIndex, new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
     }
 

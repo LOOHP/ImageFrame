@@ -36,6 +36,7 @@ import net.minecraft.server.v1_16_R2.NBTTagCompound;
 import net.minecraft.server.v1_16_R2.Packet;
 import net.minecraft.server.v1_16_R2.PacketPlayOutEntityMetadata;
 import net.minecraft.server.v1_16_R2.PacketPlayOutMap;
+import net.minecraft.server.v1_16_R2.PersistentIdCounts;
 import net.minecraft.server.v1_16_R2.PlayerChunkMap;
 import net.minecraft.server.v1_16_R2.ResourceKey;
 import net.minecraft.server.v1_16_R2.WorldMap;
@@ -44,6 +45,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.bukkit.craftbukkit.v1_16_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_16_R2.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_16_R2.inventory.CraftItemStack;
@@ -75,6 +77,7 @@ public class V1_16_2 extends NMSWrapper {
     private final Field nmsMapIconTypeDisplayField;
     private final Field[] nmsPacketPlayOutEntityMetadataFields;
     private final Field nmsItemFrameItemStackDataWatcherField;
+    private final Field persistentIdCountsUsedAuxIdsField;
 
     public V1_16_2() {
         try {
@@ -82,6 +85,7 @@ public class V1_16_2 extends NMSWrapper {
             nmsMapIconTypeDisplayField = MapIcon.Type.class.getDeclaredField("C");
             nmsPacketPlayOutEntityMetadataFields = PacketPlayOutEntityMetadata.class.getDeclaredFields();
             nmsItemFrameItemStackDataWatcherField = EntityItemFrame.class.getDeclaredField("ITEM");
+            persistentIdCountsUsedAuxIdsField = PersistentIdCounts.class.getDeclaredField("a");
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
@@ -137,21 +141,33 @@ public class V1_16_2 extends NMSWrapper {
         }
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "unchecked", "resource"})
     @Override
     public MapView getMapOrCreateMissing(World world, int id) {
-        MapView mapView = Bukkit.getMap(id);
-        if (mapView != null) {
-            return mapView;
+        try {
+            MapView mapView = Bukkit.getMap(id);
+            if (mapView != null) {
+                return mapView;
+            }
+            persistentIdCountsUsedAuxIdsField.setAccessible(true);
+            Location spawnLocation = world.getSpawnLocation();
+            WorldServer worldServer = ((CraftWorld) world).getHandle();
+            ResourceKey<net.minecraft.server.v1_16_R2.World> worldTypeKey = worldServer.getDimensionKey();
+            String mapId = ItemWorldMap.a(id);
+            WorldMap worldMap = new WorldMap(mapId);
+            worldMap.a(spawnLocation.getBlockX(), spawnLocation.getBlockZ(), 3, false, false, worldTypeKey);
+            worldServer.a(worldMap);
+            PersistentIdCounts persistentIdCounts = worldServer.getMinecraftServer().E().getWorldPersistentData().a(PersistentIdCounts::new, "idcounts");
+            Object2IntMap<String> usedAuxIds = (Object2IntMap<String>) persistentIdCountsUsedAuxIdsField.get(persistentIdCounts);
+            int freeAuxValue = usedAuxIds.getInt("map");
+            if (freeAuxValue < id) {
+                usedAuxIds.put("map", id);
+                persistentIdCounts.b();
+            }
+            return Bukkit.getMap(id);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
-        Location spawnLocation = world.getSpawnLocation();
-        WorldServer worldServer = ((CraftWorld) world).getHandle();
-        ResourceKey<net.minecraft.server.v1_16_R2.World> worldTypeKey = worldServer.getDimensionKey();
-        String mapId = ItemWorldMap.a(id);
-        WorldMap worldMap = new WorldMap(mapId);
-        worldMap.a((int) spawnLocation.getX(), (int) spawnLocation.getZ(), 3, false, false, worldTypeKey);
-        worldServer.a(worldMap);
-        return Bukkit.getMap(id);
     }
 
     @Override
