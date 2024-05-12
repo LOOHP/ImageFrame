@@ -61,6 +61,13 @@ public class FileLazyMappedBufferedImage {
         return file;
     }
 
+    public boolean canSetFile(File file) {
+        if (this.file != null) {
+            return this.file.equals(file);
+        }
+        return file != null;
+    }
+
     public synchronized void setFile(File file) {
         if (this.file != null) {
             if (this.file.equals(file)) {
@@ -96,6 +103,13 @@ public class FileLazyMappedBufferedImage {
         }
         this.weakReference = new WeakReference<>(image);
         return image;
+    }
+
+    public synchronized BufferedImage getIfLoaded() {
+        if (strongReference != null) {
+            return strongReference;
+        }
+        return weakReference.get();
     }
 
 }

@@ -22,12 +22,12 @@ package com.loohp.imageframe.objectholders;
 
 import java.util.Objects;
 
-public class Point2D {
+public class IntPosition {
 
     private final int x;
     private final int y;
 
-    public Point2D(int x, int y) {
+    public IntPosition(int x, int y) {
         this.x = x;
         this.y = y;
     }
@@ -44,8 +44,8 @@ public class Point2D {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Point2D point2D = (Point2D) o;
-        return x == point2D.x && y == point2D.y;
+        IntPosition intPosition = (IntPosition) o;
+        return x == intPosition.x && y == intPosition.y;
     }
 
     @Override

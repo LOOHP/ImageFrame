@@ -28,6 +28,7 @@ import com.loohp.imageframe.objectholders.IFPlayer;
 import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
+import com.loohp.imageframe.objectholders.ImageMapProcessingActionBarTask;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
@@ -184,8 +185,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     takenMaps = 0;
                                 }
                                 Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                    ImageMapProcessingActionBarTask actionBarTask = null;
+                                    String url = "Pending...";
                                     try {
-                                        String url = args[2];
+                                        url = args[2];
                                         if (HTTPRequestUtils.getContentSize(url) > ImageFrame.maxImageFileSize) {
                                             sender.sendMessage(ImageFrame.messageImageOverMaxFileSize.replace("{Size}", ImageFrame.maxImageFileSize + ""));
                                             throw new IOException("Image over max file size");
@@ -200,6 +203,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             imageType = imageType.trim();
                                         }
                                         sender.sendMessage(ImageFrame.messageImageMapProcessing);
+                                        if (player != null && !ImageFrame.messageImageMapProcessingActionBar.isEmpty()) {
+                                            actionBarTask = new ImageMapProcessingActionBarTask(player);
+                                        }
                                         ImageMap imageMap;
                                         if (imageType.equals(MapUtils.GIF_CONTENT_TYPE) && sender.hasPermission("imageframe.create.animated")) {
                                             imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, name, url, width, height, owner).get();
@@ -232,9 +238,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                         }
                                         sender.sendMessage(ImageFrame.messageImageMapCreated);
+                                        if (actionBarTask != null) {
+                                            actionBarTask.complete(ImageFrame.messageImageMapCreated);
+                                        }
                                     } catch (Exception e) {
                                         sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                                        e.printStackTrace();
+                                        if (actionBarTask != null) {
+                                            actionBarTask.complete(ImageFrame.messageUnableToLoadMap);
+                                        }
+                                        new IOException("Unable to download image. Make sure you are using a direct link to the image, they usually ends with a file extension like \".png\". Dispatcher: " + sender.getName() + " URL: " + url, e).printStackTrace();
                                         if (takenMaps > 0 && !isConsole) {
                                             Scheduler.runTask(ImageFrame.plugin, () -> {
                                                 HashMap<Integer, ItemStack> result = player.getInventory().addItem(new ItemStack(Material.MAP, takenMaps));

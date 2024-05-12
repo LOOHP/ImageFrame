@@ -238,12 +238,23 @@ public class URLAnimatedImageMap extends URLImageMap {
             cachedImages[i] = new FileLazyMappedBufferedImage[images.size()];
         }
         int index = 0;
+        Map<IntPosition, FileLazyMappedBufferedImage> previousImages = new HashMap<>();
         for (BufferedImage image : images) {
             image = MapUtils.resize(image, width, height);
             int i = 0;
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
-                    cachedImages[i++][index] = FileLazyMappedBufferedImage.fromImage(MapUtils.getSubImage(image, x, y));
+                    IntPosition intPosition = new IntPosition(x, y);
+                    BufferedImage subImage = MapUtils.getSubImage(image, x, y);
+                    FileLazyMappedBufferedImage previousFile = previousImages.get(intPosition);
+                    FileLazyMappedBufferedImage file;
+                    if (previousFile == null || !MapUtils.areImagesEqual(subImage, previousFile.getIfLoaded())) {
+                        file = FileLazyMappedBufferedImage.fromImage(subImage);
+                    } else {
+                        file = previousFile;
+                    }
+                    cachedImages[i++][index] = file;
+                    previousImages.put(intPosition, file);
                 }
             }
             index++;
@@ -410,7 +421,14 @@ public class URLAnimatedImageMap extends URLImageMap {
             dataJson.addProperty("mapid", mapIds.get(i));
             JsonArray framesArray = new JsonArray();
             for (FileLazyMappedBufferedImage image : cachedImages[i]) {
-                framesArray.add(u++ + ".png");
+                int index = u++;
+                File file = new File(folder, index + ".png");
+                if (image.canSetFile(file)) {
+                    image.setFile(file);
+                    framesArray.add(index + ".png");
+                } else {
+                    framesArray.add(image.getFile().getName());
+                }
             }
             dataJson.add("images", framesArray);
             JsonArray markerArray = new JsonArray();
@@ -433,12 +451,6 @@ public class URLAnimatedImageMap extends URLImageMap {
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(new File(folder, "data.json").toPath()), StandardCharsets.UTF_8))) {
             pw.println(GSON.toJson(json));
             pw.flush();
-        }
-        int i = 0;
-        for (FileLazyMappedBufferedImage[] images : cachedImages) {
-            for (FileLazyMappedBufferedImage image : images) {
-                image.setFile(new File(folder, i++ + ".png"));
-            }
         }
     }
 

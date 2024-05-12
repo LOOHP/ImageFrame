@@ -127,7 +127,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             if (!imageMap.getMapViews().contains(mapView)) {
                 continue;
             }
-            Point2D target = MapUtils.getTargetPixelOnItemFrame(itemFrame.getLocation().toVector(), itemFrame.getFacing().getDirection(), hitPosition, itemFrame.getRotation());
+            IntPosition target = MapUtils.getTargetPixelOnItemFrame(itemFrame.getLocation().toVector(), itemFrame.getFacing().getDirection(), hitPosition, itemFrame.getRotation());
             editData.setCurrentTargetMap(mapView);
             editData.getMapCursor().setX((byte) target.getX());
             editData.getMapCursor().setY((byte) target.getY());

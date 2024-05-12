@@ -81,6 +81,7 @@ public class ImageFrame extends JavaPlugin {
 
     public static String messageReloaded;
     public static String messageImageMapProcessing;
+    public static String messageImageMapProcessingActionBar;
     public static String messageImageMapCreated;
     public static String messageImageMapRefreshed;
     public static String messageImageMapDeleted;
@@ -99,6 +100,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageInvalidUsage;
     public static String messagePlayerNotFound;
     public static String messageNotEnoughSpace;
+    public static String messageInvalidImageMap;
     public static String messageAccessUpdated;
     public static Map<ImageMapAccessPermissionType, String> messageAccessTypes;
     public static String messageAccessNoneType;
@@ -324,6 +326,7 @@ public class ImageFrame extends JavaPlugin {
 
         messageReloaded = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Reloaded"));
         messageImageMapProcessing = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapProcessing"));
+        messageImageMapProcessingActionBar = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapProcessingActionBar"));
         messageImageMapCreated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapCreated"));
         messageImageMapRefreshed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
         messageImageMapDeleted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
@@ -342,6 +345,7 @@ public class ImageFrame extends JavaPlugin {
         messageInvalidUsage = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidUsage"));
         messagePlayerNotFound = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.PlayerNotFound"));
         messageNotEnoughSpace = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotEnoughSpace"));
+        messageInvalidImageMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidImageMap"));
         messageAccessUpdated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.AccessPermission.Updated"));
         messageAccessTypes = new HashMap<>();
         for (ImageMapAccessPermissionType type : ImageMapAccessPermissionType.values().values()) {

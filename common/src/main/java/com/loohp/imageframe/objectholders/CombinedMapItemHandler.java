@@ -213,6 +213,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
             int id = mapItemInfo.getImageMapIndex();
             ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(id);
             if (imageMap == null) {
+                player.sendMessage(ImageFrame.messageInvalidImageMap);
                 event.setCancelled(true);
                 return;
             }

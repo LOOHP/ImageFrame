@@ -25,7 +25,7 @@ import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.MapPacketSentCallback;
 import com.loohp.imageframe.objectholders.MutablePair;
-import com.loohp.imageframe.objectholders.Point2D;
+import com.loohp.imageframe.objectholders.IntPosition;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -155,6 +155,26 @@ public class MapUtils {
         return source.getSubimage(startX, startY, MAP_WIDTH, MAP_WIDTH);
     }
 
+    public static boolean areImagesEqual(BufferedImage img1, BufferedImage img2) {
+        if (img1 == img2) {
+            return true;
+        }
+        if (img1 == null || img2 == null) {
+            return false;
+        }
+        if (img1.getWidth() != img2.getWidth() || img1.getHeight() != img2.getHeight()) {
+            return false;
+        }
+        for (int x = 0; x < img1.getWidth(); x++) {
+            for (int y = 0; y < img1.getHeight(); y++) {
+                if (img1.getRGB(x, y) != img2.getRGB(x, y)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     public static MapView getItemMapView(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().equals(Material.AIR) || !itemStack.hasItemMeta()) {
             return null;
@@ -242,7 +262,7 @@ public class MapUtils {
         }
     }
 
-    public static Point2D getTargetPixelOnItemFrame(Vector center, Vector facing, Vector position, Rotation rotation) {
+    public static IntPosition getTargetPixelOnItemFrame(Vector center, Vector facing, Vector position, Rotation rotation) {
         Vector offset = position.clone().subtract(center);
         if (facing.getBlockX() != 0) {
             offset.setX(0);
@@ -273,7 +293,7 @@ public class MapUtils {
             }
             y = (int) Math.round(offset.getY() * -256);
         }
-        return new Point2D(Math.min(Math.max(x, Byte.MIN_VALUE), Byte.MAX_VALUE), Math.min(Math.max(y, Byte.MIN_VALUE), Byte.MAX_VALUE));
+        return new IntPosition(Math.min(Math.max(x, Byte.MIN_VALUE), Byte.MAX_VALUE), Math.min(Math.max(y, Byte.MIN_VALUE), Byte.MAX_VALUE));
     }
 
     public static Object toNMSMapIcon(MapCursor mapCursor) {
