@@ -64,9 +64,9 @@ public class GifReader {
         CompletableFuture<List<ImageFrame>> future = new CompletableFuture<>();
         Scheduler.runTaskAsynchronously(com.loohp.imageframe.ImageFrame.plugin, () -> {
             List<ThrowingSupplier<List<ImageFrame>>> tries = new ArrayList<>(3);
-            tries.add(() -> readGifMethod0(new ByteArrayInputStream(targetArray)));
-            tries.add(() -> readGifMethod1(new ByteArrayInputStream(targetArray)));
-            tries.add(() -> readGifFallbackMethod(new ByteArrayInputStream(targetArray)));
+            tries.add(() -> readGifMethodMadgag(new ByteArrayInputStream(targetArray)));
+            tries.add(() -> readGifMethodJavaX(new ByteArrayInputStream(targetArray)));
+            tries.add(() -> readGifMethodFallback(new ByteArrayInputStream(targetArray)));
             Throwable firstThrowable = null;
             for (ThrowingSupplier<List<ImageFrame>> task : tries) {
                 try {
@@ -83,7 +83,7 @@ public class GifReader {
         return future;
     }
 
-    private static List<ImageFrame> readGifMethod0(InputStream stream) throws IOException {
+    private static List<ImageFrame> readGifMethodMadgag(InputStream stream) throws IOException {
         GifDecoder reader = new GifDecoder();
         if (reader.read(stream) == 0) {
             List<ImageFrame> frames = new ArrayList<>(reader.getFrameCount());
@@ -98,7 +98,7 @@ public class GifReader {
         }
     }
 
-    private static List<ImageFrame> readGifMethod1(InputStream input) throws IOException {
+    private static List<ImageFrame> readGifMethodJavaX(InputStream input) throws IOException {
         ImageReader reader = ImageIO.getImageReadersByFormatName("gif").next();
         ImageInputStream stream = ImageIO.createImageInputStream(input);
         reader.setInput(stream);
@@ -189,7 +189,7 @@ public class GifReader {
         return frames;
     }
 
-    private static List<ImageFrame> readGifFallbackMethod(InputStream input) throws IOException {
+    private static List<ImageFrame> readGifMethodFallback(InputStream input) throws IOException {
         return Collections.singletonList(new ImageFrame(ImageIO.read(input)));
     }
 
