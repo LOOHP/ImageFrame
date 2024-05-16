@@ -22,7 +22,6 @@ package com.loohp.imageframe.nms;
 
 import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
-import com.loohp.imageframe.utils.ReflectionUtils;
 import com.loohp.imageframe.utils.UUIDUtils;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.nbt.NBTTagCompound;
@@ -94,7 +93,7 @@ public class V1_20_3 extends NMSWrapper {
     @Override
     public void setColors(MapView mapView, byte[] colors) {
         if (colors.length != COLOR_ARRAY_LENGTH) {
-            throw new IllegalArgumentException("colors array length must be 16384");
+            throw new IllegalArgumentException("colors array length must be " + COLOR_ARRAY_LENGTH);
         }
         WorldMap nmsWorldMap = getWorldMap(mapView);
         nmsWorldMap.g = colors;
