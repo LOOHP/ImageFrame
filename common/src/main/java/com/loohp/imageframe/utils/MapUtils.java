@@ -41,6 +41,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapCursorCollection;
+import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 import org.bukkit.util.BoundingBox;
@@ -61,6 +62,10 @@ import java.util.concurrent.Future;
 
 public class MapUtils {
 
+    @SuppressWarnings("deprecation")
+    public static final byte PALETTE_TRANSPARENT = MapPalette.TRANSPARENT;
+    @SuppressWarnings("removal")
+    public static final byte PALETTE_WHITE = MapPalette.matchColor(255, 255, 255);
     public static final int MAP_WIDTH = 128;
     public static final String GIF_CONTENT_TYPE = "image/gif";
     public static final List<BlockFace> CARTESIAN_BLOCK_FACES = Collections.unmodifiableList(Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN));
@@ -121,6 +126,11 @@ public class MapUtils {
                 ImageFrame.rateLimitedPacketSendingManager.queue(player, packet, completionCallback == null ? null : (p, r) -> completionCallback.accept(p, mapId, r));
             }
         }
+    }
+
+    @SuppressWarnings("removal")
+    public static byte[] toMapPaletteBytes(BufferedImage image) {
+        return MapPalette.imageToBytes(image);
     }
 
     public static BufferedImage resize(BufferedImage source, int width, int height) {

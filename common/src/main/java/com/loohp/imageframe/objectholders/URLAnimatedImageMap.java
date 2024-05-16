@@ -33,7 +33,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCursor;
-import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
@@ -202,7 +201,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             int u = 0;
             byte[] lastDistinctFrame = null;
             for (FileLazyMappedBufferedImage image : images) {
-                byte[] b = MapPalette.imageToBytes(image.get());
+                byte[] b = MapUtils.toMapPaletteBytes(image.get());
                 if (u == 0 || !Arrays.equals(b, lastDistinctFrame)) {
                     data[u] = b;
                     int mapId = ImageMapManager.getNextFakeMapId();

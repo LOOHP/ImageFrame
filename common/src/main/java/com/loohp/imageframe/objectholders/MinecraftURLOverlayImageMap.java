@@ -30,7 +30,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapCursor;
-import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
@@ -195,7 +194,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             if (parent.cachedColors != null && parent.cachedColors[index] != null) {
                 colors = parent.cachedColors[index];
             } else if (parent.cachedImages[index] != null) {
-                colors = MapPalette.imageToBytes(parent.cachedImages[index].get());
+                colors = MapUtils.toMapPaletteBytes(parent.cachedImages[index].get());
             } else {
                 colors = null;
             }
@@ -205,7 +204,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             if (colors != null) {
                 for (int i = 0; i < colors.length; i++) {
                     byte color = colors[i];
-                    if (color != MapPalette.TRANSPARENT) {
+                    if (color != MapUtils.PALETTE_TRANSPARENT) {
                         canvas.setPixel(i % MapUtils.MAP_WIDTH, i / MapUtils.MAP_WIDTH, color);
                     }
                 }

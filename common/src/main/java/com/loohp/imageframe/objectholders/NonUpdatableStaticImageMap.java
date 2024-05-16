@@ -31,7 +31,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCursor;
-import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
@@ -193,7 +192,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         cachedColors = new byte[cachedImages.length][];
         int i = 0;
         for (FileLazyMappedBufferedImage image : cachedImages) {
-            cachedColors[i++] = MapPalette.imageToBytes(image.get());
+            cachedColors[i++] = MapUtils.toMapPaletteBytes(image.get());
         }
     }
 
@@ -297,7 +296,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             if (parent.cachedColors != null && parent.cachedColors[index] != null) {
                 colors = parent.cachedColors[index];
             } else if (parent.cachedImages[index] != null) {
-                colors = MapPalette.imageToBytes(parent.cachedImages[index].get());
+                colors = MapUtils.toMapPaletteBytes(parent.cachedImages[index].get());
             } else {
                 colors = null;
             }
