@@ -114,7 +114,7 @@ public class V1_16_4 extends NMSWrapper {
     public Set<Player> getViewers(MapView mapView) {
         WorldMap nmsWorldMap = getWorldMap(mapView);
         Map<EntityHuman, WorldMap.WorldMapHumanTracker> humansMap = nmsWorldMap.humans;
-        return humansMap.keySet().stream().map(e -> (Player) e).collect(Collectors.toSet());
+        return humansMap.keySet().stream().map(e -> (Player) e.getBukkitEntity()).collect(Collectors.toSet());
     }
 
     @Override
