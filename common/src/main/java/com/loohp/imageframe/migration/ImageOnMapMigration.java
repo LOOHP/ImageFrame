@@ -21,6 +21,7 @@
 package com.loohp.imageframe.migration;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.objectholders.DitheringType;
 import com.loohp.imageframe.objectholders.NonUpdatableStaticImageMap;
 import com.loohp.imageframe.utils.MapUtils;
 import net.md_5.bungee.api.ChatColor;
@@ -115,11 +116,11 @@ public class ImageOnMapMigration implements ExternalPluginMigration {
                         }
                         NonUpdatableStaticImageMap imageMap;
                         if (ImageFrame.imageMapManager.getFromCreator(owner, name) == null) {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, mapIds, width, height, owner).get();
+                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner).get();
                         } else if (ImageFrame.imageMapManager.getFromCreator(owner, iomId) == null) {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, iomId, images, mapIds, width, height, owner).get();
+                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, iomId, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner).get();
                         } else {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, "ImageOnMap-" + iomId, images, mapIds, width, height, owner).get();
+                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, "ImageOnMap-" + iomId, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner).get();
                         }
                         ImageFrame.imageMapManager.addMap(imageMap);
                         Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Migrated ImageOnMap " + file.getName() + " to " + name + " of " + owner);

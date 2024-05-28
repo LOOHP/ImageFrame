@@ -24,6 +24,7 @@ import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.migration.ExternalPluginMigration;
 import com.loohp.imageframe.migration.PluginMigrationRegistry;
 import com.loohp.imageframe.objectholders.BlockPosition;
+import com.loohp.imageframe.objectholders.DitheringType;
 import com.loohp.imageframe.objectholders.IFPlayer;
 import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
@@ -115,7 +116,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             return true;
         } else if (args[0].equalsIgnoreCase("create")) {
             if (sender.hasPermission("imageframe.create")) {
-                if (args.length == 4 || args.length == 5 || args.length == 6) {
+                if (args.length == 4 || args.length == 5 || args.length == 6 || args.length == 7) {
                     if (!ImageFrame.processingMapCreation.add(sender)) {
                         sender.sendMessage(ImageFrame.messageImageMapAlreadyCreating);
                         return true;
@@ -133,7 +134,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (isAdmin && !sender.hasPermission("imageframe.create.others")) {
                                 sender.sendMessage(ImageFrame.messageNoPermission);
                             } else {
-                                boolean combined = args.length > 5 && args[5].equalsIgnoreCase("combined");
+                                boolean combined = (args.length == 6 && args[5].equalsIgnoreCase("combined")) || (args.length == 7 && args[6].equalsIgnoreCase("combined"));
                                 ItemFrameSelectionManager.SelectedItemFrameResult selection;
                                 if (args[3].equalsIgnoreCase("selection")) {
                                     if (isConsole) {
@@ -145,7 +146,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         sender.sendMessage(ImageFrame.messageSelectionNoSelection);
                                         return true;
                                     }
-                                } else if (args.length == 5 || args.length == 6) {
+                                } else if (args.length == 5 || args.length == 6 || args.length == 7) {
                                     selection = null;
                                 } else {
                                     sender.sendMessage(ImageFrame.messageInvalidUsage);
@@ -154,12 +155,15 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                                 int width;
                                 int height;
+                                DitheringType ditheringType;
                                 if (selection == null) {
                                     width = Integer.parseInt(args[3]);
                                     height = Integer.parseInt(args[4]);
+                                    ditheringType = DitheringType.fromName(args.length > 5 && !args[5].equalsIgnoreCase("combined") ? args[5].toLowerCase() : null);
                                 } else {
                                     width = selection.getWidth();
                                     height = selection.getHeight();
+                                    ditheringType = DitheringType.fromName(args.length > 4 ? args[4].toLowerCase() : null);
                                 }
                                 if (width * height > ImageFrame.mapMaxSize) {
                                     sender.sendMessage(ImageFrame.messageOversize.replace("{MaxSize}", ImageFrame.mapMaxSize + ""));
@@ -212,9 +216,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         ImageMap imageMap;
                                         if (imageType.equals(MapUtils.GIF_CONTENT_TYPE) && sender.hasPermission("imageframe.create.animated")) {
-                                            imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, name, url, width, height, owner).get();
+                                            imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, name, url, width, height, ditheringType, owner).get();
                                         } else {
-                                            imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, name, url, width, height, owner).get();
+                                            imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, name, url, width, height, ditheringType, owner).get();
                                         }
                                         ImageFrame.imageMapManager.addMap(imageMap);
                                         if (!isConsole) {
@@ -280,7 +284,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             return true;
         } else if (args[0].equalsIgnoreCase("overlay")) {
             if (sender.hasPermission("imageframe.overlay")) {
-                if (args.length == 3 || args.length == 4) {
+                if (args.length == 3 || args.length == 4 || args.length == 5) {
                     if (sender instanceof Player) {
                         try {
                             Player player = (Player) sender;
@@ -297,7 +301,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     List<MapView> mapViews;
                                     int width;
                                     int height;
-                                    if (args.length == 4 && args[3].equalsIgnoreCase("selection")) {
+                                    DitheringType ditheringType;
+                                    if ((args.length == 4 || args.length == 5) && args[3].equalsIgnoreCase("selection")) {
                                         ItemFrameSelectionManager.SelectedItemFrameResult selection = ImageFrame.itemFrameSelectionManager.getConfirmedSelections(player);
                                         if (selection == null) {
                                             player.sendMessage(ImageFrame.messageSelectionNoSelection);
@@ -306,11 +311,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             mapViews = selection.getMapViews();
                                             width = selection.getWidth();
                                             height = selection.getHeight();
+                                            ditheringType = DitheringType.fromName(args.length == 5 ? args[4].toLowerCase() : null);
                                         }
-                                    } else if (args.length == 3) {
+                                    } else if (args.length == 3 || args.length == 4) {
                                         mapViews = Collections.singletonList(MapUtils.getPlayerMapView(player));
                                         width = 1;
                                         height = 1;
+                                        ditheringType = DitheringType.fromName(args.length == 4 ? args[3].toLowerCase() : null);
                                     } else {
                                         player.sendMessage(ImageFrame.messageInvalidUsage);
                                         return true;
@@ -344,7 +351,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                     Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                         try {
-                                            ImageMap imageMap = MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, name, args[2], mapViews, width, height, player.getUniqueId()).get();
+                                            ImageMap imageMap = MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, name, args[2], mapViews, width, height, ditheringType, player.getUniqueId()).get();
                                             ImageFrame.imageMapManager.addMap(imageMap);
                                             sender.sendMessage(ImageFrame.messageImageMapCreated);
                                         } catch (Exception e) {
@@ -707,12 +714,19 @@ public class Commands implements CommandExecutor, TabCompleter {
                 Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                     ImageMap imageMap = null;
                     String url = null;
+                    DitheringType ditheringType = null;
                     if (args.length > 1) {
                         imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
                         if (imageMap == null) {
-                            url = args[1];
+                            ditheringType = DitheringType.fromNameOrNull(args[1].toLowerCase());
+                            if (ditheringType == null) {
+                                url = args[1];
+                            }
                         } else if (args.length > 2) {
-                            url = args[2];
+                            ditheringType = DitheringType.fromNameOrNull(args[2].toLowerCase());
+                            if (ditheringType == null) {
+                                url = args[2];
+                            }
                         }
                     }
                     if (imageMap == null) {
@@ -738,6 +752,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (url != null) {
                                         urlImageMap.setUrl(url);
                                     }
+                                    if (ditheringType != null) {
+                                        urlImageMap.setDitheringType(ditheringType);
+                                    }
                                     try {
                                         imageMap.update();
                                         sender.sendMessage(ImageFrame.messageImageMapRefreshed);
@@ -747,6 +764,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         e.printStackTrace();
                                     }
                                 } else {
+                                    if (ditheringType != null) {
+                                        imageMap.setDitheringType(ditheringType);
+                                    }
                                     imageMap.update();
                                     sender.sendMessage(ImageFrame.messageImageMapRefreshed);
                                 }
@@ -829,6 +849,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     .replace("{Name}", imageMap.getName())
                                     .replace("{Width}", imageMap.getWidth() + "")
                                     .replace("{Height}", imageMap.getHeight() + "")
+                                    .replace("{DitheringType}", imageMap.getDitheringType().getName())
                                     .replace("{CreatorName}", imageMap.getCreatorName())
                                     .replace("{Access}", access)
                                     .replace("{CreatorUUID}", imageMap.getCreator().toString())
@@ -1444,6 +1465,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if ("refresh".equalsIgnoreCase(args[0])) {
                         tab.add("[url]");
                         tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
+                        for (String ditheringType : DitheringType.values().keySet()) {
+                            if (ditheringType.startsWith(args[1].toLowerCase())) {
+                                tab.add(ditheringType);
+                            }
+                        }
                     }
                 }
                 if (sender.hasPermission("imageframe.select")) {
@@ -1572,6 +1598,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                         ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
                         if (imageMap != null) {
                             tab.add("[url]");
+                            for (String ditheringType : DitheringType.values().keySet()) {
+                                if (ditheringType.startsWith(args[2].toLowerCase())) {
+                                    tab.add(ditheringType);
+                                }
+                            }
                         }
                     }
                 }
@@ -1653,6 +1684,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if ("selection".startsWith(args[3].toLowerCase())) {
                             tab.add("selection");
                         }
+                        for (String ditheringType : DitheringType.values().keySet()) {
+                            if (ditheringType.startsWith(args[3].toLowerCase())) {
+                                tab.add(ditheringType);
+                            }
+                        }
                     }
                 }
                 if (sender.hasPermission("imageframe.clone")) {
@@ -1733,6 +1769,23 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if ("create".equalsIgnoreCase(args[0])) {
                         if (!args[3].equalsIgnoreCase("selection")) {
                             tab.add("<height>");
+                        } else {
+                            for (String ditheringType : DitheringType.values().keySet()) {
+                                if (ditheringType.startsWith(args[4].toLowerCase())) {
+                                    tab.add(ditheringType);
+                                }
+                            }
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.overlay")) {
+                    if ("overlay".equalsIgnoreCase(args[0])) {
+                        if (args[3].equalsIgnoreCase("selection")) {
+                            for (String ditheringType : DitheringType.values().keySet()) {
+                                if (ditheringType.startsWith(args[4].toLowerCase())) {
+                                    tab.add(ditheringType);
+                                }
+                            }
                         }
                     }
                 }
@@ -1751,8 +1804,15 @@ public class Commands implements CommandExecutor, TabCompleter {
             case 6:
                 if (sender.hasPermission("imageframe.create")) {
                     if ("create".equalsIgnoreCase(args[0])) {
-                        if (!args[3].equalsIgnoreCase("selection") && "combined".startsWith(args[5].toLowerCase())) {
-                            tab.add("combined");
+                        if (!args[3].equalsIgnoreCase("selection")) {
+                            if ("combined".startsWith(args[5].toLowerCase())) {
+                                tab.add("combined");
+                            }
+                            for (String ditheringType : DitheringType.values().keySet()) {
+                                if (ditheringType.startsWith(args[5].toLowerCase())) {
+                                    tab.add(ditheringType);
+                                }
+                            }
                         }
                     }
                 }
@@ -1763,6 +1823,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (type.name().toLowerCase().startsWith(args[5].toLowerCase())) {
                                     tab.add(type.name().toLowerCase());
                                 }
+                            }
+                        }
+                    }
+                }
+                return tab;
+            case 7:
+                if (sender.hasPermission("imageframe.create")) {
+                    if ("create".equalsIgnoreCase(args[0])) {
+                        if (!args[3].equalsIgnoreCase("selection") && !args[5].equalsIgnoreCase("combined")) {
+                            if ("combined".startsWith(args[6].toLowerCase())) {
+                                tab.add("combined");
                             }
                         }
                     }

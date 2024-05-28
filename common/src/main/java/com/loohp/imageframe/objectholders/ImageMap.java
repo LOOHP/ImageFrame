@@ -85,13 +85,14 @@ public abstract class ImageMap {
     protected final List<Map<String, MapCursor>> mapMarkers;
     protected final int width;
     protected final int height;
+    protected DitheringType ditheringType;
     protected UUID creator;
     protected Map<UUID, ImageMapAccessPermissionType> hasAccess;
     protected final long creationTime;
 
     private boolean isValid;
 
-    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         if (mapViews.size() != width * height) {
             throw new IllegalArgumentException("mapViews size does not equal width * height");
         }
@@ -109,6 +110,7 @@ public abstract class ImageMap {
         this.mapMarkers = Collections.unmodifiableList(mapMarkers);
         this.width = width;
         this.height = height;
+        this.ditheringType = ditheringType;
         this.creator = creator;
         this.hasAccess = new ConcurrentHashMap<>(hasAccess);
         this.creationTime = creationTime;
@@ -121,6 +123,10 @@ public abstract class ImageMap {
     public ImageMapManager getManager() {
         return manager;
     }
+
+    public abstract void cacheColors();
+
+    public abstract void clearCachedColors();
 
     public int getImageIndex() {
         return imageIndex;
@@ -203,6 +209,15 @@ public abstract class ImageMap {
         return true;
     }
 
+    public DitheringType getDitheringType() {
+        return ditheringType == null ? DitheringType.NEAREST_COLOR : ditheringType;
+    }
+
+    public void setDitheringType(DitheringType ditheringType) throws Exception {
+        this.ditheringType = ditheringType;
+        save();
+    }
+
     public abstract ImageMap deepClone(String name, UUID creator) throws Exception;
 
     public abstract void update(boolean save) throws Exception;
@@ -242,6 +257,7 @@ public abstract class ImageMap {
                 .replace("{Name}", getName())
                 .replace("{Width}", getWidth() + "")
                 .replace("{Height}", getHeight() + "")
+                .replace("{DitheringType}", getDitheringType().getName())
                 .replace("{CreatorName}", getCreatorName())
                 .replace("{CreatorUUID}", getCreator().toString())
                 .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));
@@ -267,6 +283,7 @@ public abstract class ImageMap {
                     .replace("{Name}", getName())
                     .replace("{Width}", getWidth() + "")
                     .replace("{Height}", getHeight() + "")
+                    .replace("{DitheringType}", getDitheringType().getName())
                     .replace("{CreatorName}", getCreatorName())
                     .replace("{CreatorUUID}", getCreator().toString())
                     .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(getCreationTime())))));

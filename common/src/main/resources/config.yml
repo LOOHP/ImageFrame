@@ -21,6 +21,7 @@ Messages:
     - "&bImageID: {ImageID}"
     - "&aName: {Name}"
     - "&eMap Size: {Width} x {Height}"
+    - "&6Dithering: {DitheringType}"
     - "&dCreator: {CreatorName} ({CreatorUUID})"
     - "&fAccess: {Access}"
     - "&aTime Created: {TimeCreated}"

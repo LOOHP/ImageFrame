@@ -77,6 +77,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                 .replace("{Name}", imageMap.getName())
                 .replace("{Width}", imageMap.getWidth() + "")
                 .replace("{Height}", imageMap.getHeight() + "")
+                .replace("{DitheringType}", imageMap.getDitheringType().getName())
                 .replace("{CreatorName}", imageMap.getCreatorName())
                 .replace("{CreatorUUID}", imageMap.getCreator().toString())
                 .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime()))));
@@ -85,6 +86,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                 .replace("{Name}", imageMap.getName())
                 .replace("{Width}", imageMap.getWidth() + "")
                 .replace("{Height}", imageMap.getHeight() + "")
+                .replace("{DitheringType}", imageMap.getDitheringType().getName())
                 .replace("{CreatorName}", imageMap.getCreatorName())
                 .replace("{CreatorUUID}", imageMap.getCreator().toString())
                 .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))).collect(Collectors.toList()));

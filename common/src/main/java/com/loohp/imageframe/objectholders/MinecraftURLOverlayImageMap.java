@@ -46,7 +46,7 @@ import java.util.concurrent.Future;
 
 public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
 
-    public static Future<? extends MinecraftURLOverlayImageMap> create(ImageMapManager manager, String name, String url, List<MapView> mapViews, int width, int height, UUID creator) throws Exception {
+    public static Future<? extends MinecraftURLOverlayImageMap> create(ImageMapManager manager, String name, String url, List<MapView> mapViews, int width, int height, DitheringType ditheringType, UUID creator) throws Exception {
         int mapsCount = width * height;
         List<Integer> mapIds = new ArrayList<>(mapsCount);
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapsCount);
@@ -60,7 +60,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             }
             markers.add(new ConcurrentHashMap<>());
         }
-        MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, -1, name, url, new FileLazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
+        MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, -1, name, url, new FileLazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, width, height, ditheringType, creator, Collections.emptyMap(), System.currentTimeMillis());
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -82,6 +82,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
         String url = json.get("url").getAsString();
         int width = json.get("width").getAsInt();
         int height = json.get("height").getAsInt();
+        DitheringType ditheringType = DitheringType.fromName(json.has("ditheringType") ? json.get("ditheringType").getAsString() : null);
         long creationTime = json.get("creationTime").getAsLong();
         UUID creator = UUID.fromString(json.get("creator").getAsString());
         Map<UUID, ImageMapAccessPermissionType> hasAccess;
@@ -129,7 +130,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
         for (Future<MapView> future : mapViewsFuture) {
             mapViews.add(future.get());
         }
-        MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
+        MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, ditheringType, creator, hasAccess, creationTime);
         return FutureUtils.callSyncMethod(() -> {
             for (int u = 0; u < mapViews.size(); u++) {
                 MapView mapView = mapViews.get(u);
@@ -144,13 +145,13 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
         });
     }
 
-    protected MinecraftURLOverlayImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
-        super(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
+    protected MinecraftURLOverlayImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+        super(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
     }
 
     @Override
     public ImageMap deepClone(String name, UUID creator) throws Exception {
-        MinecraftURLOverlayImageMap imageMap = create(manager, name, url, mapViews, width, height, creator).get();
+        MinecraftURLOverlayImageMap imageMap = create(manager, name, url, mapViews, width, height, ditheringType, creator).get();
         List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
         int i = 0;
         for (Map<String, MapCursor> map : getMapMarkers()) {
@@ -194,7 +195,7 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
             if (parent.cachedColors != null && parent.cachedColors[index] != null) {
                 colors = parent.cachedColors[index];
             } else if (parent.cachedImages[index] != null) {
-                colors = MapUtils.toMapPaletteBytes(parent.cachedImages[index].get());
+                colors = MapUtils.toMapPaletteBytes(parent.cachedImages[index].get(), parent.ditheringType);
             } else {
                 colors = null;
             }

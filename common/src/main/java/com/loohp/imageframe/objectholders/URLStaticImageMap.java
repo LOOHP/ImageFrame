@@ -36,6 +36,7 @@ import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
 import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -56,7 +57,7 @@ import java.util.concurrent.Future;
 
 public class URLStaticImageMap extends URLImageMap {
 
-    public static Future<? extends URLStaticImageMap> create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
+    public static Future<? extends URLStaticImageMap> create(ImageMapManager manager, String name, String url, int width, int height, DitheringType ditheringType, UUID creator) throws Exception {
         World world = MapUtils.getMainWorld();
         int mapsCount = width * height;
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapsCount);
@@ -81,7 +82,7 @@ public class URLStaticImageMap extends URLImageMap {
                 throw new RuntimeException(e);
             }
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new FileLazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
+        URLStaticImageMap map = new URLStaticImageMap(manager, -1, name, url, new FileLazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, width, height, ditheringType, creator, Collections.emptyMap(), System.currentTimeMillis());
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -103,6 +104,7 @@ public class URLStaticImageMap extends URLImageMap {
         String url = json.get("url").getAsString();
         int width = json.get("width").getAsInt();
         int height = json.get("height").getAsInt();
+        DitheringType ditheringType = DitheringType.fromName(json.has("ditheringType") ? json.get("ditheringType").getAsString() : null);
         long creationTime = json.get("creationTime").getAsLong();
         UUID creator = UUID.fromString(json.get("creator").getAsString());
         Map<UUID, ImageMapAccessPermissionType> hasAccess;
@@ -150,7 +152,7 @@ public class URLStaticImageMap extends URLImageMap {
         for (Future<MapView> future : mapViewsFuture) {
             mapViews.add(future.get());
         }
-        URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
+        URLStaticImageMap map = new URLStaticImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, ditheringType, creator, hasAccess, creationTime);
         return FutureUtils.callSyncMethod(() -> {
             for (int u = 0; u < mapViews.size(); u++) {
                 MapView mapView = mapViews.get(u);
@@ -167,12 +169,13 @@ public class URLStaticImageMap extends URLImageMap {
 
     protected byte[][] cachedColors;
 
-    protected URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
-        super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
+    protected URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+        super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
         cacheColors();
     }
 
+    @Override
     public void cacheColors() {
         if (cachedImages == null) {
             return;
@@ -181,15 +184,33 @@ public class URLStaticImageMap extends URLImageMap {
             return;
         }
         cachedColors = new byte[cachedImages.length][];
-        int i = 0;
+        BufferedImage combined = new BufferedImage(width * MapUtils.MAP_WIDTH, height * MapUtils.MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = combined.createGraphics();
+        int index = 0;
         for (FileLazyMappedBufferedImage image : cachedImages) {
-            cachedColors[i++] = MapUtils.toMapPaletteBytes(image.get());
+            g.drawImage(image.get(), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, null);
+            index++;
+        }
+        g.dispose();
+        byte[] combinedData = MapUtils.toMapPaletteBytes(combined, ditheringType);
+        for (int i = 0; i < index; i++) {
+            byte[] data = new byte[MapUtils.MAP_WIDTH * MapUtils.MAP_WIDTH];
+            for (int y = 0; y < MapUtils.MAP_WIDTH; y++) {
+                int offset = ((i / width) * MapUtils.MAP_WIDTH + y) * (width * MapUtils.MAP_WIDTH) + ((i % width) * MapUtils.MAP_WIDTH);
+                System.arraycopy(combinedData, offset, data, y * MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH);
+            }
+            cachedColors[i] = data;
         }
     }
 
     @Override
+    public void clearCachedColors() {
+        cachedColors = null;
+    }
+
+    @Override
     public ImageMap deepClone(String name, UUID creator) throws Exception {
-        URLStaticImageMap imageMap = create(manager, name, url, width, height, creator).get();
+        URLStaticImageMap imageMap = create(manager, name, url, width, height, ditheringType, creator).get();
         List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
         int i = 0;
         for (Map<String, MapCursor> map : getMapMarkers()) {
@@ -237,6 +258,9 @@ public class URLStaticImageMap extends URLImageMap {
         json.addProperty("url", url);
         json.addProperty("width", width);
         json.addProperty("height", height);
+        if (ditheringType != null) {
+            json.addProperty("ditheringType", ditheringType.getName());
+        }
         json.addProperty("creator", creator.toString());
         JsonObject accessJson = new JsonObject();
         for (Map.Entry<UUID, ImageMapAccessPermissionType> entry : hasAccess.entrySet()) {
@@ -290,7 +314,7 @@ public class URLStaticImageMap extends URLImageMap {
             if (parent.cachedColors != null && parent.cachedColors[index] != null) {
                 colors = parent.cachedColors[index];
             } else if (parent.cachedImages[index] != null) {
-                colors = MapUtils.toMapPaletteBytes(parent.cachedImages[index].get());
+                colors = MapUtils.toMapPaletteBytes(parent.cachedImages[index].get(), parent.ditheringType);
             } else {
                 colors = null;
             }

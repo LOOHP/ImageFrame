@@ -21,6 +21,7 @@
 package com.loohp.imageframe.migration;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.objectholders.DitheringType;
 import com.loohp.imageframe.objectholders.NonUpdatableStaticImageMap;
 import com.loohp.imageframe.utils.MapUtils;
 import net.md_5.bungee.api.ChatColor;
@@ -82,7 +83,7 @@ public class ImageMapMigration implements ExternalPluginMigration {
                     String fileName = data.getFilename();
                     BufferedImage[] images = new BufferedImage[] {MapUtils.getSubImage(ImageIO.read(new File(folder, fileName)), data.getX(), data.getY())};
                     String name = "ImageMaps_" + mapId;
-                    NonUpdatableStaticImageMap imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, owner).get();
+                    NonUpdatableStaticImageMap imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, DitheringType.NEAREST_COLOR, owner).get();
                     ImageFrame.imageMapManager.addMap(imageMap);
                     Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Migrated ImageMaps " + key + " to " + name);
                 } catch (Exception e) {

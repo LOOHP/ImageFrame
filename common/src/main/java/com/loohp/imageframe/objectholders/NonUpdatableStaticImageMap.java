@@ -55,11 +55,11 @@ import java.util.concurrent.Future;
 
 public class NonUpdatableStaticImageMap extends ImageMap {
 
-    public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, int width, int height, UUID creator) throws Exception {
-        return create(manager, name, images, null, width, height, creator);
+    public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, int width, int height, DitheringType ditheringType, UUID creator) throws Exception {
+        return create(manager, name, images, null, width, height, ditheringType, creator);
     }
 
-    public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, List<Integer> mapIds, int width, int height, UUID creator) throws Exception {
+    public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, List<Integer> mapIds, int width, int height, DitheringType ditheringType, UUID creator) throws Exception {
         World world = MapUtils.getMainWorld();
         int mapsCount = width * height;
         if (images.length != mapsCount) {
@@ -91,7 +91,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
                 throw new RuntimeException(e);
             }
         }
-        NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, -1, name, Arrays.stream(images).map(i -> FileLazyMappedBufferedImage.fromImage(i)).toArray(FileLazyMappedBufferedImage[]::new), mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis());
+        NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, -1, name, Arrays.stream(images).map(i -> FileLazyMappedBufferedImage.fromImage(i)).toArray(FileLazyMappedBufferedImage[]::new), mapViews, mapIds, markers, width, height, ditheringType, creator, Collections.emptyMap(), System.currentTimeMillis());
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -112,6 +112,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         String name = json.has("name") ? json.get("name").getAsString() : "Unnamed";
         int width = json.get("width").getAsInt();
         int height = json.get("height").getAsInt();
+        DitheringType ditheringType = DitheringType.fromName(json.has("ditheringType") ? json.get("ditheringType").getAsString() : null);
         long creationTime = json.get("creationTime").getAsLong();
         UUID creator = UUID.fromString(json.get("creator").getAsString());
         Map<UUID, ImageMapAccessPermissionType> hasAccess;
@@ -159,7 +160,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         for (Future<MapView> future : mapViewsFuture) {
             mapViews.add(future.get());
         }
-        NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, imageIndex, name, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime);
+        NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, imageIndex, name, cachedImages, mapViews, mapIds, markers, width, height, ditheringType, creator, hasAccess, creationTime);
         return FutureUtils.callSyncMethod(() -> {
             for (int u = 0; u < mapViews.size(); u++) {
                 MapView mapView = mapViews.get(u);
@@ -176,12 +177,13 @@ public class NonUpdatableStaticImageMap extends ImageMap {
 
     protected byte[][] cachedColors;
 
-    protected NonUpdatableStaticImageMap(ImageMapManager manager, int imageIndex, String name, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
-        super(manager, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
+    protected NonUpdatableStaticImageMap(ImageMapManager manager, int imageIndex, String name, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+        super(manager, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
         cacheColors();
     }
 
+    @Override
     public void cacheColors() {
         if (cachedImages == null) {
             return;
@@ -190,10 +192,28 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             return;
         }
         cachedColors = new byte[cachedImages.length][];
-        int i = 0;
+        BufferedImage combined = new BufferedImage(width * MapUtils.MAP_WIDTH, height * MapUtils.MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = combined.createGraphics();
+        int index = 0;
         for (FileLazyMappedBufferedImage image : cachedImages) {
-            cachedColors[i++] = MapUtils.toMapPaletteBytes(image.get());
+            g.drawImage(image.get(), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, null);
+            index++;
         }
+        g.dispose();
+        byte[] combinedData = MapUtils.toMapPaletteBytes(combined, ditheringType);
+        for (int i = 0; i < index; i++) {
+            byte[] data = new byte[MapUtils.MAP_WIDTH * MapUtils.MAP_WIDTH];
+            for (int y = 0; y < MapUtils.MAP_WIDTH; y++) {
+                int offset = ((i / width) * MapUtils.MAP_WIDTH + y) * (width * MapUtils.MAP_WIDTH) + ((i % width) * MapUtils.MAP_WIDTH);
+                System.arraycopy(combinedData, offset, data, y * MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH);
+            }
+            cachedColors[i] = data;
+        }
+    }
+
+    @Override
+    public void clearCachedColors() {
+        cachedColors = null;
     }
 
     @Override
@@ -207,7 +227,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             g.dispose();
             images[i] = newImage;
         }
-        NonUpdatableStaticImageMap imageMap = create(manager, name, images, width, height, creator).get();
+        NonUpdatableStaticImageMap imageMap = create(manager, name, images, width, height, ditheringType, creator).get();
         List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
         int i = 0;
         for (Map<String, MapCursor> map : getMapMarkers()) {
@@ -243,6 +263,9 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         json.addProperty("name", name);
         json.addProperty("width", width);
         json.addProperty("height", height);
+        if (ditheringType != null) {
+            json.addProperty("ditheringType", ditheringType.getName());
+        }
         json.addProperty("creator", creator.toString());
         JsonObject accessJson = new JsonObject();
         for (Map.Entry<UUID, ImageMapAccessPermissionType> entry : hasAccess.entrySet()) {
@@ -296,7 +319,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             if (parent.cachedColors != null && parent.cachedColors[index] != null) {
                 colors = parent.cachedColors[index];
             } else if (parent.cachedImages[index] != null) {
-                colors = MapUtils.toMapPaletteBytes(parent.cachedImages[index].get());
+                colors = MapUtils.toMapPaletteBytes(parent.cachedImages[index].get(), parent.ditheringType);
             } else {
                 colors = null;
             }

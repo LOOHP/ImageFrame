@@ -36,6 +36,7 @@ import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.OutputStreamWriter;
@@ -57,7 +58,7 @@ import java.util.concurrent.Future;
 
 public class URLAnimatedImageMap extends URLImageMap {
 
-    public static Future<? extends URLAnimatedImageMap> create(ImageMapManager manager, String name, String url, int width, int height, UUID creator) throws Exception {
+    public static Future<? extends URLAnimatedImageMap> create(ImageMapManager manager, String name, String url, int width, int height, DitheringType ditheringType, UUID creator) throws Exception {
         World world = MapUtils.getMainWorld();
         int mapsCount = width * height;
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapsCount);
@@ -78,7 +79,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
         }
-        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new FileLazyMappedBufferedImage[mapsCount][], mapViews, mapIds, markers, width, height, creator, Collections.emptyMap(), System.currentTimeMillis(), -1, 0);
+        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, -1, name, url, new FileLazyMappedBufferedImage[mapsCount][], mapViews, mapIds, markers, width, height, ditheringType, creator, Collections.emptyMap(), System.currentTimeMillis(), -1, 0);
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -100,6 +101,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         String url = json.get("url").getAsString();
         int width = json.get("width").getAsInt();
         int height = json.get("height").getAsInt();
+        DitheringType ditheringType = DitheringType.fromName(json.has("ditheringType") ? json.get("ditheringType").getAsString() : null);
         long creationTime = json.get("creationTime").getAsLong();
         UUID creator = UUID.fromString(json.get("creator").getAsString());
         Map<UUID, ImageMapAccessPermissionType> hasAccess;
@@ -154,7 +156,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         }
         int pausedAt = json.has("pausedAt") ? json.get("pausedAt").getAsInt() : -1;
         int tickOffset = json.has("tickOffset") ? json.get("tickOffset").getAsInt() : 0;
-        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, creator, hasAccess, creationTime, pausedAt, tickOffset);
+        URLAnimatedImageMap map = new URLAnimatedImageMap(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, markers, width, height, ditheringType, creator, hasAccess, creationTime, pausedAt, tickOffset);
         return FutureUtils.callSyncMethod(() -> {
             for (int u = 0; u < mapViews.size(); u++) {
                 MapView mapView = mapViews.get(u);
@@ -175,14 +177,15 @@ public class URLAnimatedImageMap extends URLImageMap {
     protected int pausedAt;
     protected int tickOffset;
 
-    protected URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[][] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime, int pausedAt, int tickOffset) {
-        super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, creator, hasAccess, creationTime);
+    protected URLAnimatedImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[][] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime, int pausedAt, int tickOffset) {
+        super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
         this.pausedAt = pausedAt;
         this.tickOffset = tickOffset;
         cacheColors();
     }
 
+    @Override
     public void cacheColors() {
         if (cachedImages == null) {
             return;
@@ -193,28 +196,55 @@ public class URLAnimatedImageMap extends URLImageMap {
         cachedColors = new byte[cachedImages.length][][];
         fakeMapIds = new int[cachedColors.length][];
         fakeMapIdsSet = new HashSet<>();
+        BufferedImage[] combined = new BufferedImage[cachedImages[0].length];
+        for (int i = 0; i < combined.length; i++) {
+            combined[i] = new BufferedImage(width * MapUtils.MAP_WIDTH, height * MapUtils.MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
+        }
+        Graphics2D[] g = Arrays.stream(combined).map(i -> i.createGraphics()).toArray(Graphics2D[]::new);
+        int index = 0;
+        for (FileLazyMappedBufferedImage[] images : cachedImages) {
+            int f = 0;
+            for (FileLazyMappedBufferedImage image : images) {
+                g[f++].drawImage(image.get(), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, null);
+            }
+            index++;
+        }
+        for (Graphics2D g2 : g) {
+            g2.dispose();
+        }
+        byte[][] combinedData = new byte[combined.length][];
+        for (int i = 0; i < combined.length; i++) {
+            combinedData[i] = MapUtils.toMapPaletteBytes(combined[i], ditheringType);
+        }
         int i = 0;
         for (FileLazyMappedBufferedImage[] images : cachedImages) {
             byte[][] data = new byte[images.length][];
-            int[] madIds = new int[data.length];
-            Arrays.fill(madIds, -1);
-            int u = 0;
+            int[] mapIds = new int[data.length];
+            Arrays.fill(mapIds, -1);
             byte[] lastDistinctFrame = null;
-            for (FileLazyMappedBufferedImage image : images) {
-                byte[] b = MapUtils.toMapPaletteBytes(image.get());
+            for (int u = 0; u < images.length; u++) {
+                byte[] b = new byte[MapUtils.MAP_WIDTH * MapUtils.MAP_WIDTH];
+                for (int y = 0; y < MapUtils.MAP_WIDTH; y++) {
+                    int offset = ((i / width) * MapUtils.MAP_WIDTH + y) * (width * MapUtils.MAP_WIDTH) + ((i % width) * MapUtils.MAP_WIDTH);
+                    System.arraycopy(combinedData[u], offset, b, y * MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH);
+                }
                 if (u == 0 || !Arrays.equals(b, lastDistinctFrame)) {
                     data[u] = b;
                     int mapId = ImageMapManager.getNextFakeMapId();
-                    madIds[u] = mapId;
+                    mapIds[u] = mapId;
                     fakeMapIdsSet.add(mapId);
                     lastDistinctFrame = b;
                 }
-                u++;
             }
             cachedColors[i] = data;
-            fakeMapIds[i] = madIds;
+            fakeMapIds[i] = mapIds;
             i++;
         }
+    }
+
+    @Override
+    public void clearCachedColors() {
+        cachedColors = null;
     }
 
     @Override
@@ -355,7 +385,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         for (int currentTick = 0; currentTick < length; currentTick++) {
             for (int index = 0; index < fakeMapIds.length; index++) {
                 int[] mapIds = fakeMapIds[index];
-                if (currentTick < mapIds.length) {
+                if (mapIds != null && currentTick < mapIds.length) {
                     int mapId = mapIds[currentTick];
                     if (mapId >= 0) {
                         MapUtils.sendImageMap(mapId, mapViews.get(index), currentTick, players, completionCallback);
@@ -377,7 +407,7 @@ public class URLAnimatedImageMap extends URLImageMap {
 
     @Override
     public ImageMap deepClone(String name, UUID creator) throws Exception {
-        URLAnimatedImageMap imageMap = create(manager, name, url, width, height, creator).get();
+        URLAnimatedImageMap imageMap = create(manager, name, url, width, height, ditheringType, creator).get();
         List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
         int i = 0;
         for (Map<String, MapCursor> map : getMapMarkers()) {
@@ -404,6 +434,9 @@ public class URLAnimatedImageMap extends URLImageMap {
         json.addProperty("url", url);
         json.addProperty("width", width);
         json.addProperty("height", height);
+        if (ditheringType != null) {
+            json.addProperty("ditheringType", ditheringType.getName());
+        }
         json.addProperty("creator", creator.toString());
         json.addProperty("pausedAt", pausedAt);
         json.addProperty("tickOffset", tickOffset);

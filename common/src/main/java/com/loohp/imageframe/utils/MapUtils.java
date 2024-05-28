@@ -22,6 +22,7 @@ package com.loohp.imageframe.utils;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
+import com.loohp.imageframe.objectholders.DitheringType;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.MapPacketSentCallback;
 import com.loohp.imageframe.objectholders.MutablePair;
@@ -66,7 +67,9 @@ public class MapUtils {
     public static final byte PALETTE_TRANSPARENT = MapPalette.TRANSPARENT;
     @SuppressWarnings("removal")
     public static final byte PALETTE_WHITE = MapPalette.matchColor(255, 255, 255);
+
     public static final int MAP_WIDTH = 128;
+
     public static final String GIF_CONTENT_TYPE = "image/gif";
     public static final List<BlockFace> CARTESIAN_BLOCK_FACES = Collections.unmodifiableList(Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN));
 
@@ -128,9 +131,8 @@ public class MapUtils {
         }
     }
 
-    @SuppressWarnings("removal")
-    public static byte[] toMapPaletteBytes(BufferedImage image) {
-        return MapPalette.imageToBytes(image);
+    public static byte[] toMapPaletteBytes(BufferedImage image, DitheringType ditheringType) {
+        return ditheringType == null ? DitheringType.NEAREST_COLOR.applyDithering(image) : ditheringType.applyDithering(image);
     }
 
     public static BufferedImage resize(BufferedImage source, int width, int height) {
