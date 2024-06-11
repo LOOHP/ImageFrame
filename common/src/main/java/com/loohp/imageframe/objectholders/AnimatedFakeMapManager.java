@@ -63,7 +63,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
     private final Map<Player, Set<Integer>> pendingKnownMapIds;
 
     public AnimatedFakeMapManager() {
-        this.itemFrames = new ConcurrentHashMap<>();
+        this.itemFrames = Collections.synchronizedMap(new IdentityHashMap<>());
         this.knownMapIds = new ConcurrentHashMap<>();
         this.pendingKnownMapIds = new ConcurrentHashMap<>();
         Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, this, 0, 1);
@@ -351,9 +351,14 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         if (entity instanceof ItemFrame) {
             Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                 ItemFrame itemFrame = (ItemFrame) entity;
-                Holder<AnimationData> holder = itemFrames.remove(itemFrame);
-                if (holder != null) {
-                    itemFrames.put(itemFrame, holder);
+                // Synchronized maps allow sync on the instance
+                // We sync here to avoid inconsistent states
+                // & to reduce synchronization enter/leave penalties (we would have to sync twice otherwise)
+                synchronized (itemFrames) {
+                    Holder<AnimationData> holder = itemFrames.remove(itemFrame);
+                    if (holder != null) {
+                        itemFrames.put(itemFrame, holder);
+                    }
                 }
             });
         }
