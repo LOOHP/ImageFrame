@@ -64,8 +64,6 @@ import java.util.concurrent.TimeoutException;
 
 public class AnimatedFakeMapManager implements Listener, Runnable {
 
-    private static final ItemStack ITEM_EMPTY = new ItemStack(Material.AIR);
-
     private final Map<ItemFrame, Holder<AnimationData>> itemFrames;
     private final Map<Player, Set<Integer>> knownMapIds;
     private final Map<Player, Set<Integer>> pendingKnownMapIds;
