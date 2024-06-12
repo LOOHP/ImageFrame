@@ -20,7 +20,6 @@
 
 package com.loohp.imageframe.objectholders;
 
-import com.google.common.collect.ImmutableMap;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.hooks.viaversion.ViaHook;
@@ -52,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -65,14 +65,12 @@ import java.util.concurrent.TimeoutException;
 
 public class AnimatedFakeMapManager implements Listener, Runnable {
 
-    private static final ItemStack ITEM_EMPTY = new ItemStack(Material.AIR);
-
     private final Map<ItemFrame, Holder<AnimationData>> itemFrames;
     private final Map<Player, Set<Integer>> knownMapIds;
     private final Map<Player, Set<Integer>> pendingKnownMapIds;
 
     public AnimatedFakeMapManager() {
-        this.itemFrames = new ConcurrentHashMap<>();
+        this.itemFrames = Collections.synchronizedMap(new IdentityHashMap<>());
         this.knownMapIds = new ConcurrentHashMap<>();
         this.pendingKnownMapIds = new ConcurrentHashMap<>();
         Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, this, 0, 1);
@@ -91,8 +89,13 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
     }
 
-    private ImmutableMap<ItemFrame, ItemFrameInfo> buildAllItemFrameInfo(Set<Map.Entry<ItemFrame, Holder<AnimationData>>> dataToProcess, boolean async) {
-        ImmutableMap.Builder<ItemFrame, ItemFrameInfo> builder = ImmutableMap.builder();
+    private Map<ItemFrame, ItemFrameInfo> buildAllItemFrameInfo(Set<Map.Entry<ItemFrame, Holder<AnimationData>>> dataToProcess, boolean async) {
+        // DO NOT USE DIRECTLY - Use the synchronized map in this method and return the unmodifiable map
+        IdentityHashMap<ItemFrame, ItemFrameInfo> identityMap = new IdentityHashMap<>();
+        // Allows for safe async insertion
+        Map<ItemFrame, ItemFrameInfo> syncMap = Collections.synchronizedMap(identityMap);
+
+        // Our list of futures that need to complete before returning
         List<CompletableFuture<ItemFrameInfo>> futures = new ArrayList<>();
         Map<CompletableFuture<ItemFrameInfo>, ItemFrame> localReverseMap = new HashMap<>();
 
@@ -116,7 +119,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                             trackedPlayers = NMS.getInstance().getEntityTrackers(itemFrame);
                         }
                         ItemFrameInfo frameInfo = new ItemFrameInfo(trackedPlayers, itemFrame.getItem());
-                        builder.put(itemFrame, frameInfo);
+                        syncMap.put(itemFrame, frameInfo);
                         future.complete(frameInfo);
                     } else {
                         future.complete(null);
@@ -148,11 +151,12 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             }
         });
 
-        return builder.build();
+        // Prevent modification of the returned map
+        return Collections.unmodifiableMap(identityMap);
     }
 
     public void run() {
-        ImmutableMap<ItemFrame, ItemFrameInfo> entityTrackers = buildAllItemFrameInfo(itemFrames.entrySet(), !ImageFrame.handleAnimatedMapsOnMainThread);
+        Map<ItemFrame, ItemFrameInfo> entityTrackers = buildAllItemFrameInfo(itemFrames.entrySet(), !ImageFrame.handleAnimatedMapsOnMainThread);
         Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
         for (Map.Entry<ItemFrame, ItemFrameInfo> entry : entityTrackers.entrySet()) {
             ItemFrame itemFrame = entry.getKey();
@@ -355,9 +359,14 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         if (entity instanceof ItemFrame) {
             Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                 ItemFrame itemFrame = (ItemFrame) entity;
-                Holder<AnimationData> holder = itemFrames.remove(itemFrame);
-                if (holder != null) {
-                    itemFrames.put(itemFrame, holder);
+                // Synchronized maps allow sync on the instance
+                // We sync here to avoid inconsistent states
+                // & to reduce synchronization enter/leave penalties (we would have to sync twice otherwise)
+                synchronized (itemFrames) {
+                    Holder<AnimationData> holder = itemFrames.remove(itemFrame);
+                    if (holder != null) {
+                        itemFrames.put(itemFrame, holder);
+                    }
                 }
             });
         }
