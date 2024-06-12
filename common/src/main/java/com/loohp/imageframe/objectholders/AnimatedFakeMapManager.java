@@ -20,7 +20,6 @@
 
 package com.loohp.imageframe.objectholders;
 
-import com.google.common.collect.ImmutableMap;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.hooks.viaversion.ViaHook;
@@ -47,7 +46,16 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapView;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -85,8 +93,6 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         IdentityHashMap<ItemFrame, ItemFrameInfo> identityMap = new IdentityHashMap<>();
         // Allows for safe async insertion
         Map<ItemFrame, ItemFrameInfo> syncMap = Collections.synchronizedMap(identityMap);
-        // Prevent modification of the returned map
-        Map<ItemFrame, ItemFrameInfo> immutableMap = Collections.unmodifiableMap(identityMap);
 
         // Our list of futures that need to complete before returning
         List<CompletableFuture<ItemFrameInfo>> futures = new ArrayList<>();
@@ -144,7 +150,8 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             }
         });
 
-        return immutableMap;
+        // Prevent modification of the returned map
+        return Collections.unmodifiableMap(identityMap);
     }
 
     public void run() {
