@@ -6,7 +6,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>1.7.8.5</version>
+    <version>1.7.9.0</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -236,13 +236,13 @@
         <dependency>
             <groupId>dev.folia</groupId>
             <artifactId>folia-api</artifactId>
-            <version>1.20.4-R0.1-SNAPSHOT</version>
+            <version>1.20.6-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.20.6-R0.1-SNAPSHOT</version>
+            <version>1.21-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -338,6 +338,12 @@
         <dependency>
             <groupId>com.loohp</groupId>
             <artifactId>ImageFrame-V1_20_6</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.loohp</groupId>
+            <artifactId>ImageFrame-V1_21</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

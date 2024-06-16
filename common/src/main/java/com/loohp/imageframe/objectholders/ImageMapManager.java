@@ -232,7 +232,6 @@ public class ImageMapManager implements AutoCloseable {
         List<MutablePair<File, Future<? extends ImageMap>>> futures = new LinkedList<>();
         for (File file : files) {
             if (file.isDirectory()) {
-                Bukkit.getConsoleSender().sendMessage(ChatColor.GRAY + "[ImageFrame] Loading ImageMap ID " + file.getName());
                 try {
                     futures.add(new MutablePair<>(file, ImageMap.load(this, file)));
                 } catch (Throwable e) {

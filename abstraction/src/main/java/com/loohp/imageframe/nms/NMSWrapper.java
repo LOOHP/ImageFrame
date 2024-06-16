@@ -24,7 +24,6 @@ import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapCursor;
@@ -57,7 +56,7 @@ public abstract class NMSWrapper {
 
     public abstract Object createMapPacket(int mapId, byte[] colors, Collection<MapCursor> cursors);
 
-    public abstract Object createItemFrameItemChangePacket(ItemFrame itemFrame, ItemStack itemStack);
+    public abstract Object createItemFrameItemChangePacket(int entityId, ItemStack itemStack);
 
     public abstract void sendPacket(Player player, Object packet);
 

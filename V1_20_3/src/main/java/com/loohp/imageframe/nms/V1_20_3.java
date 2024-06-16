@@ -48,7 +48,6 @@ import org.bukkit.craftbukkit.v1_20_R3.map.CraftMapView;
 import org.bukkit.craftbukkit.v1_20_R3.map.RenderData;
 import org.bukkit.craftbukkit.v1_20_R3.util.CraftChatMessage;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapCursor;
@@ -173,9 +172,9 @@ public class V1_20_3 extends NMSWrapper {
     }
 
     @Override
-    public PacketPlayOutEntityMetadata createItemFrameItemChangePacket(ItemFrame itemFrame, ItemStack itemStack) {
+    public PacketPlayOutEntityMetadata createItemFrameItemChangePacket(int entityId, ItemStack itemStack) {
         List<DataWatcher.b<?>> dataWatchers = Collections.singletonList(DataWatcher.b.a(EntityItemFrame.g, CraftItemStack.asNMSCopy(itemStack)));
-        return new PacketPlayOutEntityMetadata(itemFrame.getEntityId(), dataWatchers);
+        return new PacketPlayOutEntityMetadata(entityId, dataWatchers);
     }
 
     @Override

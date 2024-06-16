@@ -51,12 +51,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -65,12 +65,12 @@ import java.util.concurrent.TimeoutException;
 
 public class AnimatedFakeMapManager implements Listener, Runnable {
 
-    private final Map<ItemFrame, Holder<AnimationData>> itemFrames;
+    private final Map<UUID, TrackedItemFrameData> itemFrames;
     private final Map<Player, Set<Integer>> knownMapIds;
     private final Map<Player, Set<Integer>> pendingKnownMapIds;
 
     public AnimatedFakeMapManager() {
-        this.itemFrames = Collections.synchronizedMap(new IdentityHashMap<>());
+        this.itemFrames = new ConcurrentHashMap<>();
         this.knownMapIds = new ConcurrentHashMap<>();
         this.pendingKnownMapIds = new ConcurrentHashMap<>();
         Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, this, 0, 1);
@@ -89,21 +89,12 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
     }
 
-    private Map<ItemFrame, ItemFrameInfo> buildAllItemFrameInfo(Set<Map.Entry<ItemFrame, Holder<AnimationData>>> dataToProcess, boolean async) {
-        // DO NOT USE DIRECTLY - Use the synchronized map in this method and return the unmodifiable map
-        IdentityHashMap<ItemFrame, ItemFrameInfo> identityMap = new IdentityHashMap<>();
-        // Allows for safe async insertion
-        Map<ItemFrame, ItemFrameInfo> syncMap = Collections.synchronizedMap(identityMap);
-
-        // Our list of futures that need to complete before returning
-        List<CompletableFuture<ItemFrameInfo>> futures = new ArrayList<>();
-        Map<CompletableFuture<ItemFrameInfo>, ItemFrame> localReverseMap = new HashMap<>();
-
-        for (Map.Entry<ItemFrame, Holder<AnimationData>> entry : dataToProcess) {
-            ItemFrame itemFrame = entry.getKey();
+    private Map<UUID, CompletableFuture<ItemFrameInfo>> collectItemFramesInfo(boolean async) {
+        Map<UUID, CompletableFuture<ItemFrameInfo>> futures = new HashMap<>();
+        for (Map.Entry<UUID, TrackedItemFrameData> entry : itemFrames.entrySet()) {
+            UUID uuid = entry.getKey();
+            ItemFrame itemFrame = entry.getValue().getItemFrame();
             CompletableFuture<ItemFrameInfo> future = new CompletableFuture<>();
-
-            // Collect frame info
             Runnable task = () -> {
                 try {
                     if (itemFrame.isValid()) {
@@ -118,9 +109,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                         } else {
                             trackedPlayers = NMS.getInstance().getEntityTrackers(itemFrame);
                         }
-                        ItemFrameInfo frameInfo = new ItemFrameInfo(trackedPlayers, itemFrame.getItem());
-                        syncMap.put(itemFrame, frameInfo);
-                        future.complete(frameInfo);
+                        future.complete(new ItemFrameInfo(itemFrame.getEntityId(), trackedPlayers, itemFrame.getItem()));
                     } else {
                         future.complete(null);
                     }
@@ -128,53 +117,47 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                     future.completeExceptionally(e);
                 }
             };
-
             if (async) {
-                task.run(); // We're already async
+                task.run();
             } else {
-                Scheduler.executeOrScheduleSync(ImageFrame.plugin, task, itemFrame); // Execute on entity's thread
+                Scheduler.executeOrScheduleSync(ImageFrame.plugin, task, itemFrame);
             }
-
-            futures.add(future);
-            localReverseMap.put(future, itemFrame);
+            futures.put(uuid, future);
         }
-
-        // Wait for all futures to complete
-        futures.parallelStream().forEach(future -> {
-            try {
-                // Max wait time is 2 seconds per frame
-                future.get(2, TimeUnit.SECONDS);
-            } catch (InterruptedException | TimeoutException | ExecutionException e) {
-                new RuntimeException("Failed to get item frame info for an item frame! Removing from cache...", e).printStackTrace();
-                ItemFrame itemFrame = localReverseMap.get(future);
-                if (itemFrame != null) itemFrames.remove(itemFrame);
-            }
-        });
-
-        // Prevent modification of the returned map
-        return Collections.unmodifiableMap(identityMap);
+        return futures;
     }
 
     public void run() {
-        Map<ItemFrame, ItemFrameInfo> entityTrackers = buildAllItemFrameInfo(itemFrames.entrySet(), !ImageFrame.handleAnimatedMapsOnMainThread);
+        Map<UUID, CompletableFuture<ItemFrameInfo>> entityTrackers = collectItemFramesInfo(!ImageFrame.handleAnimatedMapsOnMainThread);
         Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
-        for (Map.Entry<ItemFrame, ItemFrameInfo> entry : entityTrackers.entrySet()) {
-            ItemFrame itemFrame = entry.getKey();
-            ItemFrameInfo frameInfo = entry.getValue();
-
-            Set<Player> players = frameInfo.getTrackedPlayers();
-            ItemStack itemStack = frameInfo.getItemStack();
-
-            Holder<AnimationData> holder = itemFrames.get(itemFrame);
-            if (holder == null) {
+        long deadline = System.currentTimeMillis() + 2000;
+        for (Map.Entry<UUID, CompletableFuture<ItemFrameInfo>> entry : entityTrackers.entrySet()) {
+            UUID uuid = entry.getKey();
+            ItemFrameInfo frameInfo;
+            try {
+                frameInfo = entry.getValue().get(Math.max(0, deadline - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                frameInfo = null;
+            }
+            if (frameInfo == null) {
+                itemFrames.remove(uuid);
                 continue;
             }
 
-            AnimationData animationData = holder.getValue();
+            int entityId = frameInfo.getEntityId();
+            Set<Player> players = frameInfo.getTrackedPlayers();
+            ItemStack itemStack = frameInfo.getItemStack();
+
+            TrackedItemFrameData data = itemFrames.get(uuid);
+            if (data == null) {
+                continue;
+            }
+
+            AnimationData animationData = data.getAnimationData();
             MapView mapView = MapUtils.getItemMapView(itemStack);
 
             if (mapView == null) {
-                holder.setValue(AnimationData.EMPTY);
+                data.setAnimationData(AnimationData.EMPTY);
                 continue;
             }
 
@@ -182,23 +165,23 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 ImageMap map = ImageFrame.imageMapManager.getFromMapView(mapView);
                 if (map == null || !map.requiresAnimationService()) {
                     if (!animationData.isEmpty()) {
-                        holder.setValue(AnimationData.EMPTY);
+                        data.setAnimationData(AnimationData.EMPTY);
                     }
                     continue;
                 }
-                holder.setValue(animationData = new AnimationData(map, mapView, map.getMapViews().indexOf(mapView)));
+                data.setAnimationData(animationData = new AnimationData(map, mapView, map.getMapViews().indexOf(mapView)));
             } else if (!animationData.isEmpty()) {
                 if (!animationData.getImageMap().isValid()) {
                     for (Player player : players) {
-                        FakeItemUtils.sendFakeItemChange(player, itemFrame, itemStack);
+                        FakeItemUtils.sendFakeItemChange(player, entityId, itemStack);
                     }
-                    holder.setValue(AnimationData.EMPTY);
+                    data.setAnimationData(AnimationData.EMPTY);
                     continue;
                 }
             }
             ImageMap imageMap = animationData.getImageMap();
             if (!imageMap.requiresAnimationService()) {
-                holder.setValue(AnimationData.EMPTY);
+                data.setAnimationData(AnimationData.EMPTY);
                 continue;
             }
             int index = animationData.getIndex();
@@ -240,10 +223,10 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 });
             }
             if (!needReset.isEmpty()) {
-                FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, itemFrame.getItem(), mapView.getId(), mapView, currentPosition);
+                FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(entityId, itemStack, mapView.getId(), mapView, currentPosition);
                 needReset.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
             }
-            FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(itemFrame, getMapItem(mapId), mapView.getId(), mapView, currentPosition);
+            FakeItemUtils.ItemFrameUpdateData itemFrameUpdateData = new FakeItemUtils.ItemFrameUpdateData(entityId, getMapItem(mapId), mapView.getId(), mapView, currentPosition);
             players.forEach(p -> updateData.computeIfAbsent(p, k -> new ArrayList<>()).add(itemFrameUpdateData));
         }
         Map<Player, List<Runnable>> sendingTasks = new HashMap<>();
@@ -291,6 +274,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private ItemStack getMapItem(int mapId) {
         ItemStack itemStack = new ItemStack(Material.FILLED_MAP);
         MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
@@ -304,20 +288,21 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             return;
         }
         ItemFrame itemFrame = (ItemFrame) entity;
-        if (itemFrames.containsKey(itemFrame)) {
+        UUID uuid = itemFrame.getUniqueId();
+        if (itemFrames.containsKey(uuid)) {
             return;
         }
         MapView mapView = MapUtils.getItemMapView(itemFrame.getItem());
         if (mapView == null) {
-            itemFrames.put(itemFrame, Holder.hold(AnimationData.EMPTY));
+            itemFrames.put(uuid, new TrackedItemFrameData(itemFrame, AnimationData.EMPTY));
             return;
         }
         ImageMap map = ImageFrame.imageMapManager.getFromMapView(mapView);
         if (map == null || !map.requiresAnimationService()) {
-            itemFrames.put(itemFrame, Holder.hold(AnimationData.EMPTY));
+            itemFrames.put(uuid, new TrackedItemFrameData(itemFrame, AnimationData.EMPTY));
             return;
         }
-        itemFrames.put(itemFrame, Holder.hold(new AnimationData(map, mapView, map.getMapViews().indexOf(mapView))));
+        itemFrames.put(uuid, new TrackedItemFrameData(itemFrame, new AnimationData(map, mapView, map.getMapViews().indexOf(mapView))));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -357,16 +342,11 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
     public void onEntityTeleport(EntityTeleportEvent event) {
         Entity entity = event.getEntity();
         if (entity instanceof ItemFrame) {
+            UUID uuid = entity.getUniqueId();
             Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
-                ItemFrame itemFrame = (ItemFrame) entity;
-                // Synchronized maps allow sync on the instance
-                // We sync here to avoid inconsistent states
-                // & to reduce synchronization enter/leave penalties (we would have to sync twice otherwise)
-                synchronized (itemFrames) {
-                    Holder<AnimationData> holder = itemFrames.remove(itemFrame);
-                    if (holder != null) {
-                        itemFrames.put(itemFrame, holder);
-                    }
+                TrackedItemFrameData data = itemFrames.remove(uuid);
+                if (data != null) {
+                    itemFrames.put(uuid, data);
                 }
             });
         }
@@ -396,6 +376,30 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             for (Entity entity : event.getEntities()) {
                 handleEntity(entity);
             }
+        }
+
+    }
+
+    public static class TrackedItemFrameData {
+
+        private final ItemFrame itemFrame;
+        private AnimationData animationData;
+
+        public TrackedItemFrameData(ItemFrame itemFrame, AnimationData animationData) {
+            this.itemFrame = itemFrame;
+            this.animationData = animationData;
+        }
+
+        public ItemFrame getItemFrame() {
+            return itemFrame;
+        }
+
+        public AnimationData getAnimationData() {
+            return animationData;
+        }
+
+        public void setAnimationData(AnimationData animationData) {
+            this.animationData = animationData;
         }
 
     }
@@ -433,12 +437,18 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
 
     public static class ItemFrameInfo {
 
+        private final int entityId;
         private final Set<Player> trackedPlayers;
         private final ItemStack itemStack;
 
-        public ItemFrameInfo(Set<Player> trackedPlayers, ItemStack itemStack) {
+        public ItemFrameInfo(int entityId, Set<Player> trackedPlayers, ItemStack itemStack) {
+            this.entityId = entityId;
             this.trackedPlayers = trackedPlayers;
             this.itemStack = itemStack;
+        }
+
+        public int getEntityId() {
+            return entityId;
         }
 
         public Set<Player> getTrackedPlayers() {

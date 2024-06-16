@@ -53,7 +53,6 @@ import org.bukkit.craftbukkit.v1_16_R2.map.CraftMapView;
 import org.bukkit.craftbukkit.v1_16_R2.map.RenderData;
 import org.bukkit.craftbukkit.v1_16_R2.util.CraftChatMessage;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapCursor;
@@ -213,14 +212,14 @@ public class V1_16_2 extends NMSWrapper {
 
     @SuppressWarnings("unchecked")
     @Override
-    public PacketPlayOutEntityMetadata createItemFrameItemChangePacket(ItemFrame itemFrame, ItemStack itemStack) {
+    public PacketPlayOutEntityMetadata createItemFrameItemChangePacket(int entityId, ItemStack itemStack) {
         try {
             nmsItemFrameItemStackDataWatcherField.setAccessible(true);
             DataWatcherObject<net.minecraft.server.v1_16_R2.ItemStack> dataWatcherObject = (DataWatcherObject<net.minecraft.server.v1_16_R2.ItemStack>) nmsItemFrameItemStackDataWatcherField.get(null);
             List<DataWatcher.Item<?>> dataWatchers = Collections.singletonList(new DataWatcher.Item<>(dataWatcherObject, CraftItemStack.asNMSCopy(itemStack)));
             PacketPlayOutEntityMetadata packet = new PacketPlayOutEntityMetadata();
             nmsPacketPlayOutEntityMetadataFields[0].setAccessible(true);
-            nmsPacketPlayOutEntityMetadataFields[0].setInt(packet, itemFrame.getEntityId());
+            nmsPacketPlayOutEntityMetadataFields[0].setInt(packet, entityId);
             nmsPacketPlayOutEntityMetadataFields[1].setAccessible(true);
             nmsPacketPlayOutEntityMetadataFields[1].set(packet, dataWatchers);
             return packet;

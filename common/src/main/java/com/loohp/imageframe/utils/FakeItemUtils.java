@@ -21,7 +21,6 @@
 package com.loohp.imageframe.utils;
 
 import com.loohp.imageframe.nms.NMS;
-import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
@@ -34,7 +33,7 @@ public class FakeItemUtils {
     public static void sendFakeItemChange(Player player, List<ItemFrameUpdateData> updateData) {
         List<Object> packets = new ArrayList<>(updateData.size());
         for (ItemFrameUpdateData itemFrameUpdateData : updateData) {
-            packets.add(NMS.getInstance().createItemFrameItemChangePacket(itemFrameUpdateData.getItemFrame(), itemFrameUpdateData.getItemStack()));
+            packets.add(NMS.getInstance().createItemFrameItemChangePacket(itemFrameUpdateData.getEntityId(), itemFrameUpdateData.getItemStack()));
         }
         if (player.isOnline()) {
             for (Object packet : packets) {
@@ -43,8 +42,8 @@ public class FakeItemUtils {
         }
     }
 
-    public static void sendFakeItemChange(Player player, ItemFrame itemFrame, ItemStack itemStack) {
-        Object packet = NMS.getInstance().createItemFrameItemChangePacket(itemFrame, itemStack);
+    public static void sendFakeItemChange(Player player, int entityId, ItemStack itemStack) {
+        Object packet = NMS.getInstance().createItemFrameItemChangePacket(entityId, itemStack);
         if (player.isOnline()) {
             NMS.getInstance().sendPacket(player, packet);
         }
@@ -52,22 +51,22 @@ public class FakeItemUtils {
 
     public static class ItemFrameUpdateData {
 
-        private final ItemFrame itemFrame;
+        private final int entityId;
         private final ItemStack itemStack;
         private final int realMapId;
         private final MapView mapView;
         private final int currentPosition;
 
-        public ItemFrameUpdateData(ItemFrame itemFrame, ItemStack itemStack, int realMapId, MapView mapView, int currentPosition) {
-            this.itemFrame = itemFrame;
+        public ItemFrameUpdateData(int entityId, ItemStack itemStack, int realMapId, MapView mapView, int currentPosition) {
+            this.entityId = entityId;
             this.itemStack = itemStack;
             this.realMapId = realMapId;
             this.mapView = mapView;
             this.currentPosition = currentPosition;
         }
 
-        public ItemFrame getItemFrame() {
-            return itemFrame;
+        public int getEntityId() {
+            return entityId;
         }
 
         public ItemStack getItemStack() {
