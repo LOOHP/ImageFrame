@@ -24,9 +24,10 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.objectholders.DitheringType;
 import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.imageframe.objectholders.ImageMapHitTargetResult;
+import com.loohp.imageframe.objectholders.IntPosition;
 import com.loohp.imageframe.objectholders.MapPacketSentCallback;
 import com.loohp.imageframe.objectholders.MutablePair;
-import com.loohp.imageframe.objectholders.IntPosition;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -234,6 +235,47 @@ public class MapUtils {
             mapCursorCollection.addCursor(mapCursor);
         }
         return mapCursorCollection;
+    }
+
+    public static ImageMapHitTargetResult rayTraceTargetImageMap(Player player, double maxDistance) {
+        Location location = player.getEyeLocation();
+        return rayTraceTargetImageMap(location, location.getDirection(), maxDistance);
+    }
+
+    public static ImageMapHitTargetResult rayTraceTargetImageMap(Location start, Vector direction, double maxDistance) {
+        RayTraceResult rayTraceResult = rayTraceItemFrame(start, direction, maxDistance);
+        if (rayTraceResult == null) {
+            return null;
+        }
+        ItemFrame itemFrame = (ItemFrame) rayTraceResult.getHitEntity();
+        if (itemFrame == null) {
+            return null;
+        }
+        Vector hitPosition = rayTraceResult.getHitPosition();
+        ItemStack itemStack = itemFrame.getItem();
+        if (itemStack == null || itemStack.getType().equals(Material.AIR) || !itemStack.hasItemMeta()) {
+            return null;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (!(itemMeta instanceof MapMeta)) {
+            return null;
+        }
+        MapMeta mapMeta = (MapMeta) itemMeta;
+        MapView mapView = mapMeta.getMapView();
+        if (mapView == null) {
+            return null;
+        }
+        ImageMap imageMap = ImageFrame.imageMapManager.getFromMapView(mapView);
+        if (imageMap == null || !imageMap.isValid()) {
+            return null;
+        }
+        IntPosition target = MapUtils.getTargetPixelOnItemFrame(itemFrame.getLocation().toVector(), itemFrame.getFacing().getDirection(), hitPosition, itemFrame.getRotation());
+        IntPosition localTarget = new IntPosition((target.getX() + MAP_WIDTH) / 2, (target.getY() + MAP_WIDTH) / 2);
+        int mapViewIndex = imageMap.getMapViews().indexOf(mapView);
+        int mapViewX = mapViewIndex % imageMap.getWidth();
+        int mapViewY = mapViewIndex / imageMap.getWidth();
+        IntPosition globalTarget = new IntPosition(localTarget.getX() + (mapViewX * MAP_WIDTH), localTarget.getY() + (mapViewY * MAP_WIDTH));
+        return new ImageMapHitTargetResult(itemFrame, imageMap, localTarget, globalTarget);
     }
 
     public static RayTraceResult rayTraceItemFrame(Location start, Vector direction, double maxDistance) {
