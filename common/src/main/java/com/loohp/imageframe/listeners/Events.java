@@ -55,6 +55,7 @@ import java.util.function.IntFunction;
 
 public class Events implements Listener {
 
+    @SuppressWarnings("UnstableApiUsage")
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onClick(InventoryClickEvent event) {
         ItemStack currentItem = event.getCurrentItem();
@@ -69,59 +70,84 @@ public class Events implements Listener {
         boolean isClickingBottom = event.getView().getBottomInventory().equals(event.getClickedInventory());
 
         Inventory inventory = event.getView().getTopInventory();
-        if (inventory.getType().equals(InventoryType.WORKBENCH)) {
-            if ((isClickingTop && isCombinedMaps(event.getCursor()))
-                    || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
-                    || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
-                    || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
-                    || containsCombinedMaps(i -> event.getView().getItem(i), 10)) {
-                event.setResult(Event.Result.DENY);
-            } else if (event.getRawSlot() == 0) {
-                ItemStack map = event.getView().getItem(5);
-                MapView mapView = MapUtils.getItemMapView(map);
-                if (mapView == null) {
-                    return;
-                }
-                if (ImageFrame.imageMapManager.getFromMapView(mapView) == null) {
-                    return;
-                }
-                int count = 0;
-                for (int i = 1; i <= 9; i++) {
-                    if (i == 5) {
-                        continue;
-                    }
-                    ItemStack itemStack = event.getView().getItem(i);
-                    if (itemStack != null && itemStack.getType().equals(Material.PAPER)) {
-                        count++;
-                    }
-                }
-                if (count >= 8) {
+        switch (inventory.getType()) {
+            case CRAFTING: {
+                if (isCombinedMaps(event.getCursor())
+                        || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
+                        || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
+                        || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
+                        || containsCombinedMaps(i -> event.getView().getItem(i), 5)) {
                     event.setResult(Event.Result.DENY);
                 }
+                break;
             }
-        } else if (inventory.getType().equals(InventoryType.CARTOGRAPHY)) {
-            if ((isClickingTop && isCombinedMaps(event.getCursor()))
-                    || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
-                    || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
-                    || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
-                    || containsCombinedMaps(i -> event.getView().getItem(i), 3)) {
-                event.setResult(Event.Result.DENY);
-            } else if (event.getRawSlot() == 2) {
-                ItemStack map = event.getView().getItem(0);
-                MapView mapView = MapUtils.getItemMapView(map);
-                if (mapView == null) {
-                    return;
+            case WORKBENCH: {
+                if ((isClickingTop && isCombinedMaps(event.getCursor()))
+                        || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
+                        || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
+                        || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
+                        || containsCombinedMaps(i -> event.getView().getItem(i), 10)) {
+                    event.setResult(Event.Result.DENY);
+                } else if (event.getRawSlot() == 0) {
+                    ItemStack map = event.getView().getItem(5);
+                    MapView mapView = MapUtils.getItemMapView(map);
+                    if (mapView == null) {
+                        return;
+                    }
+                    if (ImageFrame.imageMapManager.getFromMapView(mapView) == null) {
+                        return;
+                    }
+                    int count = 0;
+                    for (int i = 1; i <= 9; i++) {
+                        if (i == 5) {
+                            continue;
+                        }
+                        ItemStack itemStack = event.getView().getItem(i);
+                        if (itemStack != null && itemStack.getType().equals(Material.PAPER)) {
+                            count++;
+                        }
+                    }
+                    if (count >= 8) {
+                        event.setResult(Event.Result.DENY);
+                    }
                 }
-                if (ImageFrame.imageMapManager.getFromMapView(mapView) == null) {
-                    return;
-                }
-                ItemStack item = event.getView().getItem(1);
-                if (item == null) {
-                    return;
-                }
-                if (item.getType().equals(Material.PAPER) || item.getType().equals(Material.GLASS_PANE)) {
+                break;
+            }
+            case CRAFTER: {
+                if ((isClickingTop && isCombinedMaps(event.getCursor()))
+                        || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
+                        || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
+                        || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
+                        || containsCombinedMaps(i -> event.getView().getItem(i), 9)) {
                     event.setResult(Event.Result.DENY);
                 }
+                break;
+            }
+            case CARTOGRAPHY: {
+                if ((isClickingTop && isCombinedMaps(event.getCursor()))
+                        || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
+                        || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
+                        || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
+                        || containsCombinedMaps(i -> event.getView().getItem(i), 3)) {
+                    event.setResult(Event.Result.DENY);
+                } else if (event.getRawSlot() == 2) {
+                    ItemStack map = event.getView().getItem(0);
+                    MapView mapView = MapUtils.getItemMapView(map);
+                    if (mapView == null) {
+                        return;
+                    }
+                    if (ImageFrame.imageMapManager.getFromMapView(mapView) == null) {
+                        return;
+                    }
+                    ItemStack item = event.getView().getItem(1);
+                    if (item == null) {
+                        return;
+                    }
+                    if (item.getType().equals(Material.PAPER) || item.getType().equals(Material.GLASS_PANE)) {
+                        event.setResult(Event.Result.DENY);
+                    }
+                }
+                break;
             }
         }
     }
@@ -138,7 +164,11 @@ public class Events implements Listener {
     }
 
     public boolean containsCombinedMaps(IntFunction<ItemStack> slotAccess, int size) {
-        for (int i = 0; i < size; i++) {
+        return containsCombinedMaps(slotAccess, 0, size);
+    }
+
+    public boolean containsCombinedMaps(IntFunction<ItemStack> slotAccess, int begin, int size) {
+        for (int i = begin; i < size; i++) {
             ItemStack itemStack = slotAccess.apply(i);
             if (isCombinedMaps(itemStack)) {
                 return true;
