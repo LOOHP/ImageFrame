@@ -6,7 +6,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame-Parent</artifactId>
-    <version>1.7.9.2</version>
+    <version>1.7.10.0</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -30,6 +30,7 @@
         <module>V1_20_5</module>
         <module>V1_20_6</module>
         <module>V1_21</module>
+        <module>V1_21_1</module>
         <module>common</module>
     </modules>
 </project>
