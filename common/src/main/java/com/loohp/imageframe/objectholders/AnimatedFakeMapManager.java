@@ -335,7 +335,9 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        knownMapIds.remove(event.getPlayer());
+        Player player = event.getPlayer();
+        knownMapIds.remove(player);
+        pendingKnownMapIds.remove(player);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
