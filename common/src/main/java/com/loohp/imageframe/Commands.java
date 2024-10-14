@@ -729,6 +729,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                         }
                     }
+                    if (!ImageFrame.isURLAllowed(url)) {
+                        sender.sendMessage(ImageFrame.messageURLRestricted);
+                        return;
+                    }
                     if (imageMap == null) {
                         if (!(sender instanceof Player)) {
                             sender.sendMessage(ImageFrame.messageNoConsole);

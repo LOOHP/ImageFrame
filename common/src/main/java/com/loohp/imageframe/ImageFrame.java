@@ -55,8 +55,10 @@ import javax.imageio.ImageIO;
 import javax.imageio.spi.IIORegistry;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -174,20 +176,33 @@ public class ImageFrame extends JavaPlugin {
     public static boolean isURLAllowed(String link) {
         if (!restrictImageUrlEnabled) {
             return true;
-        }
-        try {
-            URL url = new URL(link);
-            return restrictImageUrls.stream().anyMatch(whitelisted -> {
-                if (!url.getProtocol().equalsIgnoreCase(whitelisted.getProtocol())) {
-                   return false;
-                }
-                if (!url.getHost().equalsIgnoreCase(whitelisted.getHost())) {
+        } else {
+            try {
+                URL url = new URL(link);
+                String linkHost = url.getHost();
+
+                InetAddress linkAddress;
+                try {
+                    linkAddress = InetAddress.getByName(linkHost);
+                } catch (UnknownHostException var5) {
                     return false;
                 }
-                return url.getPath().toLowerCase().startsWith(whitelisted.getPath().toLowerCase());
-            });
-        } catch (MalformedURLException e) {
-            return false;
+
+                return restrictImageUrls.stream().anyMatch((whitelisted) -> {
+                    try {
+                        if (!url.getProtocol().equalsIgnoreCase(whitelisted.getProtocol())) {
+                            return false;
+                        } else {
+                            InetAddress whitelistAddress = InetAddress.getByName(whitelisted.getHost());
+                            return linkAddress.equals(whitelistAddress) && url.getPath().toLowerCase().startsWith(whitelisted.getPath().toLowerCase());
+                        }
+                    } catch (UnknownHostException var4) {
+                        return false;
+                    }
+                });
+            } catch (MalformedURLException var6) {
+                return false;
+            }
         }
     }
 
