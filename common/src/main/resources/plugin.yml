@@ -14,6 +14,24 @@ commands:
     description: Plugin main command
 
 permissions:
+  imageframe.player:
+    default: op
+    description: Allow players to access all commands for creating their own image maps
+    children:
+      imageframe.create: true
+      imageframe.overlay: true
+      imageframe.clone: true
+      imageframe.playback: true
+      imageframe.select: true
+      imageframe.markerr: true
+      imageframe.refresh: true
+      imageframe.rename: true
+      imageframe.info: true
+      imageframe.list: true
+      imageframe.delete: true
+      imageframe.get: true
+      imageframe.setaccess: true
+      imageframe.preference: true
   imageframe.create:
     default: true
     description: Allow players to create new image maps
