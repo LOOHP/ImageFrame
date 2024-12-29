@@ -72,12 +72,14 @@ public class Events implements Listener {
         Inventory inventory = event.getView().getTopInventory();
         switch (inventory.getType()) {
             case CRAFTING: {
-                if (isCombinedMaps(event.getCursor())
-                        || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
-                        || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
-                        || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
-                        || containsCombinedMaps(i -> event.getView().getItem(i), 5)) {
-                    event.setResult(Event.Result.DENY);
+                if (event.getClickedInventory() != null && InventoryType.CRAFTING.equals(event.getClickedInventory().getType())) {
+                    if (isCombinedMaps(event.getCursor())
+                            || (isClickingBottom && event.isShiftClick() && isCombinedMaps(event.getCurrentItem()))
+                            || (isClickingTop && event.getHotbarButton() != -1 && isCombinedMaps(event.getWhoClicked().getInventory().getItem(event.getHotbarButton())))
+                            || (isClickingTop && event.getClick().equals(ClickType.SWAP_OFFHAND) && isCombinedMaps(event.getWhoClicked().getEquipment().getItemInOffHand()))
+                            || containsCombinedMaps(i -> event.getView().getItem(i), 5)) {
+                        event.setResult(Event.Result.DENY);
+                    }
                 }
                 break;
             }
