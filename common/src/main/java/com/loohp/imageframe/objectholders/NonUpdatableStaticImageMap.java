@@ -191,7 +191,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         if (cachedImages[0] == null) {
             return;
         }
-        cachedColors = new byte[cachedImages.length][];
+        byte[][] cachedColors = new byte[cachedImages.length][];
         BufferedImage combined = new BufferedImage(width * MapUtils.MAP_WIDTH, height * MapUtils.MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = combined.createGraphics();
         int index = 0;
@@ -209,6 +209,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             }
             cachedColors[i] = data;
         }
+        this.cachedColors = cachedColors;
     }
 
     @Override

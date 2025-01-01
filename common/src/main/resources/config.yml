@@ -14,6 +14,7 @@ Messages:
   SetCreator: "&aImageMap creator of id {ImageID} set to {CreatorName} ({CreatorUUID})"
   InvalidOverlayMap: "&cOverlay only works on Vanilla Minecraft maps and without duplicates in selection!"
   UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image. Contact server administrators to check the server console for more info."
+  UnableToChangeImageType: "&cChanging the image type is currently not supported. Please create a new image map instead."
   UnknownError: "&cAn unknown error had occurred."
   ImageOverMaxFileSize: "&cImageMap cannot be loaded as it is over the max file size allowed. ({Size} bytes)"
   NotAnImageMap: "&cThat is not an ImageMap"

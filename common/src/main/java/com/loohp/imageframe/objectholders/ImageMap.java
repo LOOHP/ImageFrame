@@ -193,7 +193,7 @@ public abstract class ImageMap {
         throw new UnsupportedOperationException("this map does not require animation");
     }
 
-    public int getAnimationFakeMapId(int currentTick, int index) {
+    public int getAnimationFakeMapId(int currentTick, int index, boolean lookbehind) {
         throw new UnsupportedOperationException("this map does not require animation");
     }
 

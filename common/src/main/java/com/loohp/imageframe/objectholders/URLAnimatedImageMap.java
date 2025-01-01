@@ -193,9 +193,9 @@ public class URLAnimatedImageMap extends URLImageMap {
         if (cachedImages[0] == null) {
             return;
         }
-        cachedColors = new byte[cachedImages.length][][];
-        fakeMapIds = new int[cachedColors.length][];
-        fakeMapIdsSet = new HashSet<>();
+        byte[][][] cachedColors = new byte[cachedImages.length][][];
+        int[][] fakeMapIds = new int[cachedColors.length][];
+        Set<Integer> fakeMapIdsSet = new HashSet<>();
         BufferedImage[] combined = new BufferedImage[cachedImages[0].length];
         for (int i = 0; i < combined.length; i++) {
             combined[i] = new BufferedImage(width * MapUtils.MAP_WIDTH, height * MapUtils.MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
@@ -240,6 +240,9 @@ public class URLAnimatedImageMap extends URLImageMap {
             fakeMapIds[i] = mapIds;
             i++;
         }
+        this.cachedColors = cachedColors;
+        this.fakeMapIds = fakeMapIds;
+        this.fakeMapIdsSet = fakeMapIdsSet;
     }
 
     @Override
@@ -337,7 +340,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
-    public void setAnimationPlaybackTime(double seconds) throws Exception {
+    public synchronized void setAnimationPlaybackTime(double seconds) throws Exception {
         int totalTicks = getSequenceLength();
         int ticks;
         if (seconds < 0) {
@@ -345,7 +348,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         } else {
             ticks = (int) Math.floor(seconds * 20);
         }
-        ticks = Math.min(Math.max(0, ticks), totalTicks);
+        ticks = Math.min(Math.max(0, ticks), totalTicks - 1);
         if (isAnimationPaused()) {
             pausedAt = ticks;
             save();
@@ -368,7 +371,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
-    public int getAnimationFakeMapId(int currentTick, int index) {
+    public int getAnimationFakeMapId(int currentTick, int index, boolean lookbehind) {
         if (fakeMapIds == null) {
             return -1;
         }
@@ -376,7 +379,18 @@ public class URLAnimatedImageMap extends URLImageMap {
         if (mapIds == null) {
             return -1;
         }
-        return mapIds[currentTick % mapIds.length];
+        int mapIdIndex = currentTick % mapIds.length;
+        int mapId = mapIds[mapIdIndex];
+        if (mapId >= 0 || !lookbehind) {
+            return mapId;
+        }
+        for (; mapIdIndex >= 0; mapIdIndex--) {
+            mapId = mapIds[mapIdIndex];
+            if (mapId >= 0) {
+                return mapId;
+            }
+        }
+        return mapId;
     }
 
     @Override

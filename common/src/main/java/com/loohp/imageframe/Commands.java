@@ -748,20 +748,33 @@ public class Commands implements CommandExecutor, TabCompleter {
                             try {
                                 if (imageMap instanceof URLImageMap) {
                                     URLImageMap urlImageMap = (URLImageMap) imageMap;
-                                    String oldUrl = urlImageMap.getUrl();
-                                    if (url != null) {
-                                        urlImageMap.setUrl(url);
+                                    String imageType = HTTPRequestUtils.getContentType(url);
+                                    if (imageType == null) {
+                                        imageType = URLConnection.guessContentTypeFromName(url);
                                     }
-                                    if (ditheringType != null) {
-                                        urlImageMap.setDitheringType(ditheringType);
+                                    if (imageType == null) {
+                                        imageType = "";
+                                    } else {
+                                        imageType = imageType.trim();
                                     }
-                                    try {
-                                        imageMap.update();
-                                        sender.sendMessage(ImageFrame.messageImageMapRefreshed);
-                                    } catch (Throwable e) {
-                                        urlImageMap.setUrl(oldUrl);
-                                        sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                                        e.printStackTrace();
+                                    if (imageType.equals(MapUtils.GIF_CONTENT_TYPE) == urlImageMap.requiresAnimationService()) {
+                                        String oldUrl = urlImageMap.getUrl();
+                                        if (url != null) {
+                                            urlImageMap.setUrl(url);
+                                        }
+                                        if (ditheringType != null) {
+                                            urlImageMap.setDitheringType(ditheringType);
+                                        }
+                                        try {
+                                            imageMap.update();
+                                            sender.sendMessage(ImageFrame.messageImageMapRefreshed);
+                                        } catch (Throwable e) {
+                                            urlImageMap.setUrl(oldUrl);
+                                            sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                                            e.printStackTrace();
+                                        }
+                                    } else {
+                                        sender.sendMessage(ImageFrame.messageUnableToChangeImageType);
                                     }
                                 } else {
                                     if (ditheringType != null) {

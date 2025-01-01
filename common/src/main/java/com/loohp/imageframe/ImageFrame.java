@@ -95,6 +95,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageImageMapPlayerPurge;
     public static String messageSetCreator;
     public static String messageUnableToLoadMap;
+    public static String messageUnableToChangeImageType;
     public static String messageUnknownError;
     public static String messageImageOverMaxFileSize;
     public static String messageNotAnImageMap;
@@ -347,6 +348,7 @@ public class ImageFrame extends JavaPlugin {
         messageImageMapPlayerPurge = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapPlayerPurge"));
         messageSetCreator = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.SetCreator"));
         messageUnableToLoadMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToLoadMap"));
+        messageUnableToChangeImageType = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnableToChangeImageType"));
         messageUnknownError = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnknownError"));
         messageImageOverMaxFileSize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageOverMaxFileSize"));
         messageNotAnImageMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
