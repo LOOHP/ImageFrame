@@ -140,6 +140,20 @@ public class V1_16_4 extends NMSWrapper {
         }
     }
 
+    @SuppressWarnings({"unchecked", "resource"})
+    @Override
+    public int getNextAvailableMapId(World world) {
+        try {
+            persistentIdCountsUsedAuxIdsField.setAccessible(true);
+            WorldServer worldServer = ((CraftWorld) world).getHandle();
+            PersistentIdCounts persistentIdCounts = worldServer.getMinecraftServer().E().getWorldPersistentData().a(PersistentIdCounts::new, "idcounts");
+            Object2IntMap<String> usedAuxIds = (Object2IntMap<String>) persistentIdCountsUsedAuxIdsField.get(persistentIdCounts);
+            return usedAuxIds.getInt("map") + 1;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @SuppressWarnings({"deprecation", "unchecked", "resource"})
     @Override
     public MapView getMapOrCreateMissing(World world, int id) {

@@ -53,6 +53,7 @@ import org.bukkit.util.Vector;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -362,8 +363,33 @@ public class MapUtils {
         return NMS.getInstance().isRenderOnFrame(type);
     }
 
+    @SuppressWarnings("DataFlowIssue")
     public static Future<MapView> createMap(World world) {
-        return FutureUtils.callSyncMethod(() -> Bukkit.createMap(world));
+        return FutureUtils.callSyncMethod(() -> {
+            int worldNextId = NMS.getInstance().getNextAvailableMapId(world);
+            int ifNextId = ImageFrame.imageMapManager.getMaps().stream().flatMap(i -> i.getMapIds().stream()).mapToInt(i -> i).max().orElse(-1) + 1;
+            int worldDataNextId;
+            File worldDataFolder = new File(world.getWorldFolder(), "data");
+            if (worldDataFolder.exists() && worldDataFolder.isDirectory()) {
+                worldDataNextId = Arrays.stream(worldDataFolder.listFiles())
+                        .map(f -> f.getName())
+                        .filter(s -> s.startsWith("map_"))
+                        .map(s -> {
+                            try {
+                                return Integer.parseInt(s.substring("map_".length(), s.indexOf(".")));
+                            } catch (NumberFormatException e) {
+                                return null;
+                            }
+                        })
+                        .filter(s -> s != null)
+                        .mapToInt(i -> i)
+                        .max().orElse(-1) + 1;
+            } else {
+                worldDataNextId = 0;
+            }
+            int id = Math.max(worldNextId, Math.max(ifNextId, worldDataNextId));
+            return NMS.getInstance().getMapOrCreateMissing(world, id);
+        });
     }
 
     public static Future<MapView> getMap(int id) {

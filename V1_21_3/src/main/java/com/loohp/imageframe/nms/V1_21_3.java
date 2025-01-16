@@ -131,6 +131,20 @@ public class V1_21_3 extends NMSWrapper {
         return decorationTypeHolder.a().c();
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public int getNextAvailableMapId(World world) {
+        try {
+            persistentIdCountsUsedAuxIdsField.setAccessible(true);
+            WorldServer worldServer = ((CraftWorld) world).getHandle();
+            PersistentIdCounts persistentIdCounts = worldServer.p().J().v().a(PersistentIdCounts.a(), PersistentIdCounts.a);
+            Object2IntMap<String> usedAuxIds = (Object2IntMap<String>) persistentIdCountsUsedAuxIdsField.get(persistentIdCounts);
+            return usedAuxIds.getInt("map") + 1;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @SuppressWarnings({"deprecation", "unchecked"})
     @Override
     public MapView getMapOrCreateMissing(World world, int id) {

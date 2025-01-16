@@ -48,6 +48,8 @@ public abstract class NMSWrapper {
 
     public abstract boolean isRenderOnFrame(MapCursor.Type type);
 
+    public abstract int getNextAvailableMapId(World world);
+
     public abstract MapView getMapOrCreateMissing(World world, int id);
 
     public abstract MutablePair<byte[], ArrayList<MapCursor>> bukkitRenderMap(MapView mapView, Player player);
