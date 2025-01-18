@@ -22,12 +22,20 @@ package com.loohp.imageframe.utils;
 
 public class ModernEventsUtils {
 
+    private static boolean init = false;
+    private static boolean modernEventsExist = false;
+
     public static boolean modernEventsExists() {
+        if (init) {
+            return modernEventsExist;
+        }
         try {
             Class.forName("org.bukkit.event.world.EntitiesLoadEvent");
-            return true;
+            return modernEventsExist = true;
         } catch (ClassNotFoundException e) {
-            return false;
+            return modernEventsExist = false;
+        } finally {
+            init = true;
         }
     }
 

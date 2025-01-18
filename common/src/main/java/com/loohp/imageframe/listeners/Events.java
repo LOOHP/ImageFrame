@@ -24,6 +24,7 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.MapUtils;
+import com.loohp.imageframe.utils.ModernEventsUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -276,6 +277,9 @@ public class Events implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onChunkLoad(ChunkLoadEvent event) {
+        if (ModernEventsUtils.modernEventsExists()) {
+            return;
+        }
         for (Entity entity : event.getChunk().getEntities()) {
             if (entity instanceof ItemFrame) {
                 ItemFrame itemFrame = (ItemFrame) entity;
