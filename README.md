@@ -1,7 +1,9 @@
 [![Build Status](https://ci.loohpjames.com/job/ImageFrame/badge/icon)](https://ci.loohpjames.com/job/ImageFrame/)
 # ImageFrame
 
-https://www.spigotmc.org/resources/106031/
+https://www.spigotmc.org/resources/106031/<br>
+https://modrinth.com/plugin/imageframe<br>
+https://hangar.papermc.io/LOOHP/ImageFrame
 
 Put images on maps and walls!
 
