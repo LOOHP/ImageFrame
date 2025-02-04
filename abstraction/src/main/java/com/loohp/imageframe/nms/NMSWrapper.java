@@ -60,10 +60,14 @@ public abstract class NMSWrapper {
 
     public abstract Object createItemFrameItemChangePacket(int entityId, ItemStack itemStack);
 
+    public abstract Object createEntityFlagsPacket(Entity entity, Boolean invisible, Boolean glowing);
+
     public abstract void sendPacket(Player player, Object packet);
 
     public abstract CombinedMapItemInfo getCombinedMapItemInfo(ItemStack itemStack);
 
     public abstract ItemStack withCombinedMapItemInfo(ItemStack itemStack, CombinedMapItemInfo combinedMapItemInfo);
+
+    public abstract ItemStack withInvisibleItemFrameMeta(ItemStack itemStack);
 
 }

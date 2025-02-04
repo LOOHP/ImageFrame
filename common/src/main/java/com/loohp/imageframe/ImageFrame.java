@@ -22,6 +22,7 @@ package com.loohp.imageframe;
 
 import com.loohp.imageframe.config.Config;
 import com.loohp.imageframe.debug.Debug;
+import com.loohp.imageframe.invisibleframe.InvisibleFrameManager;
 import com.loohp.imageframe.listeners.Events;
 import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
@@ -135,6 +136,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageMarkersNotRenderOnFrameWarning;
     public static String messageMarkersLimitReached;
     public static String messageInvalidOverlayMap;
+    public static String messageGivenInvisibleFrame;
 
     public static SimpleDateFormat dateFormat;
 
@@ -162,6 +164,9 @@ public class ImageFrame extends JavaPlugin {
     public static boolean handleAnimatedMapsOnMainThread;
     public static boolean sendAnimatedMapsOnMainThread;
 
+    public static int invisibleFrameMaxConversionsPerSplash;
+    public static boolean invisibleFrameGlowEmptyFrames;
+
     public static Set<CommandSender> processingMapCreation;
 
     public static ImageMapManager imageMapManager;
@@ -171,6 +176,7 @@ public class ImageFrame extends JavaPlugin {
     public static CombinedMapItemHandler combinedMapItemHandler;
     public static AnimatedFakeMapManager animatedFakeMapManager;
     public static RateLimitedPacketSendingManager rateLimitedPacketSendingManager;
+    public static InvisibleFrameManager invisibleFrameManager;
 
     public static boolean isURLAllowed(String link) {
         if (!restrictImageUrlEnabled) {
@@ -307,6 +313,7 @@ public class ImageFrame extends JavaPlugin {
         animatedFakeMapManager = new AnimatedFakeMapManager();
         rateLimitedPacketSendingManager = new RateLimitedPacketSendingManager();
         Scheduler.runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
+        invisibleFrameManager = new InvisibleFrameManager();
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
     }
@@ -391,6 +398,7 @@ public class ImageFrame extends JavaPlugin {
         messageMarkersNotRenderOnFrameWarning = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.NotRenderOnFrameWarning"));
         messageMarkersLimitReached = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.LimitReached"));
         messageInvalidOverlayMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidOverlayMap"));
+        messageGivenInvisibleFrame = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.GivenInvisibleFrame"));
 
         dateFormat = new SimpleDateFormat(config.getConfiguration().getString("Messages.DateFormat"));
 
@@ -444,6 +452,9 @@ public class ImageFrame extends JavaPlugin {
         mapRenderersContextual = config.getConfiguration().getBoolean("Settings.MapRenderersContextual");
         handleAnimatedMapsOnMainThread = config.getConfiguration().getBoolean("Settings.HandleAnimatedMapsOnMainThread");
         sendAnimatedMapsOnMainThread = config.getConfiguration().getBoolean("Settings.SendAnimatedMapsOnMainThread");
+
+        invisibleFrameMaxConversionsPerSplash = config.getConfiguration().getInt("InvisibleFrame.MaxConversionsPerSplash");
+        invisibleFrameGlowEmptyFrames = config.getConfiguration().getBoolean("InvisibleFrame.GlowEmptyFrames");
 
         if (updaterTask != null) {
             updaterTask.cancel();

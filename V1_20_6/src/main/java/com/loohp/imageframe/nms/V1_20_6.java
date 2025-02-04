@@ -25,20 +25,24 @@ import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.ReflectionUtils;
 import com.loohp.imageframe.utils.UUIDUtils;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import net.minecraft.EnumChatFormat;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.chat.ChatModifier;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import net.minecraft.network.protocol.game.PacketPlayOutMap;
 import net.minecraft.network.syncher.DataWatcher;
+import net.minecraft.network.syncher.DataWatcherObject;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.entity.decoration.EntityItemFrame;
 import net.minecraft.world.entity.player.EntityHuman;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.level.saveddata.maps.MapDecorationType;
 import net.minecraft.world.level.saveddata.maps.MapIcon;
 import net.minecraft.world.level.saveddata.maps.MapId;
@@ -46,17 +50,22 @@ import net.minecraft.world.level.saveddata.maps.PersistentIdCounts;
 import net.minecraft.world.level.saveddata.maps.WorldMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_20_R4.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R4.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_20_R4.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_20_R4.map.CraftMapCursor;
 import org.bukkit.craftbukkit.v1_20_R4.map.CraftMapView;
 import org.bukkit.craftbukkit.v1_20_R4.map.RenderData;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftChatMessage;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
@@ -75,11 +84,13 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 public class V1_20_6 extends NMSWrapper {
 
+    private final Field nmsEntityByteDataWatcherField;
     private final Field craftMapViewWorldMapField;
     private final Field persistentIdCountsUsedAuxIdsField;
 
     public V1_20_6() {
         try {
+            nmsEntityByteDataWatcherField = ReflectionUtils.findDeclaredField(net.minecraft.world.entity.Entity.class, DataWatcherObject.class, "DATA_SHARED_FLAGS_ID", "ap");
             craftMapViewWorldMapField = CraftMapView.class.getDeclaredField("worldMap");
             persistentIdCountsUsedAuxIdsField = ReflectionUtils.findDeclaredField(PersistentIdCounts.class, Object2IntMap.class, "usedAuxIds", "b");
         } catch (NoSuchFieldException e) {
@@ -199,6 +210,41 @@ public class V1_20_6 extends NMSWrapper {
         return new PacketPlayOutEntityMetadata(entityId, dataWatchers);
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public Object createEntityFlagsPacket(Entity entity, Boolean invisible, Boolean glowing) {
+        try {
+            int entityId = entity.getEntityId();
+            net.minecraft.world.entity.Entity nmsEntity = ((CraftEntity) entity).getHandle();
+
+            nmsEntityByteDataWatcherField.setAccessible(true);
+
+            DataWatcher watcher = nmsEntity.ap();
+            DataWatcherObject<Byte> byteField = (DataWatcherObject<Byte>) nmsEntityByteDataWatcherField.get(null);
+            byte value = watcher.a(byteField);
+
+            if (invisible != null) {
+                if (invisible) {
+                    value = (byte) (value | 0x20);
+                } else {
+                    value = (byte) (value & ~0x20);
+                }
+            }
+            if (glowing != null) {
+                if (glowing) {
+                    value = (byte) (value | 0x40);
+                } else {
+                    value = (byte) (value & ~0x40);
+                }
+            }
+
+            List<DataWatcher.c<?>> dataWatchers = Collections.singletonList(DataWatcher.c.a(byteField, value));
+            return new PacketPlayOutEntityMetadata(entityId, dataWatchers);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public void sendPacket(Player player, Object packet) {
         ((CraftPlayer) player).getHandle().c.sendPacket((Packet<?>) packet);
@@ -237,5 +283,26 @@ public class V1_20_6 extends NMSWrapper {
         }
         nmsItemStack.b(DataComponentPatch.a().a(DataComponents.b, CustomData.a(tag)).a());
         return CraftItemStack.asCraftMirror(nmsItemStack);
+    }
+
+    @Override
+    public ItemStack withInvisibleItemFrameMeta(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().equals(Material.AIR)) {
+            return itemStack;
+        }
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        ItemLore itemLore = nmsItemStack.a(DataComponents.i, ItemLore.a);
+        List<IChatBaseComponent> loreLines = new ArrayList<>(itemLore.a());
+        loreLines.add(0, IChatBaseComponent.c("effect.minecraft.invisibility").c(ChatModifier.a.c(EnumChatFormat.h).b(false)));
+        nmsItemStack.b(DataComponentPatch.a().a(DataComponents.i, new ItemLore(loreLines)).a());
+        ItemStack modified = CraftItemStack.asCraftMirror(nmsItemStack);
+        ItemMeta itemMeta = modified.getItemMeta();
+        if (itemMeta == null) {
+            return itemStack;
+        }
+        itemMeta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
+        itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        modified.setItemMeta(itemMeta);
+        return modified;
     }
 }

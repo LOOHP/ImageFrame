@@ -89,6 +89,9 @@ permissions:
   imageframe.preference.others:
     default: op
     description: Allow players to update other players' player preferences
+  imageframe.giveinvisibleframe:
+    default: op
+    description: Allow players to give invisible item frames
   imageframe.update:
     default: op
     description: Allows you receive update messages

@@ -81,6 +81,20 @@ public class Charts {
             }
         }));
 
+        metrics.addCustomChart(new Metrics.SingleLineChart("item_frames_made_invisible_in_last_interval", new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                return (int) ImageFrame.invisibleFrameManager.getItemFramesMadeInvisible().getAndSet(0);
+            }
+        }));
+
+        metrics.addCustomChart(new Metrics.SingleLineChart("invisible_item_frames_placed_in_last_interval", new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                return (int) ImageFrame.invisibleFrameManager.getInvisibleItemFramesPlaced().getAndSet(0);
+            }
+        }));
+
     }
 
 }
