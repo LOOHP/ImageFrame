@@ -35,12 +35,13 @@ Messages:
   NotEnoughMaps: "&cYou do not have {Amount} maps!"
   Oversize: "&cThat is too big! Max size for a map is {MaxSize}"
   URLRestricted: "&cThat URL is restricted and cannot be used to create image maps."
-  PlayerCreationLimitReached: "&cYou can only create <Limit> maps at once! Delete some to create new ones"
+  PlayerCreationLimitReached: "&cYou can only create {Limit} maps at once! Delete some to create new ones"
   DuplicateMapName: "&cYou've already created an image map with that name!"
   MapLookup: "&bList of image maps by {CreatorName} ({CreatorUUID}):"
   ItemFrameOccupied: "&cFailed to place or remove some maps on selected ItemFrame, they are either destroyed, replaced, occupied or protected."
   NotEnoughSpace: "&cUnable to place Combined ImageMap as there is not enough room."
   InvalidImageMap: "&cThis image map had likely already been deleted."
+  GivenInvisibleFrame: "&aGiven {Amount} invisible item frames to {Player}."
   AccessPermission:
     Updated: "&aUpdated access for {PlayerName} ({PlayerUUID}), they now have {Permission} permission."
     Types:
@@ -137,6 +138,17 @@ Settings:
   #Changing this option requires a restart
   HandleAnimatedMapsOnMainThread: false
   SendAnimatedMapsOnMainThread: false
+
+#ImageFrame's built in survival friendly way of making invisible item frames
+InvisibleFrame:
+  #Survival friendly way to get invisible item frames by splashing dropped items with invisibility potions
+  #Set to -1 for unlimited
+  #Set to 0 to disable
+  MaxConversionsPerSplash: 8
+  #Should empty invisible item frames glow
+  #Existing frames are not updated until they are interacted with
+  GlowEmptyFrames: true
+
 
 Hooks:
   ViaVersion:

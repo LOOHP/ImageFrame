@@ -23,6 +23,10 @@ package com.loohp.imageframe.nms;
 import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.UUIDUtils;
+import com.loohp.imageframe.utils.UnsafeAccessor;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.TranslatableComponent;
+import net.md_5.bungee.chat.ComponentSerializer;
 import net.minecraft.server.v1_16_R3.ChunkProviderServer;
 import net.minecraft.server.v1_16_R3.DataWatcher;
 import net.minecraft.server.v1_16_R3.DataWatcherObject;
@@ -33,6 +37,8 @@ import net.minecraft.server.v1_16_R3.IChatBaseComponent;
 import net.minecraft.server.v1_16_R3.ItemWorldMap;
 import net.minecraft.server.v1_16_R3.MapIcon;
 import net.minecraft.server.v1_16_R3.NBTTagCompound;
+import net.minecraft.server.v1_16_R3.NBTTagList;
+import net.minecraft.server.v1_16_R3.NBTTagString;
 import net.minecraft.server.v1_16_R3.Packet;
 import net.minecraft.server.v1_16_R3.PacketPlayOutEntityMetadata;
 import net.minecraft.server.v1_16_R3.PacketPlayOutMap;
@@ -43,18 +49,23 @@ import net.minecraft.server.v1_16_R3.WorldMap;
 import net.minecraft.server.v1_16_R3.WorldServer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_16_R3.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_16_R3.map.CraftMapView;
 import org.bukkit.craftbukkit.v1_16_R3.map.RenderData;
 import org.bukkit.craftbukkit.v1_16_R3.util.CraftChatMessage;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
@@ -72,6 +83,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 public class V1_16_4 extends NMSWrapper {
 
+    private final Field nmsEntityByteDataWatcherField;
     private final Field craftMapViewWorldMapField;
     private final Field nmsMapIconTypeDisplayField;
     private final Field[] nmsPacketPlayOutEntityMetadataFields;
@@ -80,6 +92,7 @@ public class V1_16_4 extends NMSWrapper {
 
     public V1_16_4() {
         try {
+            nmsEntityByteDataWatcherField = net.minecraft.server.v1_16_R3.Entity.class.getDeclaredField("S");
             craftMapViewWorldMapField = CraftMapView.class.getDeclaredField("worldMap");
             nmsMapIconTypeDisplayField = MapIcon.Type.class.getDeclaredField("C");
             nmsPacketPlayOutEntityMetadataFields = PacketPlayOutEntityMetadata.class.getDeclaredFields();
@@ -242,6 +255,46 @@ public class V1_16_4 extends NMSWrapper {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public Object createEntityFlagsPacket(Entity entity, Boolean invisible, Boolean glowing) {
+        try {
+            int entityId = entity.getEntityId();
+            net.minecraft.server.v1_16_R3.Entity nmsEntity = ((CraftEntity) entity).getHandle();
+
+            nmsEntityByteDataWatcherField.setAccessible(true);
+
+            DataWatcher watcher = nmsEntity.getDataWatcher();
+            DataWatcherObject<Byte> byteField = (DataWatcherObject<Byte>) nmsEntityByteDataWatcherField.get(null);
+            byte value = watcher.get(byteField);
+
+            if (invisible != null) {
+                if (invisible) {
+                    value = (byte) (value | 0x20);
+                } else {
+                    value = (byte) (value & ~0x20);
+                }
+            }
+            if (glowing != null) {
+                if (glowing) {
+                    value = (byte) (value | 0x40);
+                } else {
+                    value = (byte) (value & ~0x40);
+                }
+            }
+
+            List<DataWatcher.Item<?>> dataWatchers = Collections.singletonList(new DataWatcher.Item<>(byteField, value));
+            PacketPlayOutEntityMetadata packet = (PacketPlayOutEntityMetadata) UnsafeAccessor.getUnsafe().allocateInstance(PacketPlayOutEntityMetadata.class);
+            nmsPacketPlayOutEntityMetadataFields[0].setAccessible(true);
+            nmsPacketPlayOutEntityMetadataFields[0].setInt(packet, entityId);
+            nmsPacketPlayOutEntityMetadataFields[1].setAccessible(true);
+            nmsPacketPlayOutEntityMetadataFields[1].set(packet, dataWatchers);
+            return packet;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public void sendPacket(Player player, Object packet) {
         ((CraftPlayer) player).getHandle().playerConnection.sendPacket((Packet<?>) packet);
@@ -274,5 +327,42 @@ public class V1_16_4 extends NMSWrapper {
             tag.setIntArray(CombinedMapItemInfo.PLACEMENT_UUID_KEY, UUIDUtils.toIntArray(placement.getUniqueId()));
         }
         return CraftItemStack.asCraftMirror(nmsItemStack);
+    }
+
+    @Override
+    public ItemStack withInvisibleItemFrameMeta(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().equals(Material.AIR)) {
+            return itemStack;
+        }
+        net.minecraft.server.v1_16_R3.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        NBTTagCompound displayTag = nmsItemStack.a("display");
+        List<String> loreLines;
+        if (displayTag.d("Lore") == 9) {
+            NBTTagList loreLineTagList = displayTag.getList("Lore", 8);
+            loreLines = new ArrayList<>(loreLineTagList.size());
+            for (int i = 0; i < loreLineTagList.size(); i++) {
+                loreLines.add(loreLineTagList.getString(i));
+            }
+        } else {
+            loreLines = new ArrayList<>(1);
+        }
+        TranslatableComponent translatableComponent = new TranslatableComponent("effect.minecraft.invisibility");
+        translatableComponent.setColor(ChatColor.GRAY);
+        translatableComponent.setItalic(false);
+        loreLines.add(0, ComponentSerializer.toString(translatableComponent));
+        NBTTagList loreLineTagList = new NBTTagList();
+        for (int i = 0; i < loreLines.size(); i++) {
+            loreLineTagList.a(i, NBTTagString.a(loreLines.get(i)));
+        }
+        displayTag.set("Lore", loreLineTagList);
+        ItemStack modified = CraftItemStack.asCraftMirror(nmsItemStack);
+        ItemMeta itemMeta = modified.getItemMeta();
+        if (itemMeta == null) {
+            return itemStack;
+        }
+        itemMeta.addEnchant(Enchantment.LUCK, 1, true);
+        itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        modified.setItemMeta(itemMeta);
+        return modified;
     }
 }

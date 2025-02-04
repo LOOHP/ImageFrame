@@ -42,7 +42,9 @@ import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.ImageMapUtils;
+import com.loohp.imageframe.utils.MCVersion;
 import com.loohp.imageframe.utils.MapUtils;
+import com.loohp.imageframe.utils.MathUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
@@ -71,6 +73,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.PrimitiveIterator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1278,6 +1281,49 @@ public class Commands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ImageFrame.messageNoPermission);
             }
             return true;
+        } else if (args[0].equalsIgnoreCase("giveinvisibleframe")) {
+            if (args.length > 1) {
+                if (sender.hasPermission("imageframe.giveinvisibleframe")) {
+                    Player target;
+                    if (args.length > 3) {
+                        target = Bukkit.getPlayer(args[3]);
+                        if (target == null) {
+                            sender.sendMessage(ImageFrame.messagePlayerNotFound);
+                            return true;
+                        }
+                    } else if (!(sender instanceof Player)) {
+                        sender.sendMessage(ImageFrame.messageNoConsole);
+                        return true;
+                    } else {
+                        target = (Player) sender;
+                    }
+                    String type = args[1];
+                    int amount = 1;
+                    try {
+                        amount = args.length > 2 ? Integer.parseInt(args[2]) : 1;
+                    } catch (NumberFormatException ignore) {
+                    }
+                    amount = Math.max(1, amount);
+                    ItemStack itemStack;
+                    if (type.equalsIgnoreCase("glowing") && ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17)) {
+                        itemStack = new ItemStack(Material.valueOf("GLOW_ITEM_FRAME"));
+                    } else {
+                        itemStack = new ItemStack(Material.ITEM_FRAME);
+                    }
+                    ItemStack modified = ImageFrame.invisibleFrameManager.withInvisibleItemFrameData(itemStack);
+                    for (PrimitiveIterator.OfInt itr = MathUtils.splitToChunksOf(amount, 64); itr.hasNext();) {
+                        ItemStack finalStack = modified.clone();
+                        finalStack.setAmount(itr.nextInt());
+                        target.getWorld().dropItem(target.getEyeLocation(), finalStack).setVelocity(new Vector(0, 0, 0));
+                    }
+                    sender.sendMessage(ImageFrame.messageGivenInvisibleFrame.replace("{Amount}", String.valueOf(amount)).replace("{Player}", target.getName()));
+                } else {
+                    sender.sendMessage(ImageFrame.messageNoPermission);
+                }
+            } else {
+                sender.sendMessage(ImageFrame.messageInvalidUsage);
+            }
+            return true;
         }
 
         sender.sendMessage(ChatColorUtils.translateAlternateColorCodes('&', Bukkit.spigot().getConfig().getString("messages.unknown-command")));
@@ -1349,6 +1395,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.preference")) {
                     tab.add("preference");
+                }
+                if (sender.hasPermission("imageframe.giveinvisibleframe")) {
+                    tab.add("giveinvisibleframe");
                 }
                 return tab;
             case 1:
@@ -1450,6 +1499,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.preference")) {
                     if ("preference".startsWith(args[0].toLowerCase())) {
                         tab.add("preference");
+                    }
+                }
+                if (sender.hasPermission("imageframe.giveinvisibleframe")) {
+                    if ("giveinvisibleframe".startsWith(args[0].toLowerCase())) {
+                        tab.add("giveinvisibleframe");
                     }
                 }
                 return tab;
@@ -1579,6 +1633,16 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.giveinvisibleframe")) {
+                    if ("giveinvisibleframe".equalsIgnoreCase(args[0])) {
+                        if ("regular".startsWith(args[1].toLowerCase())) {
+                            tab.add("regular");
+                        }
+                        if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_17) && "glowing".startsWith(args[1].toLowerCase())) {
+                            tab.add("glowing");
+                        }
+                    }
+                }
                 return tab;
             case 3:
                 if (sender.hasPermission("imageframe.create")) {
@@ -1680,6 +1744,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.giveinvisibleframe")) {
+                    if ("giveinvisibleframe".equalsIgnoreCase(args[0])) {
+                        tab.add("<amount>");
+                    }
+                }
                 return tab;
             case 4:
                 if (sender.hasPermission("imageframe.create")) {
@@ -1769,6 +1838,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (sender.hasPermission("imageframe.preference.others")) {
                     if ("preference".equalsIgnoreCase(args[0])) {
+                        for (Player player : Bukkit.getOnlinePlayers()) {
+                            if (player.getName().toLowerCase().startsWith(args[3].toLowerCase())) {
+                                tab.add(player.getName());
+                            }
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.giveinvisibleframe")) {
+                    if ("giveinvisibleframe".equalsIgnoreCase(args[0])) {
                         for (Player player : Bukkit.getOnlinePlayers()) {
                             if (player.getName().toLowerCase().startsWith(args[3].toLowerCase())) {
                                 tab.add(player.getName());
