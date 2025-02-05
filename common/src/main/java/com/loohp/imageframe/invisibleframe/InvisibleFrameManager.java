@@ -177,9 +177,6 @@ public class InvisibleFrameManager implements Listener {
             return;
         }
         Entity entity = event.getEntity();
-        if (!(entity instanceof ItemFrame)) {
-            return;
-        }
         Location location = entity.getLocation();
         setInvisibleItemFrameData(entity);
         invisibleItemFramesPlaced.incrementAndGet();
@@ -227,7 +224,7 @@ public class InvisibleFrameManager implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlaceItem(PlayerInteractEntityEvent event) {
         Entity entity = event.getRightClicked();
-        if (!(entity instanceof ItemFrame)) {
+        if (!isInvisibleItemFrame(entity)) {
             return;
         }
         Location location = entity.getLocation();
@@ -237,7 +234,7 @@ public class InvisibleFrameManager implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onRemoveItem(EntityDamageByEntityEvent event) {
         Entity entity = event.getEntity();
-        if (!(entity instanceof ItemFrame)) {
+        if (!isInvisibleItemFrame(entity)) {
             return;
         }
         Location location = entity.getLocation();
@@ -282,7 +279,7 @@ public class InvisibleFrameManager implements Listener {
             if (isInvisibleItemFrame(itemStack)) {
                 continue;
             }
-            if (entity.getLocation().distanceSquared(thrownPotion.getLocation()) < 16.0D) {
+            if (entity.getLocation().distanceSquared(thrownPotion.getLocation()) < 16.0) {
                 ItemStack splitStack = splitItemStacks(itemStack, conversionsRemaining);
                 Location location = item.getLocation();
                 if (itemStack.getAmount() > 0) {

@@ -20,14 +20,44 @@
 
 package com.loohp.imageframe.utils;
 
+import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.nms.NMS;
+import com.loohp.imageframe.objectholders.Scheduler;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class PlayerUtils {
+
+    public static void giveItem(Player player, ItemStack itemStack) {
+        giveItem(player, Collections.singletonList(itemStack));
+    }
+
+    public static void giveItem(Player player, List<ItemStack> itemStacks) {
+        Scheduler.executeOrScheduleSync(ImageFrame.plugin, () -> {
+            List<ItemStack> leftovers = NMS.getInstance().giveItems(player, itemStacks);
+            if (!leftovers.isEmpty()) {
+                Location location = player.getEyeLocation();
+                World world = location.getWorld();
+                double power = ThreadLocalRandom.current().nextDouble(0.25, 0.35);
+                Vector velocity = location.getDirection().multiply(power);
+                for (ItemStack stack : leftovers) {
+                    world.dropItem(location, stack).setVelocity(velocity);
+                }
+            }
+        }, player);
+    }
 
     public static boolean isInteractionAllowed(Player player, Entity entity) {
         PlayerInteractEntityEvent event = new PlayerInteractEntityEvent(player, entity);
@@ -35,6 +65,7 @@ public class PlayerUtils {
         return !event.isCancelled();
     }
 
+    @SuppressWarnings("removal")
     public static boolean isDamageAllowed(Player player, Entity entity) {
         EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, entity, EntityDamageEvent.DamageCause.CUSTOM, 1.0);
         Bukkit.getPluginManager().callEvent(event);

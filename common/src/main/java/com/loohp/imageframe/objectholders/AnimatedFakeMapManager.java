@@ -185,7 +185,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 continue;
             }
             int index = animationData.getIndex();
-            int currentPosition = imageMap.getCurrentPositionInSequence();
+            int currentPosition = imageMap.getCurrentPositionInSequenceWithOffset();
             int mapId = imageMap.getAnimationFakeMapId(currentPosition, index, imageMap.isAnimationPaused());
             if (mapId < 0) {
                 continue;

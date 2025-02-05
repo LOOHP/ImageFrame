@@ -37,9 +37,11 @@ import net.minecraft.network.protocol.game.PacketPlayOutMap;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.network.syncher.DataWatcherObject;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.entity.decoration.EntityItemFrame;
 import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.player.PlayerInventory;
 import net.minecraft.world.item.ItemWorldMap;
 import net.minecraft.world.level.saveddata.maps.MapIcon;
 import net.minecraft.world.level.saveddata.maps.PersistentIdCounts;
@@ -305,5 +307,21 @@ public class V1_20_3 extends NMSWrapper {
         itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         modified.setItemMeta(itemMeta);
         return modified;
+    }
+
+    @Override
+    public List<ItemStack> giveItems(Player player, List<ItemStack> itemStacks) {
+        List<ItemStack> leftovers = new ArrayList<>();
+        EntityPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
+        PlayerInventory inventory = nmsPlayer.fS();
+        for (ItemStack itemStack : itemStacks) {
+            net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+            boolean added = inventory.e(nmsItemStack);
+            if (!added || !nmsItemStack.b()) {
+                leftovers.add(CraftItemStack.asBukkitCopy(nmsItemStack));
+            }
+        }
+        nmsPlayer.bS.d();
+        return leftovers;
     }
 }

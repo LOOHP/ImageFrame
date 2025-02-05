@@ -264,7 +264,7 @@ public class URLStaticImageMap extends URLImageMap {
         }
         json.addProperty("creator", creator.toString());
         JsonObject accessJson = new JsonObject();
-        for (Map.Entry<UUID, ImageMapAccessPermissionType> entry : hasAccess.entrySet()) {
+        for (Map.Entry<UUID, ImageMapAccessPermissionType> entry : accessControl.getPermissions().entrySet()) {
             accessJson.addProperty(entry.getKey().toString(), entry.getValue().name());
         }
         json.add("hasAccess", accessJson);

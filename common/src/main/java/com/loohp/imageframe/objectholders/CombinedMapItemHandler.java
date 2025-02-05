@@ -52,7 +52,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -100,12 +99,9 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
 
     public void giveCombinedMap(ImageMap imageMap, Collection<? extends Player> players) {
         ItemStack map = getCombinedMap(imageMap);
-        players.forEach(p -> Scheduler.runTask(ImageFrame.plugin, () -> {
-            Map<Integer, ItemStack> result = p.getInventory().addItem(map.clone());
-            for (ItemStack stack : result.values()) {
-                p.getWorld().dropItem(p.getEyeLocation(), stack).setVelocity(new Vector(0, 0, 0));
-            }
-        }, p));
+        for (Player player : players) {
+            PlayerUtils.giveItem(player, map.clone());
+        }
     }
 
     @Override

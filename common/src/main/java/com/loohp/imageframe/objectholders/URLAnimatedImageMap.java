@@ -304,7 +304,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
-    public int getCurrentPositionInSequence() {
+    public int getCurrentPositionInSequenceWithOffset() {
         if (isAnimationPaused()) {
             return pausedAt;
         }
@@ -324,7 +324,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     @Override
     public synchronized void setAnimationPause(boolean pause) throws Exception {
         if (pausedAt < 0 && pause) {
-            pausedAt = getCurrentPositionInSequence();
+            pausedAt = getCurrentPositionInSequenceWithOffset();
             save();
         } else if (pausedAt >= 0 && !pause) {
             setCurrentPositionInSequence(pausedAt);
@@ -455,7 +455,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         json.addProperty("pausedAt", pausedAt);
         json.addProperty("tickOffset", tickOffset);
         JsonObject accessJson = new JsonObject();
-        for (Map.Entry<UUID, ImageMapAccessPermissionType> entry : hasAccess.entrySet()) {
+        for (Map.Entry<UUID, ImageMapAccessPermissionType> entry : accessControl.getPermissions().entrySet()) {
             accessJson.addProperty(entry.getKey().toString(), entry.getValue().name());
         }
         json.add("hasAccess", accessJson);
@@ -518,7 +518,7 @@ public class URLAnimatedImageMap extends URLImageMap {
 
         @Override
         public MutablePair<byte[], Collection<MapCursor>> renderMap(MapView mapView, Player player) {
-            return renderMap(mapView, parent.getCurrentPositionInSequence(), player);
+            return renderMap(mapView, parent.getCurrentPositionInSequenceWithOffset(), player);
         }
     }
 

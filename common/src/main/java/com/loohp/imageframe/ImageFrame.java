@@ -40,6 +40,7 @@ import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.RateLimitedPacketSendingManager;
 import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.objectholders.UnsetState;
+import com.loohp.imageframe.placeholderapi.Placeholders;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.MCVersion;
@@ -249,7 +250,7 @@ public class ImageFrame extends JavaPlugin {
         if (!(sender instanceof Player)) {
             return false;
         }
-        return imageMap.hasPermission(((Player) sender).getUniqueId(), permissionType);
+        return imageMap.getAccessControl().hasPermission(((Player) sender).getUniqueId(), permissionType);
     }
 
     public static boolean isPluginEnabled(String name) {
@@ -314,6 +315,10 @@ public class ImageFrame extends JavaPlugin {
         rateLimitedPacketSendingManager = new RateLimitedPacketSendingManager();
         Scheduler.runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
         invisibleFrameManager = new InvisibleFrameManager();
+
+        if (isPluginEnabled("PlaceholderAPI")) {
+            new Placeholders().register();
+        }
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
     }

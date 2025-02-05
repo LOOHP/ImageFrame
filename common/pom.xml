@@ -6,7 +6,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>1.7.14.1</version>
+    <version>1.7.14.2</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -208,6 +208,10 @@
             <url>https://repo.loohpjames.com/repository</url>
         </repository>
         <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/releases/</url>
+        </repository>
+        <repository>
             <id>maven_central</id>
             <name>Maven Central</name>
             <url>https://repo.maven.apache.org/maven2/</url>
@@ -226,6 +230,12 @@
             <artifactId>Simple-Yaml</artifactId>
             <version>1.8.1</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.madgag</groupId>

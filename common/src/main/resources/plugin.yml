@@ -6,7 +6,9 @@ prefix: ImageFrame
 authors: [LOOHP]
 description: Put images on maps and walls!
 folia-supported: true
-softdepend: [ViaVersion]
+softdepend:
+  - ViaVersion
+  - PlaceholderAPI
 
 commands:
   imageframe:

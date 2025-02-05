@@ -44,6 +44,7 @@ import net.minecraft.server.v1_16_R3.PacketPlayOutEntityMetadata;
 import net.minecraft.server.v1_16_R3.PacketPlayOutMap;
 import net.minecraft.server.v1_16_R3.PersistentIdCounts;
 import net.minecraft.server.v1_16_R3.PlayerChunkMap;
+import net.minecraft.server.v1_16_R3.PlayerInventory;
 import net.minecraft.server.v1_16_R3.ResourceKey;
 import net.minecraft.server.v1_16_R3.WorldMap;
 import net.minecraft.server.v1_16_R3.WorldServer;
@@ -364,5 +365,21 @@ public class V1_16_4 extends NMSWrapper {
         itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         modified.setItemMeta(itemMeta);
         return modified;
+    }
+
+    @Override
+    public List<ItemStack> giveItems(Player player, List<ItemStack> itemStacks) {
+        List<ItemStack> leftovers = new ArrayList<>();
+        EntityPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
+        PlayerInventory inventory = nmsPlayer.inventory;
+        for (ItemStack itemStack : itemStacks) {
+            net.minecraft.server.v1_16_R3.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+            boolean added = inventory.pickup(nmsItemStack);
+            if (!added || !nmsItemStack.isEmpty()) {
+                leftovers.add(CraftItemStack.asBukkitCopy(nmsItemStack));
+            }
+        }
+        nmsPlayer.activeContainer.c();
+        return leftovers;
     }
 }

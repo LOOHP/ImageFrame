@@ -31,6 +31,7 @@ import org.bukkit.map.MapView;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 public abstract class NMSWrapper {
@@ -69,5 +70,7 @@ public abstract class NMSWrapper {
     public abstract ItemStack withCombinedMapItemInfo(ItemStack itemStack, CombinedMapItemInfo combinedMapItemInfo);
 
     public abstract ItemStack withInvisibleItemFrameMeta(ItemStack itemStack);
+
+    public abstract List<ItemStack> giveItems(Player player, List<ItemStack> itemStacks);
 
 }
