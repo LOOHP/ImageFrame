@@ -32,6 +32,7 @@ import com.loohp.imageframe.objectholders.IFPlayerManager;
 import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
+import com.loohp.imageframe.objectholders.ImageMapCreationTaskManager;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.IntRange;
 import com.loohp.imageframe.objectholders.IntRangeList;
@@ -61,10 +62,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ImageFrame extends JavaPlugin {
@@ -85,9 +84,9 @@ public class ImageFrame extends JavaPlugin {
     public static Scheduler.ScheduledTask updaterTask = null;
 
     public static String messageReloaded;
-    public static String messageImageMapAlreadyCreating;
     public static String messageImageMapProcessing;
     public static String messageImageMapProcessingActionBar;
+    public static String messageImageMapQueuedActionBar;
     public static String messageImageMapCreated;
     public static String messageImageMapRefreshed;
     public static String messageImageMapDeleted;
@@ -101,6 +100,7 @@ public class ImageFrame extends JavaPlugin {
     public static String messageUnknownError;
     public static String messageImageOverMaxFileSize;
     public static String messageNotAnImageMap;
+    public static String messageImageMapAlreadyQueued;
     public static List<String> messageURLImageMapInfo;
     public static String messageNoPermission;
     public static String messageNoConsole;
@@ -153,6 +153,8 @@ public class ImageFrame extends JavaPlugin {
     public static Map<String, Integer> playerCreationLimit;
     public static int mapMarkerLimit;
     public static long maxImageFileSize;
+    public static int maxProcessingTime;
+    public static int parallelProcessingLimit;
 
     public static int rateLimit;
 
@@ -168,8 +170,6 @@ public class ImageFrame extends JavaPlugin {
     public static int invisibleFrameMaxConversionsPerSplash;
     public static boolean invisibleFrameGlowEmptyFrames;
 
-    public static Set<CommandSender> processingMapCreation;
-
     public static ImageMapManager imageMapManager;
     public static IFPlayerManager ifPlayerManager;
     public static ItemFrameSelectionManager itemFrameSelectionManager;
@@ -178,6 +178,7 @@ public class ImageFrame extends JavaPlugin {
     public static AnimatedFakeMapManager animatedFakeMapManager;
     public static RateLimitedPacketSendingManager rateLimitedPacketSendingManager;
     public static InvisibleFrameManager invisibleFrameManager;
+    public static ImageMapCreationTaskManager imageMapCreationTaskManager;
 
     public static boolean isURLAllowed(String link) {
         if (!restrictImageUrlEnabled) {
@@ -304,8 +305,6 @@ public class ImageFrame extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new Events.ModernEvents(), this);
         }
 
-        processingMapCreation = new HashSet<>();
-
         imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
         ifPlayerManager = new IFPlayerManager(new File(getDataFolder(), "players"));
         itemFrameSelectionManager = new ItemFrameSelectionManager();
@@ -315,6 +314,7 @@ public class ImageFrame extends JavaPlugin {
         rateLimitedPacketSendingManager = new RateLimitedPacketSendingManager();
         Scheduler.runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
         invisibleFrameManager = new InvisibleFrameManager();
+        imageMapCreationTaskManager = new ImageMapCreationTaskManager(ImageFrame.parallelProcessingLimit);
 
         if (isPluginEnabled("PlaceholderAPI")) {
             new Placeholders().register();
@@ -348,9 +348,9 @@ public class ImageFrame extends JavaPlugin {
         viaDisableSmoothAnimationForLegacyPlayers = config.getConfiguration().getBoolean("Hooks.ViaVersion.DisableSmoothAnimationForLegacyPlayers");
 
         messageReloaded = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Reloaded"));
-        messageImageMapAlreadyCreating = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapAlreadyCreating"));
         messageImageMapProcessing = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapProcessing"));
         messageImageMapProcessingActionBar = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapProcessingActionBar"));
+        messageImageMapQueuedActionBar = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapQueuedActionBar"));
         messageImageMapCreated = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapCreated"));
         messageImageMapRefreshed = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapRefreshed"));
         messageImageMapDeleted = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapDeleted"));
@@ -364,6 +364,7 @@ public class ImageFrame extends JavaPlugin {
         messageUnknownError = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UnknownError"));
         messageImageOverMaxFileSize = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageOverMaxFileSize"));
         messageNotAnImageMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NotAnImageMap"));
+        messageImageMapAlreadyQueued = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapAlreadyQueued"));
         messageURLImageMapInfo = config.getConfiguration().getStringList("Messages.URLImageMapInfo").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
         messageNoPermission = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoPermission"));
         messageNoConsole = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.NoConsole"));
@@ -437,6 +438,9 @@ public class ImageFrame extends JavaPlugin {
         }
         mapMarkerLimit = config.getConfiguration().getInt("Settings.MapMarkerLimit");
         maxImageFileSize = config.getConfiguration().getLong("Settings.MaxImageFileSize");
+        maxProcessingTime = config.getConfiguration().getInt("Settings.MaxProcessingTime");
+        parallelProcessingLimit = config.getConfiguration().getInt("Settings.ParallelProcessingLimit");
+
         combinedMapItemNameFormat = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Settings.CombinedMapItem.Name"));
         combinedMapItemLoreFormat = config.getConfiguration().getStringList("Settings.CombinedMapItem.Lore").stream().map(each -> ChatColorUtils.translateAlternateColorCodes('&', each)).collect(Collectors.toList());
         exemptMapIdsFromDeletion = config.getConfiguration().getList("Settings.ExemptMapIdsFromDeletion").stream().map(v -> {

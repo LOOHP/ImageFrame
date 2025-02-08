@@ -1,9 +1,10 @@
 Messages:
   Reloaded: "&eImageFrame has been reloaded!"
-  ImageMapAlreadyCreating: "&cAn ImageMap is already being processed, please wait!"
   ImageMapProcessing: "&eImageMap is being processed, please wait!"
   #Leave this empty ("") to disable action bar message
   ImageMapProcessingActionBar: "&eImageMap &a{Name} &eis being processed{Dots}"
+  #Leave this empty ("") to disable action bar message
+  ImageMapQueuedActionBar: "&7ImageMap &a{Name} &eis currently queued ({Position} Remaining)"
   ImageMapCreated: "&aImageMap has been created!"
   ImageMapRefreshed: "&aImageMap has been refreshed!"
   ImageMapDeleted: "&eImageMap had been deleted!"
@@ -13,6 +14,7 @@ Messages:
   ImageMapPlayerPurge: "&ePurged {Amount} ImageMaps owned by {CreatorName} ({CreatorUUID}) - [{ImageMapNames}]"
   SetCreator: "&aImageMap creator of id {ImageID} set to {CreatorName} ({CreatorUUID})"
   InvalidOverlayMap: "&cOverlay only works on Vanilla Minecraft maps and without duplicates in selection!"
+  ImageMapAlreadyQueued: "&cYou already have another ImageMap queued and processing, please wait!"
   UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image. Contact server administrators to check the server console for more info."
   UnableToChangeImageType: "&cChanging the image type is currently not supported. Please create a new image map instead."
   UnknownError: "&cAn unknown error had occurred."
@@ -102,9 +104,15 @@ Settings:
       - "http://media.discordapp.net"
       - "https://textures.minecraft.net"
       - "http://textures.minecraft.net"
-  # If the image is larger than the defined size, it won't be downloaded for preview
-  # (In Bytes)
+  #If the image is larger than the defined size, it won't be downloaded for preview
+  #(In Bytes)
   MaxImageFileSize: 52428800
+  #If an image takes more than this time to load, it will be rejected
+  #(In Seconds)
+  MaxProcessingTime: 60
+  #How many images should be processed in parallel
+  #Updating this option requires a server restart
+  ParallelProcessingLimit: 1
   #Max amount of image maps a player in the following groups can create
   #Setting -1 means unlimited
   #To add a player to a group, give the permission "imageframe.createlimit.<group>"

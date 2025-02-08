@@ -206,13 +206,6 @@ public class GifReader {
         return -1;
     }
 
-    @FunctionalInterface
-    public interface ThrowingSupplier<R> {
-
-        R get() throws Throwable;
-
-    }
-
     public static class ImageFrame {
 
         private final int delay;

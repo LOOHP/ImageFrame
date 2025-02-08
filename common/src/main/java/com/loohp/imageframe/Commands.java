@@ -30,7 +30,8 @@ import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessControl;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
-import com.loohp.imageframe.objectholders.ImageMapProcessingActionBarTask;
+import com.loohp.imageframe.objectholders.ImageMapCreationTask;
+import com.loohp.imageframe.objectholders.ImageMapCreationTaskManager;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
@@ -80,6 +81,7 @@ import java.util.stream.Collectors;
 
 public class Commands implements CommandExecutor, TabCompleter {
 
+    @SuppressWarnings({"CallToPrintStackTrace", "deprecation", "NullableProblems"})
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (args.length == 0) {
@@ -119,10 +121,6 @@ public class Commands implements CommandExecutor, TabCompleter {
         } else if (args[0].equalsIgnoreCase("create")) {
             if (sender.hasPermission("imageframe.create")) {
                 if (args.length == 4 || args.length == 5 || args.length == 6 || args.length == 7) {
-                    if (!ImageFrame.processingMapCreation.add(sender)) {
-                        sender.sendMessage(ImageFrame.messageImageMapAlreadyCreating);
-                        return true;
-                    }
                     try {
                         MutablePair<UUID, String> pair = ImageMapUtils.extractImageMapPlayerPrefixedName(sender, args[1]);
                         String name = pair.getSecond();
@@ -195,7 +193,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     takenMaps = 0;
                                 }
                                 Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
-                                    ImageMapProcessingActionBarTask actionBarTask = null;
+                                    ImageMapCreationTask<ImageMap> creationTask = null;
                                     String url = "Pending...";
                                     try {
                                         url = args[2];
@@ -213,15 +211,16 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             imageType = imageType.trim();
                                         }
                                         sender.sendMessage(ImageFrame.messageImageMapProcessing);
-                                        if (player != null && !ImageFrame.messageImageMapProcessingActionBar.isEmpty()) {
-                                            actionBarTask = new ImageMapProcessingActionBarTask(player, name, width, height);
-                                        }
-                                        ImageMap imageMap;
-                                        if (imageType.equals(MapUtils.GIF_CONTENT_TYPE) && sender.hasPermission("imageframe.create.animated")) {
-                                            imageMap = URLAnimatedImageMap.create(ImageFrame.imageMapManager, name, url, width, height, ditheringType, owner).get();
-                                        } else {
-                                            imageMap = URLStaticImageMap.create(ImageFrame.imageMapManager, name, url, width, height, ditheringType, owner).get();
-                                        }
+                                        String finalUrl = url;
+                                        String finalImageType = imageType;
+                                        creationTask = ImageFrame.imageMapCreationTaskManager.enqueue(owner, name, width, height, () -> {
+                                            if (finalImageType.equals(MapUtils.GIF_CONTENT_TYPE) && sender.hasPermission("imageframe.create.animated")) {
+                                                return URLAnimatedImageMap.create(ImageFrame.imageMapManager, name, finalUrl, width, height, ditheringType, owner).get();
+                                            } else {
+                                                return URLStaticImageMap.create(ImageFrame.imageMapManager, name, finalUrl, width, height, ditheringType, owner).get();
+                                            }
+                                        });
+                                        ImageMap imageMap = creationTask.get();
                                         ImageFrame.imageMapManager.addMap(imageMap);
                                         if (!isConsole) {
                                             if (combined) {
@@ -245,13 +244,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                         }
                                         sender.sendMessage(ImageFrame.messageImageMapCreated);
-                                        if (actionBarTask != null) {
-                                            actionBarTask.complete(ImageFrame.messageImageMapCreated);
-                                        }
+                                        creationTask.complete(ImageFrame.messageImageMapCreated);
+                                    } catch (ImageMapCreationTaskManager.EnqueueRejectedException e) {
+                                        sender.sendMessage(ImageFrame.messageImageMapAlreadyQueued);
                                     } catch (Exception e) {
                                         sender.sendMessage(ImageFrame.messageUnableToLoadMap);
-                                        if (actionBarTask != null) {
-                                            actionBarTask.complete(ImageFrame.messageUnableToLoadMap);
+                                        if (creationTask != null) {
+                                            creationTask.complete(ImageFrame.messageUnableToLoadMap);
                                         }
                                         new IOException("Unable to download image. Make sure you are using a direct link to the image, they usually ends with a file extension like \".png\". Dispatcher: " + sender.getName() + " URL: " + url, e).printStackTrace();
                                         if (takenMaps > 0 && !isConsole) {
@@ -266,8 +265,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } catch (Exception e) {
                         sender.sendMessage(ImageFrame.messageUnableToLoadMap);
                         e.printStackTrace();
-                    } finally {
-                        ImageFrame.processingMapCreation.remove(sender);
                     }
                 } else {
                     sender.sendMessage(ImageFrame.messageInvalidUsage);
@@ -344,12 +341,20 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         return true;
                                     }
                                     Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                        ImageMapCreationTask<ImageMap> creationTask = null;
                                         try {
-                                            ImageMap imageMap = MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, name, args[2], mapViews, width, height, ditheringType, player.getUniqueId()).get();
+                                            creationTask = ImageFrame.imageMapCreationTaskManager.enqueue(owner, name, width, height, () -> MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, name, args[2], mapViews, width, height, ditheringType, player.getUniqueId()).get());
+                                            ImageMap imageMap = creationTask.get();
                                             ImageFrame.imageMapManager.addMap(imageMap);
                                             sender.sendMessage(ImageFrame.messageImageMapCreated);
+                                            creationTask.complete(ImageFrame.messageImageMapCreated);
+                                        } catch (ImageMapCreationTaskManager.EnqueueRejectedException e) {
+                                            sender.sendMessage(ImageFrame.messageImageMapAlreadyQueued);
                                         } catch (Exception e) {
                                             sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                                            if (creationTask != null) {
+                                                creationTask.complete(ImageFrame.messageUnableToLoadMap);
+                                            }
                                             e.printStackTrace();
                                         }
                                     });
@@ -433,8 +438,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     takenMaps = 0;
                                 }
                                 Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                                    ImageMapCreationTask<ImageMap> creationTask = null;
                                     try {
-                                        ImageMap newImageMap = imageMap.deepClone(name, owner);
+                                        creationTask = ImageFrame.imageMapCreationTaskManager.enqueue(owner, name, imageMap.getWidth(), imageMap.getHeight(), () -> imageMap.deepClone(name, owner));
+                                        ImageMap newImageMap = creationTask.get();
                                         ImageFrame.imageMapManager.addMap(newImageMap);
                                         if (!isConsole) {
                                             if (combined) {
@@ -458,8 +465,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                         }
                                         sender.sendMessage(ImageFrame.messageImageMapCreated);
+                                        creationTask.complete(ImageFrame.messageImageMapCreated);
+                                    } catch (ImageMapCreationTaskManager.EnqueueRejectedException e) {
+                                        sender.sendMessage(ImageFrame.messageImageMapAlreadyQueued);
                                     } catch (Exception e) {
                                         sender.sendMessage(ImageFrame.messageUnableToLoadMap);
+                                        if (creationTask != null) {
+                                            creationTask.complete(ImageFrame.messageUnableToLoadMap);
+                                        }
                                         e.printStackTrace();
                                         if (takenMaps > 0 && !isConsole) {
                                             PlayerUtils.giveItem((Player) sender, new ItemStack(Material.MAP, takenMaps));
