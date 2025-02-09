@@ -28,6 +28,7 @@ import com.loohp.imageframe.objectholders.ImageMapHitTargetResult;
 import com.loohp.imageframe.objectholders.IntPosition;
 import com.loohp.imageframe.objectholders.MapPacketSentCallback;
 import com.loohp.imageframe.objectholders.MutablePair;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -201,11 +202,14 @@ public class MapUtils {
         if (!mapMeta.hasMapView()) {
             return null;
         }
+        if (mapMeta.hasMapId()) {
+            tryDeleteBlankDataFile(getMainWorld(), mapMeta.getMapId());
+        }
         return mapMeta.getMapView();
     }
 
     public static MapView getPlayerMapView(Player player) {
-        return getItemMapView(player.getEquipment().getItemInHand());
+        return getItemMapView(player.getEquipment().getItemInMainHand());
     }
 
     public static int removeEmptyMaps(Player player, int count, boolean checkGameMode) {
@@ -388,6 +392,7 @@ public class MapUtils {
                 worldDataNextId = 0;
             }
             int id = Math.max(worldNextId, Math.max(ifNextId, worldDataNextId));
+            tryDeleteBlankDataFile(world, id);
             return NMS.getInstance().getMapOrCreateMissing(world, id);
         });
     }
@@ -397,11 +402,42 @@ public class MapUtils {
     }
 
     public static Future<MapView> getMapOrCreateMissing(World world, int id) {
-        return FutureUtils.callSyncMethod(() -> NMS.getInstance().getMapOrCreateMissing(world, id));
+        return FutureUtils.callSyncMethod(() -> {
+            tryDeleteBlankDataFile(world, id);
+            return NMS.getInstance().getMapOrCreateMissing(world, id);
+        });
     }
 
     public static MutablePair<byte[], ArrayList<MapCursor>> bukkitRenderMap(MapView mapView, Player player) {
         return NMS.getInstance().bukkitRenderMap(mapView, player);
+    }
+
+    public static File getWorldDataFolder(World world) {
+        File worldFolder = world.getWorldFolder();
+        World.Environment environment = world.getEnvironment();
+        if (environment.equals(World.Environment.NORMAL)) {
+            return new File(worldFolder, "data");
+        } else if (environment.equals(World.Environment.NETHER)) {
+            return new File(worldFolder, "DIM-1/data");
+        } else if (environment.equals(World.Environment.THE_END)) {
+            return new File(worldFolder, "DIM1/data");
+        } else if (environment.equals(World.Environment.CUSTOM)) {
+            Key namespacedKey = NMS.getInstance().getWorldNamespacedKey(world);
+            return new File(world.getWorldFolder(), namespacedKey.value() + "/data");
+        } else {
+            throw new UnsupportedOperationException("Dimension type " + environment + " of world " + world.getName() + " not supported yet!");
+        }
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    public static void tryDeleteBlankDataFile(World world, int mapId) {
+        File dataFolder = getWorldDataFolder(world);
+        if (dataFolder.exists() && dataFolder.isDirectory()) {
+            File mapFile = new File(dataFolder, "map_" + mapId + ".dat");
+            if (mapFile.exists() && mapFile.length() <= 0) {
+                mapFile.delete();
+            }
+        }
     }
 
 }

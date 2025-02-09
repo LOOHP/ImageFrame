@@ -25,6 +25,7 @@ import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.UUIDUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import net.kyori.adventure.key.Key;
 import net.minecraft.EnumChatFormat;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
@@ -54,6 +55,7 @@ import net.minecraft.world.level.saveddata.maps.WorldMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_20_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R2.entity.CraftEntity;
@@ -343,5 +345,11 @@ public class V1_20_2 extends NMSWrapper {
         }
         nmsPlayer.bS.d();
         return leftovers;
+    }
+
+    @SuppressWarnings("PatternValidation")
+    public Key getWorldNamespacedKey(World world) {
+        NamespacedKey key = world.getKey();
+        return Key.key(key.getNamespace(), key.getKey());
     }
 }

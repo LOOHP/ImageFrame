@@ -22,6 +22,7 @@ package com.loohp.imageframe.nms;
 
 import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
+import net.kyori.adventure.key.Key;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -72,5 +73,7 @@ public abstract class NMSWrapper {
     public abstract ItemStack withInvisibleItemFrameMeta(ItemStack itemStack);
 
     public abstract List<ItemStack> giveItems(Player player, List<ItemStack> itemStacks);
+
+    public abstract Key getWorldNamespacedKey(World world);
 
 }

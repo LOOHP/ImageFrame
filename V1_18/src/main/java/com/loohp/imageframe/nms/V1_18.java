@@ -26,6 +26,7 @@ import com.loohp.imageframe.utils.UUIDUtils;
 import com.loohp.imageframe.utils.UnsafeAccessor;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import net.kyori.adventure.key.Key;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TranslatableComponent;
 import net.md_5.bungee.chat.ComponentSerializer;
@@ -39,6 +40,7 @@ import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import net.minecraft.network.protocol.game.PacketPlayOutMap;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.network.syncher.DataWatcherObject;
+import net.minecraft.resources.MinecraftKey;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ChunkProviderServer;
 import net.minecraft.server.level.EntityPlayer;
@@ -56,6 +58,7 @@ import net.minecraft.world.level.saveddata.maps.WorldMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_18_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R1.entity.CraftEntity;
@@ -369,5 +372,12 @@ public class V1_18 extends NMSWrapper {
         }
         nmsPlayer.bW.d();
         return leftovers;
+    }
+
+    @SuppressWarnings("PatternValidation")
+    public Key getWorldNamespacedKey(World world) {
+        WorldServer nmsWorld = ((CraftWorld) world).getHandle();
+        MinecraftKey key = nmsWorld.getTypeKey().a();
+        return Key.key(key.b(), key.a());
     }
 }

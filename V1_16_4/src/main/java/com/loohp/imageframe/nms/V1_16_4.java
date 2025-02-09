@@ -24,6 +24,7 @@ import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.UUIDUtils;
 import com.loohp.imageframe.utils.UnsafeAccessor;
+import net.kyori.adventure.key.Key;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TranslatableComponent;
 import net.md_5.bungee.chat.ComponentSerializer;
@@ -36,6 +37,7 @@ import net.minecraft.server.v1_16_R3.EntityPlayer;
 import net.minecraft.server.v1_16_R3.IChatBaseComponent;
 import net.minecraft.server.v1_16_R3.ItemWorldMap;
 import net.minecraft.server.v1_16_R3.MapIcon;
+import net.minecraft.server.v1_16_R3.MinecraftKey;
 import net.minecraft.server.v1_16_R3.NBTTagCompound;
 import net.minecraft.server.v1_16_R3.NBTTagList;
 import net.minecraft.server.v1_16_R3.NBTTagString;
@@ -381,5 +383,12 @@ public class V1_16_4 extends NMSWrapper {
         }
         nmsPlayer.activeContainer.c();
         return leftovers;
+    }
+
+    @SuppressWarnings("PatternValidation")
+    public Key getWorldNamespacedKey(World world) {
+        WorldServer nmsWorld = ((CraftWorld) world).getHandle();
+        MinecraftKey key = nmsWorld.getTypeKey().a();
+        return Key.key(key.getNamespace(), key.getKey());
     }
 }
