@@ -1,8 +1,8 @@
 /*
  * This file is part of ImageFrame.
  *
- * Copyright (C) 2022. LoohpJames <jamesloohp@gmail.com>
- * Copyright (C) 2022. Contributors
+ * Copyright (C) 2025. LoohpJames <jamesloohp@gmail.com>
+ * Copyright (C) 2025. Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,14 +84,24 @@ public class Charts {
         metrics.addCustomChart(new Metrics.SingleLineChart("item_frames_made_invisible_in_last_interval", new Callable<Integer>() {
             @Override
             public Integer call() throws Exception {
-                return (int) ImageFrame.invisibleFrameManager.getItemFramesMadeInvisible().getAndSet(0);
+                long value = ImageFrame.invisibleFrameManager.getItemFramesMadeInvisible().getAndSet(0);
+                return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
             }
         }));
 
         metrics.addCustomChart(new Metrics.SingleLineChart("invisible_item_frames_placed_in_last_interval", new Callable<Integer>() {
             @Override
             public Integer call() throws Exception {
-                return (int) ImageFrame.invisibleFrameManager.getInvisibleItemFramesPlaced().getAndSet(0);
+                long value = ImageFrame.invisibleFrameManager.getInvisibleItemFramesPlaced().getAndSet(0);
+                return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
+            }
+        }));
+
+        metrics.addCustomChart(new Metrics.SingleLineChart("embedded_service_image_uploaded_in_last_interval", new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                long value = ImageFrame.imageUploadManager.getImagesUploadedCounter().getAndSet(0);
+                return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
             }
         }));
 

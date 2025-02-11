@@ -1,8 +1,8 @@
 /*
  * This file is part of ImageFrame.
  *
- * Copyright (C) 2022. LoohpJames <jamesloohp@gmail.com>
- * Copyright (C) 2022. Contributors
+ * Copyright (C) 2025. LoohpJames <jamesloohp@gmail.com>
+ * Copyright (C) 2025. Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -137,6 +137,7 @@ public class ImageMapManager implements AutoCloseable {
         maps.put(map.getImageIndex(), map);
         for (MapView mapView : map.getMapViews()) {
             mapsByView.put(mapView, map);
+            deletedMapIds.remove(mapView.getId());
         }
         try {
             map.save();
@@ -147,6 +148,7 @@ public class ImageMapManager implements AutoCloseable {
             }
             throw e;
         }
+        saveDeletedMaps();
     }
 
     public boolean hasMap(int imageIndex) {

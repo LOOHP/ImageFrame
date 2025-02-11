@@ -20,6 +20,8 @@ Messages:
   UnknownError: "&cAn unknown error had occurred."
   ImageOverMaxFileSize: "&cImageMap cannot be loaded as it is over the max file size allowed. ({Size} bytes)"
   NotAnImageMap: "&cThat is not an ImageMap"
+  UploadLink: "&aOpen {URL} on your browser to upload an image, it is valid for 5 minutes."
+  UploadExpired: "&cImage upload link had expired, please create a new one."
   URLImageMapInfo:
     - "&bImageID: {ImageID}"
     - "&aName: {Name}"
@@ -147,6 +149,16 @@ Settings:
   HandleAnimatedMapsOnMainThread: false
   SendAnimatedMapsOnMainThread: false
 
+#ImageFrame's convenient upload system where you can upload directly through an embedded web server
+UploadService:
+  #Changing this value requires a restart
+  Enabled: true
+  #This is only used for displaying to the end user
+  Host: "http://change.this.to.your.server.ip.in.the.config"
+  #Port in which the webserver is hosted, make sure it is not blocked by your firewall
+  #Changing this value requires a restart
+  Port: 8517
+
 #ImageFrame's built in survival friendly way of making invisible item frames
 InvisibleFrame:
   #Survival friendly way to get invisible item frames by splashing dropped items with invisibility potions
@@ -156,7 +168,6 @@ InvisibleFrame:
   #Should empty invisible item frames glow
   #Existing frames are not updated until they are interacted with
   GlowEmptyFrames: true
-
 
 Hooks:
   ViaVersion:

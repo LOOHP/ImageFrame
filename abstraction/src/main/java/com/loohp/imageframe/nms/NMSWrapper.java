@@ -30,7 +30,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -54,7 +53,7 @@ public abstract class NMSWrapper {
 
     public abstract MapView getMapOrCreateMissing(World world, int id);
 
-    public abstract MutablePair<byte[], ArrayList<MapCursor>> bukkitRenderMap(MapView mapView, Player player);
+    public abstract MutablePair<byte[], List<MapCursor>> bukkitRenderMap(MapView mapView, Player player);
 
     public abstract Set<Player> getEntityTrackers(Entity entity);
 

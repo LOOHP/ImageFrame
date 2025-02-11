@@ -91,12 +91,14 @@ public class V1_21_4 extends NMSWrapper {
     private final Field nmsEntityByteDataWatcherField;
     private final Field craftMapViewWorldMapField;
     private final Field persistentIdCountsUsedAuxIdsField;
+    private final Field renderDataCursorsField;
 
     public V1_21_4() {
         try {
             nmsEntityByteDataWatcherField = ReflectionUtils.findDeclaredField(net.minecraft.world.entity.Entity.class, DataWatcherObject.class, "DATA_SHARED_FLAGS_ID", "am");
             craftMapViewWorldMapField = CraftMapView.class.getDeclaredField("worldMap");
             persistentIdCountsUsedAuxIdsField = ReflectionUtils.findDeclaredField(PersistentIdCounts.class, Object2IntMap.class, "usedAuxIds", "b");
+            renderDataCursorsField = RenderData.class.getField("cursors");
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
@@ -188,12 +190,17 @@ public class V1_21_4 extends NMSWrapper {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public MutablePair<byte[], ArrayList<MapCursor>> bukkitRenderMap(MapView mapView, Player player) {
-        CraftMapView craftMapView = (CraftMapView) mapView;
-        CraftPlayer craftPlayer = (CraftPlayer) player;
-        RenderData renderData = craftMapView.render(craftPlayer);
-        return new MutablePair<>(renderData.buffer, renderData.cursors);
+    public MutablePair<byte[], List<MapCursor>> bukkitRenderMap(MapView mapView, Player player) {
+        try {
+            CraftMapView craftMapView = (CraftMapView) mapView;
+            CraftPlayer craftPlayer = (CraftPlayer) player;
+            RenderData renderData = craftMapView.render(craftPlayer);
+            return new MutablePair<>(renderData.buffer, (List<MapCursor>) renderDataCursorsField.get(renderData));
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

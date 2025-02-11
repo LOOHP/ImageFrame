@@ -183,7 +183,7 @@ public class V1_20_3 extends NMSWrapper {
     }
 
     @Override
-    public MutablePair<byte[], ArrayList<MapCursor>> bukkitRenderMap(MapView mapView, Player player) {
+    public MutablePair<byte[], List<MapCursor>> bukkitRenderMap(MapView mapView, Player player) {
         CraftMapView craftMapView = (CraftMapView) mapView;
         CraftPlayer craftPlayer = (CraftPlayer) player;
         RenderData renderData = craftMapView.render(craftPlayer);

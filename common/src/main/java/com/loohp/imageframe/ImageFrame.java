@@ -1,8 +1,8 @@
 /*
  * This file is part of ImageFrame.
  *
- * Copyright (C) 2022. LoohpJames <jamesloohp@gmail.com>
- * Copyright (C) 2022. Contributors
+ * Copyright (C) 2025. LoohpJames <jamesloohp@gmail.com>
+ * Copyright (C) 2025. Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,7 @@ import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.MCVersion;
 import com.loohp.imageframe.utils.ModernEventsUtils;
+import com.loohp.imageframe.upload.ImageUploadManager;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -138,6 +139,8 @@ public class ImageFrame extends JavaPlugin {
     public static String messageMarkersLimitReached;
     public static String messageInvalidOverlayMap;
     public static String messageGivenInvisibleFrame;
+    public static String messageUploadLink;
+    public static String messageUploadExpired;
 
     public static SimpleDateFormat dateFormat;
 
@@ -167,6 +170,10 @@ public class ImageFrame extends JavaPlugin {
     public static boolean handleAnimatedMapsOnMainThread;
     public static boolean sendAnimatedMapsOnMainThread;
 
+    public static boolean uploadServiceEnabled;
+    public static String uploadServiceHost;
+    public static int uploadServicePort;
+
     public static int invisibleFrameMaxConversionsPerSplash;
     public static boolean invisibleFrameGlowEmptyFrames;
 
@@ -179,9 +186,13 @@ public class ImageFrame extends JavaPlugin {
     public static RateLimitedPacketSendingManager rateLimitedPacketSendingManager;
     public static InvisibleFrameManager invisibleFrameManager;
     public static ImageMapCreationTaskManager imageMapCreationTaskManager;
+    public static ImageUploadManager imageUploadManager;
 
     public static boolean isURLAllowed(String link) {
         if (!restrictImageUrlEnabled) {
+            return true;
+        }
+        if ("upload".equals(link) || imageUploadManager.wasUploaded(link)) {
             return true;
         }
         try {
@@ -315,6 +326,7 @@ public class ImageFrame extends JavaPlugin {
         Scheduler.runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
         invisibleFrameManager = new InvisibleFrameManager();
         imageMapCreationTaskManager = new ImageMapCreationTaskManager(ImageFrame.parallelProcessingLimit);
+        imageUploadManager = new ImageUploadManager(updaterEnabled, uploadServicePort);
 
         if (isPluginEnabled("PlaceholderAPI")) {
             new Placeholders().register();
@@ -336,6 +348,9 @@ public class ImageFrame extends JavaPlugin {
         }
         if (combinedMapItemHandler != null) {
             combinedMapItemHandler.close();
+        }
+        if (imageUploadManager != null) {
+            imageUploadManager.close();
         }
         getServer().getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageFrame has been Disabled!");
     }
@@ -405,6 +420,8 @@ public class ImageFrame extends JavaPlugin {
         messageMarkersLimitReached = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Markers.LimitReached"));
         messageInvalidOverlayMap = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.InvalidOverlayMap"));
         messageGivenInvisibleFrame = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.GivenInvisibleFrame"));
+        messageUploadLink = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UploadLink"));
+        messageUploadExpired = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.UploadExpired"));
 
         dateFormat = new SimpleDateFormat(config.getConfiguration().getString("Messages.DateFormat"));
 
@@ -461,6 +478,10 @@ public class ImageFrame extends JavaPlugin {
         mapRenderersContextual = config.getConfiguration().getBoolean("Settings.MapRenderersContextual");
         handleAnimatedMapsOnMainThread = config.getConfiguration().getBoolean("Settings.HandleAnimatedMapsOnMainThread");
         sendAnimatedMapsOnMainThread = config.getConfiguration().getBoolean("Settings.SendAnimatedMapsOnMainThread");
+
+        uploadServiceEnabled = config.getConfiguration().getBoolean("UploadService.Enabled");
+        uploadServiceHost = config.getConfiguration().getString("UploadService.Host");
+        uploadServicePort = config.getConfiguration().getInt("UploadService.Port");
 
         invisibleFrameMaxConversionsPerSplash = config.getConfiguration().getInt("InvisibleFrame.MaxConversionsPerSplash");
         invisibleFrameGlowEmptyFrames = config.getConfiguration().getBoolean("InvisibleFrame.GlowEmptyFrames");

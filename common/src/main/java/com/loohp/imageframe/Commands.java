@@ -1,8 +1,8 @@
 /*
  * This file is part of ImageFrame.
  *
- * Copyright (C) 2022. LoohpJames <jamesloohp@gmail.com>
- * Copyright (C) 2022. Contributors
+ * Copyright (C) 2025. LoohpJames <jamesloohp@gmail.com>
+ * Copyright (C) 2025. Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,8 @@ import com.loohp.imageframe.objectholders.URLAnimatedImageMap;
 import com.loohp.imageframe.objectholders.URLImageMap;
 import com.loohp.imageframe.objectholders.URLStaticImageMap;
 import com.loohp.imageframe.updater.Updater;
+import com.loohp.imageframe.upload.ImageUploadManager;
+import com.loohp.imageframe.upload.PendingUpload;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.ImageMapUtils;
@@ -197,6 +199,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     String url = "Pending...";
                                     try {
                                         url = args[2];
+                                        if (ImageFrame.uploadServiceEnabled && url.equalsIgnoreCase("upload")) {
+                                            UUID user = isConsole ? ImageMap.CONSOLE_CREATOR : player.getUniqueId();
+                                            PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
+                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceHost, user))), 2);
+                                            url = pendingUpload.getFileBlocking().toURI().toURL().toString();
+                                        }
                                         if (HTTPRequestUtils.getContentSize(url) > ImageFrame.maxImageFileSize) {
                                             sender.sendMessage(ImageFrame.messageImageOverMaxFileSize.replace("{Size}", ImageFrame.maxImageFileSize + ""));
                                             throw new IOException("Image over max file size");
@@ -245,6 +253,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         sender.sendMessage(ImageFrame.messageImageMapCreated);
                                         creationTask.complete(ImageFrame.messageImageMapCreated);
+                                    } catch (ImageUploadManager.LinkTimeoutException e) {
+                                        sender.sendMessage(ImageFrame.messageUploadExpired);
                                     } catch (ImageMapCreationTaskManager.EnqueueRejectedException e) {
                                         sender.sendMessage(ImageFrame.messageImageMapAlreadyQueued);
                                     } catch (Exception e) {
@@ -336,18 +346,32 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         sender.sendMessage(ImageFrame.messageDuplicateMapName);
                                         return true;
                                     }
-                                    if (!ImageFrame.isURLAllowed(args[2])) {
-                                        sender.sendMessage(ImageFrame.messageURLRestricted);
-                                        return true;
-                                    }
                                     Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                         ImageMapCreationTask<ImageMap> creationTask = null;
                                         try {
-                                            creationTask = ImageFrame.imageMapCreationTaskManager.enqueue(owner, name, width, height, () -> MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, name, args[2], mapViews, width, height, ditheringType, player.getUniqueId()).get());
+                                            String url = args[2];
+                                            if (ImageFrame.uploadServiceEnabled && url.equalsIgnoreCase("upload")) {
+                                                UUID user = player.getUniqueId();
+                                                PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
+                                                Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceHost, user))), 2);
+                                                url = pendingUpload.getFileBlocking().toURI().toURL().toString();
+                                            }
+                                            if (!ImageFrame.isURLAllowed(url)) {
+                                                sender.sendMessage(ImageFrame.messageURLRestricted);
+                                                return;
+                                            }
+                                            if (HTTPRequestUtils.getContentSize(url) > ImageFrame.maxImageFileSize) {
+                                                sender.sendMessage(ImageFrame.messageImageOverMaxFileSize.replace("{Size}", ImageFrame.maxImageFileSize + ""));
+                                                throw new IOException("Image over max file size");
+                                            }
+                                            String finalUrl = url;
+                                            creationTask = ImageFrame.imageMapCreationTaskManager.enqueue(owner, name, width, height, () -> MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, name, finalUrl, mapViews, width, height, ditheringType, player.getUniqueId()).get());
                                             ImageMap imageMap = creationTask.get();
                                             ImageFrame.imageMapManager.addMap(imageMap);
                                             sender.sendMessage(ImageFrame.messageImageMapCreated);
                                             creationTask.complete(ImageFrame.messageImageMapCreated);
+                                        } catch (ImageUploadManager.LinkTimeoutException e) {
+                                            sender.sendMessage(ImageFrame.messageUploadExpired);
                                         } catch (ImageMapCreationTaskManager.EnqueueRejectedException e) {
                                             sender.sendMessage(ImageFrame.messageImageMapAlreadyQueued);
                                         } catch (Exception e) {
@@ -755,10 +779,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     } else {
                                         imageType = imageType.trim();
                                     }
+                                    if (!ImageFrame.isURLAllowed(url)) {
+                                        sender.sendMessage(ImageFrame.messageURLRestricted);
+                                        return;
+                                    }
                                     if (imageType.equals(MapUtils.GIF_CONTENT_TYPE) == urlImageMap.requiresAnimationService()) {
                                         String oldUrl = urlImageMap.getUrl();
                                         if (url != null) {
                                             urlImageMap.setUrl(url);
+                                        }
+                                        if (ImageFrame.uploadServiceEnabled && urlImageMap.getUrl().equalsIgnoreCase("upload")) {
+                                            UUID user = !(sender instanceof Player) ? ImageMap.CONSOLE_CREATOR : ((Player) sender).getUniqueId();
+                                            PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
+                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceHost, user))), 2);
+                                            String newUrl = pendingUpload.getFileBlocking().toURI().toURL().toString();
+                                            if (HTTPRequestUtils.getContentSize(newUrl) > ImageFrame.maxImageFileSize) {
+                                                sender.sendMessage(ImageFrame.messageImageOverMaxFileSize.replace("{Size}", ImageFrame.maxImageFileSize + ""));
+                                                throw new IOException("Image over max file size");
+                                            }
+                                            urlImageMap.setUrl(newUrl);
                                         }
                                         if (ditheringType != null) {
                                             urlImageMap.setDitheringType(ditheringType);
@@ -781,6 +820,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     imageMap.update();
                                     sender.sendMessage(ImageFrame.messageImageMapRefreshed);
                                 }
+                            } catch (ImageUploadManager.LinkTimeoutException e) {
+                                sender.sendMessage(ImageFrame.messageUploadExpired);
                             } catch (Exception e) {
                                 sender.sendMessage(ImageFrame.messageUnableToLoadMap);
                                 e.printStackTrace();
@@ -1543,6 +1584,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.refresh")) {
                     if ("refresh".equalsIgnoreCase(args[0])) {
                         tab.add("[url]");
+                        if (ImageFrame.uploadServiceEnabled && "upload".startsWith(args[1].toLowerCase())) {
+                            tab.add("upload");
+                        }
                         tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
                         for (String ditheringType : DitheringType.values().keySet()) {
                             if (ditheringType.startsWith(args[1].toLowerCase())) {
@@ -1660,11 +1704,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.create")) {
                     if ("create".equalsIgnoreCase(args[0])) {
                         tab.add("<url>");
+                        if (ImageFrame.uploadServiceEnabled && "upload".startsWith(args[2].toLowerCase())) {
+                            tab.add("upload");
+                        }
                     }
                 }
                 if (sender.hasPermission("imageframe.overlay")) {
                     if ("overlay".equalsIgnoreCase(args[0])) {
                         tab.add("<url>");
+                        if (ImageFrame.uploadServiceEnabled && "upload".startsWith(args[2].toLowerCase())) {
+                            tab.add("upload");
+                        }
                     }
                 }
                 if (sender.hasPermission("imageframe.clone")) {
@@ -1687,6 +1737,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
                         if (imageMap != null) {
                             tab.add("[url]");
+                            if (ImageFrame.uploadServiceEnabled && "upload".startsWith(args[2].toLowerCase())) {
+                                tab.add("upload");
+                            }
                             for (String ditheringType : DitheringType.values().keySet()) {
                                 if (ditheringType.startsWith(args[2].toLowerCase())) {
                                     tab.add(ditheringType);

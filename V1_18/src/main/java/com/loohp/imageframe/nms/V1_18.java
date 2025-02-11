@@ -58,7 +58,6 @@ import net.minecraft.world.level.saveddata.maps.WorldMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_18_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R1.entity.CraftEntity;
@@ -195,7 +194,7 @@ public class V1_18 extends NMSWrapper {
     }
 
     @Override
-    public MutablePair<byte[], ArrayList<MapCursor>> bukkitRenderMap(MapView mapView, Player player) {
+    public MutablePair<byte[], List<MapCursor>> bukkitRenderMap(MapView mapView, Player player) {
         CraftMapView craftMapView = (CraftMapView) mapView;
         CraftPlayer craftPlayer = (CraftPlayer) player;
         RenderData renderData = craftMapView.render(craftPlayer);
