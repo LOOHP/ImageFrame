@@ -255,8 +255,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         creationTask.complete(ImageFrame.messageImageMapCreated);
                                     } catch (ImageUploadManager.LinkTimeoutException e) {
                                         sender.sendMessage(ImageFrame.messageUploadExpired);
+                                        if (takenMaps > 0 && !isConsole) {
+                                            PlayerUtils.giveItem(player, new ItemStack(Material.MAP, takenMaps));
+                                        }
                                     } catch (ImageMapCreationTaskManager.EnqueueRejectedException e) {
                                         sender.sendMessage(ImageFrame.messageImageMapAlreadyQueued);
+                                        if (takenMaps > 0 && !isConsole) {
+                                            PlayerUtils.giveItem(player, new ItemStack(Material.MAP, takenMaps));
+                                        }
                                     } catch (Exception e) {
                                         sender.sendMessage(ImageFrame.messageUnableToLoadMap);
                                         if (creationTask != null) {
