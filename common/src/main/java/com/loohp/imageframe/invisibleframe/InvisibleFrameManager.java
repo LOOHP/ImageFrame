@@ -113,7 +113,6 @@ public class InvisibleFrameManager implements Listener {
             recipe.setGroup(vanillaRecipe.getGroup());
         }
         Bukkit.addRecipe(recipe);
-        Bukkit.updateRecipes();
     }
 
     public ItemStack withInvisibleItemFrameData(ItemStack itemStack) {
