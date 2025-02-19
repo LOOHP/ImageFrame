@@ -297,7 +297,7 @@ public class ImageMapManager implements AutoCloseable {
     }
 
     public void sendAllMaps(Collection<? extends Player> players) {
-        maps.values().forEach(m -> sendAllMaps(players));
+        maps.values().forEach(m -> m.send(players));
     }
 
     public static class DeletedMapRenderer extends MapRenderer {

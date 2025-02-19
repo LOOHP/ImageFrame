@@ -444,7 +444,7 @@ public abstract class ImageMap {
 
         @Override
         public void render(MapView mapView, MapCanvas canvas, Player player) {
-            MutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, player);
+            MutablePair<byte[], Collection<MapCursor>> renderData = renderMap(mapView, 0, player);
             manager.callRenderEventListener(manager, imageMap, mapView, player, renderData);
             byte[] colors = renderData.getFirst();
             if (colors != null) {
