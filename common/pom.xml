@@ -93,6 +93,10 @@
                                     <pattern>net.kyori</pattern>
                                     <shadedPattern>com.loohp.imageframe.libs.net.kyori</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons</pattern>
+                                    <shadedPattern>com.loohp.imageframe.libs.org.apache.commons</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
