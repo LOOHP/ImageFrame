@@ -27,6 +27,7 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.FileUtils;
 import com.loohp.imageframe.utils.JarUtils;
+import com.loohp.imageframe.utils.SizeLimitedByteArrayOutputStream;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;

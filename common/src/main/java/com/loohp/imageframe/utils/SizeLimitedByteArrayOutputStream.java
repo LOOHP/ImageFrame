@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.loohp.imageframe.upload;
+package com.loohp.imageframe.utils;
 
 import java.io.ByteArrayOutputStream;
 
@@ -32,7 +32,7 @@ public class SizeLimitedByteArrayOutputStream extends ByteArrayOutputStream {
 
     private void ensureSize(int added) {
         if ((size() + added) > maxSize) {
-            throw new IllegalStateException("Size exceeded max size of " + maxSize + " bytes");
+            throw new OversizeException("Size exceeded max size of " + maxSize + " bytes");
         }
     }
 
@@ -46,6 +46,14 @@ public class SizeLimitedByteArrayOutputStream extends ByteArrayOutputStream {
     public synchronized void write(byte[] b, int off, int len) {
         ensureSize(len);
         super.write(b, off, len);
+    }
+
+    public static class OversizeException extends RuntimeException {
+
+        public OversizeException(String message) {
+            super(message);
+        }
+
     }
 
 }

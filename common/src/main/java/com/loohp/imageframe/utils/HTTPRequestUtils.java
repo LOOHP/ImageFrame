@@ -69,9 +69,9 @@ public class HTTPRequestUtils {
         return connection.getInputStream();
     }
 
-    public static byte[] download(String link) throws IOException {
+    public static byte[] download(String link, long sizeLimit) throws IOException {
         try (InputStream is = getInputStream(link)) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ByteArrayOutputStream baos = new SizeLimitedByteArrayOutputStream(sizeLimit);
             byte[] byteChunk = new byte[4096];
             int n;
             while ((n = is.read(byteChunk)) > 0) {

@@ -226,7 +226,7 @@ public class URLStaticImageMap extends URLImageMap {
 
     @Override
     public void update(boolean save) throws Exception {
-        BufferedImage image = ImageIO.read(new ByteArrayInputStream(HTTPRequestUtils.download(url)));
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(HTTPRequestUtils.download(url, ImageFrame.maxImageFileSize)));
         if (image == null) {
             throw new RuntimeException("Unable to read or download image, does this url directly links to an image? (" + url + ")");
         }

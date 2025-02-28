@@ -48,8 +48,8 @@ import java.util.concurrent.Future;
 
 public class GifReader {
 
-    public static Future<List<ImageFrame>> readGif(InputStream stream) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    public static Future<List<ImageFrame>> readGif(InputStream stream, long sizeLimit) throws IOException {
+        ByteArrayOutputStream buffer = new SizeLimitedByteArrayOutputStream(sizeLimit);
         try {
             int nRead;
             byte[] data = new byte[4096];

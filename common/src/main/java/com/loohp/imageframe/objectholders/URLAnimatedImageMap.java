@@ -254,7 +254,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     public void update(boolean save) throws Exception {
         List<GifReader.ImageFrame> frames;
         try {
-            frames = GifReader.readGif(HTTPRequestUtils.getInputStream(url)).get();
+            frames = GifReader.readGif(HTTPRequestUtils.getInputStream(url), ImageFrame.maxImageFileSize).get();
         } catch (Exception e) {
             throw new RuntimeException("Unable to read or download animated gif, does this url directly links to the gif? (" + url + ")", e);
         }
