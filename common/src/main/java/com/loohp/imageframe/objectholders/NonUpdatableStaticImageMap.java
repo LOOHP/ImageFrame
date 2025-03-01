@@ -180,11 +180,10 @@ public class NonUpdatableStaticImageMap extends ImageMap {
     protected NonUpdatableStaticImageMap(ImageMapManager manager, int imageIndex, String name, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
-        cacheColors();
     }
 
     @Override
-    public void cacheColors() {
+    public void loadColorCache() {
         if (cachedImages == null) {
             return;
         }
@@ -213,7 +212,12 @@ public class NonUpdatableStaticImageMap extends ImageMap {
     }
 
     @Override
-    public void clearCachedColors() {
+    public boolean hasColorCached() {
+        return cachedColors != null;
+    }
+
+    @Override
+    public void unloadColorCache() {
         cachedColors = null;
     }
 
@@ -243,7 +247,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
 
     @Override
     public void update(boolean save) throws Exception {
-        cacheColors();
+        reloadColorCache();
         Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(this));
         send(getViewers());
         if (save) {

@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe.nms;
 
+import com.google.common.collect.Collections2;
 import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.UUIDUtils;
@@ -126,10 +127,17 @@ public class V1_16_4 extends NMSWrapper {
     }
 
     @Override
-    public Set<Player> getViewers(MapView mapView) {
+    public Collection<Player> getViewers(MapView mapView) {
         WorldMap nmsWorldMap = getWorldMap(mapView);
         Map<EntityHuman, WorldMap.WorldMapHumanTracker> humansMap = nmsWorldMap.humans;
-        return humansMap.keySet().stream().map(e -> (Player) e.getBukkitEntity()).collect(Collectors.toSet());
+        return Collections2.transform(humansMap.keySet(), e -> (Player) e.getBukkitEntity());
+    }
+
+    @Override
+    public boolean hasViewers(MapView mapView) {
+        WorldMap nmsWorldMap = getWorldMap(mapView);
+        Map<EntityHuman, WorldMap.WorldMapHumanTracker> humansMap = nmsWorldMap.humans;
+        return !humansMap.isEmpty();
     }
 
     @Override

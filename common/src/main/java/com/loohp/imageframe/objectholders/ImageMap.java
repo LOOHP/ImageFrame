@@ -24,6 +24,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.imageframe.utils.StringUtils;
@@ -48,7 +49,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +58,7 @@ import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public abstract class ImageMap {
 
@@ -89,6 +90,7 @@ public abstract class ImageMap {
     protected ImageMapAccessControl accessControl;
     protected final long creationTime;
 
+    private final ImageMapCacheControlTask cacheControlTask;
     private boolean isValid;
 
     public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
@@ -114,6 +116,7 @@ public abstract class ImageMap {
         this.accessControl = new ImageMapAccessControl(this, hasAccess);
         this.creationTime = creationTime;
 
+        this.cacheControlTask = new ImageMapCacheControlTask(this);
         this.isValid = true;
 
         this.accessControl.setPermissionWithoutSave(creator, null);
@@ -123,9 +126,17 @@ public abstract class ImageMap {
         return manager;
     }
 
-    public abstract void cacheColors();
+    public abstract void loadColorCache();
 
-    public abstract void clearCachedColors();
+    public void reloadColorCache() {
+        if (hasColorCached()) {
+            loadColorCache();
+        }
+    }
+
+    public abstract boolean hasColorCached();
+
+    public abstract void unloadColorCache();
 
     public int getImageIndex() {
         return imageIndex;
@@ -146,6 +157,7 @@ public abstract class ImageMap {
 
     protected void markInvalid() {
         this.isValid = false;
+        this.cacheControlTask.close();
     }
 
     public boolean isValid() {
@@ -365,14 +377,11 @@ public abstract class ImageMap {
     }
 
     public Set<Player> getViewers() {
-        Set<Player> players = new HashSet<>();
-        for (MapView mapView : mapViews) {
-            Set<Player> set = MapUtils.getViewers(mapView);
-            if (set != null) {
-                players.addAll(set);
-            }
-        }
-        return players;
+        return mapViews.stream().flatMap(m -> NMS.getInstance().getViewers(m).stream()).collect(Collectors.toSet());
+    }
+
+    public boolean hasViewers() {
+        return mapViews.stream().anyMatch(m -> NMS.getInstance().hasViewers(m));
     }
 
     public UUID getCreator() {

@@ -172,11 +172,10 @@ public class URLStaticImageMap extends URLImageMap {
     protected URLStaticImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
-        cacheColors();
     }
 
     @Override
-    public void cacheColors() {
+    public void loadColorCache() {
         if (cachedImages == null) {
             return;
         }
@@ -205,7 +204,12 @@ public class URLStaticImageMap extends URLImageMap {
     }
 
     @Override
-    public void clearCachedColors() {
+    public boolean hasColorCached() {
+        return cachedColors != null;
+    }
+
+    @Override
+    public void unloadColorCache() {
         cachedColors = null;
     }
 
@@ -237,7 +241,7 @@ public class URLStaticImageMap extends URLImageMap {
                 cachedImages[i++] = FileLazyMappedBufferedImage.fromImage(MapUtils.getSubImage(image, x, y));
             }
         }
-        cacheColors();
+        reloadColorCache();
         Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(this));
         send(getViewers());
         if (save) {

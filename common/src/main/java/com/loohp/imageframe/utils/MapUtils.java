@@ -61,19 +61,33 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Future;
 
 public class MapUtils {
 
     @SuppressWarnings("deprecation")
     public static final byte PALETTE_TRANSPARENT = MapPalette.TRANSPARENT;
-    @SuppressWarnings("removal")
-    public static final byte PALETTE_WHITE = MapPalette.matchColor(255, 255, 255);
+    public static final byte[] PALETTE_GRAYSCALE = generateGrayScale();
 
     public static final int MAP_WIDTH = 128;
 
     public static final String GIF_CONTENT_TYPE = "image/gif";
     public static final List<BlockFace> CARTESIAN_BLOCK_FACES = Collections.unmodifiableList(Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN));
+
+    @SuppressWarnings("removal")
+    private static byte[] generateGrayScale() {
+        Set<Byte> bytes = new TreeSet<>();
+        for (int i = 0; i < 256; i++) {
+            bytes.add(MapPalette.matchColor(i, i, i));
+        }
+        byte[] result = new byte[bytes.size()];
+        int i = 0;
+        for (byte b : bytes) {
+            result[i++] = b;
+        }
+        return result;
+    }
 
     public static World getMainWorld() {
         return Bukkit.getWorlds().get(0);
@@ -227,10 +241,6 @@ public class MapUtils {
 
     public static void setColors(MapView mapView, byte[] colors) {
         NMS.getInstance().setColors(mapView, colors);
-    }
-
-    public static Set<Player> getViewers(MapView mapView) {
-        return NMS.getInstance().getViewers(mapView);
     }
 
     public static MapCursorCollection toMapCursorCollection(Collection<MapCursor> mapCursors) {

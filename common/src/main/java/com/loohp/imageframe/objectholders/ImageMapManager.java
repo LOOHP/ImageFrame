@@ -52,6 +52,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,9 +77,10 @@ public class ImageMapManager implements AutoCloseable {
     private final AtomicInteger mapIndexCounter;
     private final File dataFolder;
     private final AtomicInteger tickCounter;
-    private final Scheduler.ScheduledTask task;
     private final List<ImageMapRenderEventListener> renderEventListeners;
     private final Set<Integer> deletedMapIds;
+
+    private final Scheduler.ScheduledTask tickCounterTask;
 
     public ImageMapManager(File dataFolder) {
         this.maps = new ConcurrentHashMap<>();
@@ -88,7 +90,8 @@ public class ImageMapManager implements AutoCloseable {
         this.tickCounter = new AtomicInteger(0);
         this.renderEventListeners = new CopyOnWriteArrayList<>();
         this.deletedMapIds = ConcurrentHashMap.newKeySet();
-        this.task = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> tickCounter.incrementAndGet(), 0, 1);
+
+        this.tickCounterTask = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> tickCounter.incrementAndGet(), 0, 1);
     }
 
     public File getDataFolder() {
@@ -102,7 +105,7 @@ public class ImageMapManager implements AutoCloseable {
     @Override
     public void close() {
         saveDeletedMaps();
-        task.cancel();
+        tickCounterTask.cancel();
     }
 
     public void appendRenderEventListener(ImageMapRenderEventListener listener) {
@@ -313,9 +316,11 @@ public class ImageMapManager implements AutoCloseable {
                 Scheduler.runTaskLater(ImageFrame.plugin, () -> map.removeRenderer(this), 1);
                 return;
             }
+            Random random = new Random(map.getId());
+            byte[] colors = MapUtils.PALETTE_GRAYSCALE;
             for (int y = 0; y < MapUtils.MAP_WIDTH; y++) {
                 for (int x = 0; x < MapUtils.MAP_WIDTH; x++) {
-                    canvas.setPixel(x, y, MapUtils.PALETTE_WHITE);
+                    canvas.setPixel(x, y, colors[random.nextInt(colors.length)]);
                 }
             }
         }

@@ -182,11 +182,10 @@ public class URLAnimatedImageMap extends URLImageMap {
         this.cachedImages = cachedImages;
         this.pausedAt = pausedAt;
         this.tickOffset = tickOffset;
-        cacheColors();
     }
 
     @Override
-    public void cacheColors() {
+    public void loadColorCache() {
         if (cachedImages == null) {
             return;
         }
@@ -246,7 +245,12 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
-    public void clearCachedColors() {
+    public boolean hasColorCached() {
+        return cachedColors != null;
+    }
+
+    @Override
+    public void unloadColorCache() {
         cachedColors = null;
     }
 
@@ -291,7 +295,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             }
             index++;
         }
-        cacheColors();
+        reloadColorCache();
         Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(this));
         if (save) {
             save();

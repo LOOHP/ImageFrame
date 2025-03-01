@@ -41,7 +41,9 @@ public abstract class NMSWrapper {
 
     public abstract void setColors(MapView mapView, byte[] colors);
 
-    public abstract Set<Player> getViewers(MapView mapView);
+    public abstract Collection<Player> getViewers(MapView mapView);
+
+    public abstract boolean hasViewers(MapView mapView);
 
     public abstract Object toNMSMapIcon(MapCursor mapCursor);
 
