@@ -22,21 +22,26 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 public class ImageMapCacheControlTask implements Runnable, AutoCloseable {
     
     private final ImageMap imageMap;
 
-    private int noViewerCounts;
-    private boolean locked;
+    private final AtomicBoolean locked;
+    private final AtomicBoolean closed;
 
-    private final Scheduler.ScheduledTask task;
+    private final AtomicReference<Scheduler.ScheduledTask> task;
+    private final AtomicInteger noViewerCounts;
 
     public ImageMapCacheControlTask(ImageMap imageMap) {
         this.imageMap = imageMap;
-        this.noViewerCounts = 0;
-        this.locked = false;
-
-        this.task = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, this, 0, 1);
+        this.noViewerCounts = new AtomicInteger(0);
+        this.locked = new AtomicBoolean(false);
+        this.closed = new AtomicBoolean(false);
+        this.task = new AtomicReference<>(Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, this, 5));
     }
 
     public ImageMap getImageMap() {
@@ -44,32 +49,41 @@ public class ImageMapCacheControlTask implements Runnable, AutoCloseable {
     }
 
     public boolean isLocked() {
-        return locked;
+        return locked.get();
     }
 
     public void setLocked(boolean locked) {
-        this.locked = locked;
+        this.locked.set(locked);
     }
 
     @Override
     public void run() {
-        if (locked) {
+        if (closed.get()) {
             return;
         }
-        if (imageMap.hasViewers()) {
-            noViewerCounts = 0;
-            if (!imageMap.hasColorCached()) {
-                imageMap.loadColorCache();
-            }
-        } else {
-            if (noViewerCounts++ > 200 && imageMap.hasColorCached()) {
-                imageMap.unloadColorCache();
+        if (!locked.get()) {
+            if (imageMap.hasViewers()) {
+                noViewerCounts.set(0);
+                if (!imageMap.hasColorCached()) {
+                    imageMap.loadColorCache();
+                }
+            } else {
+                if (noViewerCounts.getAndIncrement() > 200 && imageMap.hasColorCached()) {
+                    imageMap.unloadColorCache();
+                }
             }
         }
+        this.task.set(Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, this, 5));
     }
 
     @Override
     public void close() {
-        task.cancel();
+        closed.set(true);
+        task.updateAndGet(t -> {
+            if (t != null) {
+                t.cancel();
+            }
+            return t;
+        });
     }
 }

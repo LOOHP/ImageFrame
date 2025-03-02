@@ -126,17 +126,17 @@ public abstract class ImageMap {
         return manager;
     }
 
-    public abstract void loadColorCache();
+    protected abstract void loadColorCache();
 
-    public void reloadColorCache() {
+    protected void reloadColorCache() {
         if (hasColorCached()) {
             loadColorCache();
         }
     }
 
-    public abstract boolean hasColorCached();
+    protected abstract boolean hasColorCached();
 
-    public abstract void unloadColorCache();
+    protected abstract void unloadColorCache();
 
     public int getImageIndex() {
         return imageIndex;
