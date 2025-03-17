@@ -363,7 +363,7 @@ public class V1_16 extends NMSWrapper {
         loreLines.add(0, ComponentSerializer.toString(translatableComponent));
         NBTTagList loreLineTagList = new NBTTagList();
         for (int i = 0; i < loreLines.size(); i++) {
-            loreLineTagList.a(i, NBTTagString.a(loreLines.get(i)));
+            loreLineTagList.b(i, NBTTagString.a(loreLines.get(i)));
         }
         displayTag.set("Lore", loreLineTagList);
         ItemStack modified = CraftItemStack.asCraftMirror(nmsItemStack);

@@ -305,7 +305,7 @@ public class V1_20_3 extends NMSWrapper {
         loreLines.add(0, CraftChatMessage.toJSON(IChatBaseComponent.c("effect.minecraft.invisibility").c(ChatModifier.a.c(EnumChatFormat.h).b(false))));
         NBTTagList loreLineTagList = new NBTTagList();
         for (int i = 0; i < loreLines.size(); i++) {
-            loreLineTagList.a(i, NBTTagString.a(loreLines.get(i)));
+            loreLineTagList.b(i, NBTTagString.a(loreLines.get(i)));
         }
         displayTag.a("Lore", loreLineTagList);
         ItemStack modified = CraftItemStack.asCraftMirror(nmsItemStack);
