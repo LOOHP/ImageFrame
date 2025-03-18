@@ -136,28 +136,32 @@ public class ImageUploadManager implements AutoCloseable {
     private class FileHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
-                exchange.sendResponseHeaders(405, -1); // Method Not Allowed
-                return;
-            }
-            if (!webRootDir.exists()) {
-                webRootDir.mkdirs();
-            }
-            File file = resolvePath(webRootDir.toPath().toAbsolutePath(), Paths.get("." + exchange.getRequestURI().getPath())).toFile();
-            byte[] bytes;
-            if (file.exists()) {
-                if (file.isDirectory()) {
-                    bytes = Files.readAllBytes(new File(file, "index.html").toPath());
-                } else {
-                    bytes = Files.readAllBytes(file.toPath());
+            try {
+                if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+                    exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    return;
                 }
-            } else {
-                bytes = Files.readAllBytes(new File(webRootDir, "index.html").toPath());
+                if (!webRootDir.exists()) {
+                    webRootDir.mkdirs();
+                }
+                File file = resolvePath(webRootDir.toPath().toAbsolutePath(), Paths.get("." + exchange.getRequestURI().getPath())).toFile();
+                byte[] bytes;
+                if (file.exists()) {
+                    if (file.isDirectory()) {
+                        bytes = Files.readAllBytes(new File(file, "index.html").toPath());
+                    } else {
+                        bytes = Files.readAllBytes(file.toPath());
+                    }
+                } else {
+                    bytes = Files.readAllBytes(new File(webRootDir, "index.html").toPath());
+                }
+                exchange.getResponseHeaders().set("Content-Type", "text/html");
+                exchange.sendResponseHeaders(200, bytes.length);
+                exchange.getResponseBody().write(bytes);
+                exchange.getResponseBody().close();
+            } finally {
+                exchange.close();
             }
-            exchange.getResponseHeaders().set("Content-Type", "text/html");
-            exchange.sendResponseHeaders(200, bytes.length);
-            exchange.getResponseBody().write(bytes);
-            exchange.getResponseBody().close();
         }
 
         private Path resolvePath(Path baseDirPath, Path userPath) {
@@ -172,78 +176,82 @@ public class ImageUploadManager implements AutoCloseable {
     private class UploadHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
-                exchange.sendResponseHeaders(405, -1);
-                return;
-            }
+            try {
+                if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                    exchange.sendResponseHeaders(405, -1);
+                    return;
+                }
 
-            // Extract query parameters
-            String query = exchange.getRequestURI().getQuery();
-            Map<String, String> queryParams = parseQueryParams(query);
-            String user = queryParams.get("user");
-            String id = queryParams.get("id");
+                // Extract query parameters
+                String query = exchange.getRequestURI().getQuery();
+                Map<String, String> queryParams = parseQueryParams(query);
+                String user = queryParams.get("user");
+                String id = queryParams.get("id");
 
-            PendingUpload pendingUpload = findPendingUpload(user, id);
-            if (pendingUpload == null) {
-                sendResponse(exchange, 400, "{\"error\":\"Invalid or missing user or id\"}");
-                return;
-            }
+                PendingUpload pendingUpload = findPendingUpload(user, id);
+                if (pendingUpload == null) {
+                    sendResponse(exchange, 400, "{\"error\":\"Invalid or missing user or id\"}");
+                    return;
+                }
 
-            List<String> contentType = Arrays.asList(exchange.getRequestHeaders().getFirst("Content-Type").split(";"));
-            if (!contentType.get(0).trim().equals("multipart/form-data")) {
-                sendResponse(exchange, 400, "{\"error\":\"Invalid content type\"}");
-                return;
-            }
-            byte[] boundary = contentType.stream()
-                    .map(s -> s.trim())
-                    .filter(s -> s.startsWith("boundary="))
-                    .findFirst()
-                    .map(s -> s.substring("boundary=".length()).getBytes(StandardCharsets.UTF_8))
-                    .orElse(null);
-            if (boundary == null) {
-                sendResponse(exchange, 400, "{\"error\":\"Invalid multipart boundary\"}");
-                return;
-            }
+                List<String> contentType = Arrays.asList(exchange.getRequestHeaders().getFirst("Content-Type").split(";"));
+                if (!contentType.get(0).trim().equals("multipart/form-data")) {
+                    sendResponse(exchange, 400, "{\"error\":\"Invalid content type\"}");
+                    return;
+                }
+                byte[] boundary = contentType.stream()
+                        .map(s -> s.trim())
+                        .filter(s -> s.startsWith("boundary="))
+                        .findFirst()
+                        .map(s -> s.substring("boundary=".length()).getBytes(StandardCharsets.UTF_8))
+                        .orElse(null);
+                if (boundary == null) {
+                    sendResponse(exchange, 400, "{\"error\":\"Invalid multipart boundary\"}");
+                    return;
+                }
 
-            SizeLimitedByteArrayOutputStream output = new SizeLimitedByteArrayOutputStream(ImageFrame.maxImageFileSize);
+                SizeLimitedByteArrayOutputStream output = new SizeLimitedByteArrayOutputStream(ImageFrame.maxImageFileSize);
 
-            try (InputStream inputStream = exchange.getRequestBody()) {
-                MultipartStream multipartStream = new MultipartStream(inputStream, boundary, 2048, null);
-                boolean nextPart = multipartStream.skipPreamble();
-                while (nextPart) {
-                    List<String> headers = Arrays.asList(multipartStream.readHeaders().split(";"));
-                    String name = headers.stream()
-                            .map(s -> s.trim()).filter(s -> s.startsWith("name="))
-                            .findFirst()
-                            .map(s -> s.substring("name=".length()))
-                            .orElse(null);
-                    if ("image".equals(name) || "\"image\"".equals(name)) {
-                        multipartStream.readBodyData(output);
-                        break;
-                    } else {
-                        multipartStream.discardBodyData();
-                        nextPart = multipartStream.readBoundary();
+                try (InputStream inputStream = exchange.getRequestBody()) {
+                    MultipartStream multipartStream = new MultipartStream(inputStream, boundary, 2048, null);
+                    boolean nextPart = multipartStream.skipPreamble();
+                    while (nextPart) {
+                        List<String> headers = Arrays.asList(multipartStream.readHeaders().split(";"));
+                        String name = headers.stream()
+                                .map(s -> s.trim()).filter(s -> s.startsWith("name="))
+                                .findFirst()
+                                .map(s -> s.substring("name=".length()))
+                                .orElse(null);
+                        if ("image".equals(name) || "\"image\"".equals(name)) {
+                            multipartStream.readBodyData(output);
+                            break;
+                        } else {
+                            multipartStream.discardBodyData();
+                            nextPart = multipartStream.readBoundary();
+                        }
                     }
                 }
+                byte[] fileData = output.toByteArray();
+
+                // Ensure upload directory exists
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdir();
+                }
+
+                // Save the file with UUID as the filename
+                File outputFile = new File(uploadDir, id + ".png");
+                Files.write(outputFile.toPath(), fileData);
+                imagesUploadedCounter.incrementAndGet();
+
+                pendingUploads.remove(UUID.fromString(user));
+                pendingUpload.getFuture().complete(outputFile);
+                Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> outputFile.delete(), EXPIRATION.toMillis() / 50);
+
+                // Send response
+                sendResponse(exchange, 200, "{\"message\":\"File uploaded successfully\"}");
+            } finally {
+                exchange.close();
             }
-            byte[] fileData = output.toByteArray();
-
-            // Ensure upload directory exists
-            if (!uploadDir.exists()) {
-                uploadDir.mkdir();
-            }
-
-            // Save the file with UUID as the filename
-            File outputFile = new File(uploadDir, id + ".png");
-            Files.write(outputFile.toPath(), fileData);
-            imagesUploadedCounter.incrementAndGet();
-
-            pendingUploads.remove(UUID.fromString(user));
-            pendingUpload.getFuture().complete(outputFile);
-            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> outputFile.delete(), EXPIRATION.toMillis() / 50);
-
-            // Send response
-            sendResponse(exchange, 200, "{\"message\":\"File uploaded successfully\"}");
         }
 
         // Parse query parameters from URL
