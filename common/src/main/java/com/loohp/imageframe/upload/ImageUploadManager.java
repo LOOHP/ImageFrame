@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ImageUploadManager implements AutoCloseable {
@@ -86,10 +87,12 @@ public class ImageUploadManager implements AutoCloseable {
             this.pendingUploads = cache.asMap();
             this.imagesUploadedCounter = new AtomicLong(0);
             if (enabled) {
+                System.setProperty("sun.net.httpserver.maxReqTime", "30");
+                System.setProperty("sun.net.httpserver.maxRspTime", "30");
                 this.server = HttpServer.create(new InetSocketAddress(port), 0);
                 this.server.createContext("/", new FileHandler());
                 this.server.createContext("/upload", new UploadHandler());
-                this.server.setExecutor(null);
+                this.server.setExecutor(Executors.newFixedThreadPool(8));
                 this.server.start();
             } else {
                 this.server = null;
