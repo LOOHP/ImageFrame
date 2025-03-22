@@ -326,7 +326,7 @@ public class ImageFrame extends JavaPlugin {
         Scheduler.runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
         invisibleFrameManager = new InvisibleFrameManager();
         imageMapCreationTaskManager = new ImageMapCreationTaskManager(ImageFrame.parallelProcessingLimit);
-        imageUploadManager = new ImageUploadManager(updaterEnabled, uploadServicePort);
+        imageUploadManager = new ImageUploadManager(uploadServiceEnabled, uploadServicePort);
 
         if (isPluginEnabled("PlaceholderAPI")) {
             new Placeholders().register();
