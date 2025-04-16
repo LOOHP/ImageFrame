@@ -26,7 +26,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>1.7.14.7</version>
+    <version>1.8.0.0</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -77,6 +77,10 @@
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <relocations>
+                                <relocation>
+                                    <pattern>com.loohp.platformscheduler</pattern>
+                                    <shadedPattern>com.loohp.interactivechat.libs.com.loohp.platformscheduler</shadedPattern>
+                                </relocation>
                                 <relocation>
                                     <pattern>org.simpleyaml</pattern>
                                     <shadedPattern>com.loohp.imageframe.libs.org.simpleyaml</shadedPattern>
@@ -255,6 +259,12 @@
     </repositories>
 
     <dependencies>
+        <dependency>
+            <groupId>com.loohp</groupId>
+            <artifactId>PlatformScheduler</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>com.viaversion</groupId>
             <artifactId>viaversion-api</artifactId>
@@ -444,6 +454,12 @@
         <dependency>
             <groupId>com.loohp</groupId>
             <artifactId>ImageFrame-V1_21_4</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.loohp</groupId>
+            <artifactId>ImageFrame-V1_21_5</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

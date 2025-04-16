@@ -152,7 +152,11 @@ public class MapUtils {
     }
 
     public static BufferedImage resize(BufferedImage source, int width, int height) {
-        BufferedImage image = new BufferedImage(width * MAP_WIDTH, height * MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
+        return resize(source, width, height, MAP_WIDTH);
+    }
+
+    public static BufferedImage resize(BufferedImage source, int width, int height, int mapWidth) {
+        BufferedImage image = new BufferedImage(width * mapWidth, height * mapWidth, BufferedImage.TYPE_INT_ARGB);
         Graphics g = image.createGraphics();
         double wRatio = (double) image.getWidth() / (double) source.getWidth();
         double hRatio = (double) image.getHeight() / (double) source.getHeight();
@@ -167,20 +171,24 @@ public class MapUtils {
         return image;
     }
 
-    @SuppressWarnings("SuspiciousNameCombination")
     public static BufferedImage getSubImage(BufferedImage source, int x, int y) {
-        int startX = x * MAP_WIDTH;
-        int startY = y * MAP_WIDTH;
+        return getSubImage(source, x, y, MAP_WIDTH);
+    }
+
+    @SuppressWarnings("SuspiciousNameCombination")
+    public static BufferedImage getSubImage(BufferedImage source, int x, int y, int mapWidth) {
+        int startX = x * mapWidth;
+        int startY = y * mapWidth;
         int width = source.getWidth() - startX;
         int height = source.getHeight() - startY;
-        if (width < MAP_WIDTH || height < MAP_WIDTH) {
-            BufferedImage image = new BufferedImage(MAP_WIDTH, MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
+        if (width < mapWidth || height < mapWidth) {
+            BufferedImage image = new BufferedImage(mapWidth, mapWidth, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = image.createGraphics();
             g.drawImage(source.getSubimage(startX, startY, width, height), 0, 0, null);
             g.dispose();
             return image;
         }
-        return source.getSubimage(startX, startY, MAP_WIDTH, MAP_WIDTH);
+        return source.getSubimage(startX, startY, mapWidth, mapWidth);
     }
 
     public static boolean areImagesEqual(BufferedImage img1, BufferedImage img2) {

@@ -23,6 +23,7 @@ package com.loohp.imageframe.objectholders;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.ItemFrameUtils;
 import com.loohp.imageframe.utils.MapUtils;
+import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Rotation;
 import org.bukkit.World;

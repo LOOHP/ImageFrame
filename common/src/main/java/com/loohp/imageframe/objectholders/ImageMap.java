@@ -28,6 +28,7 @@ import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.imageframe.utils.StringUtils;
+import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Rotation;
@@ -40,6 +41,7 @@ import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -137,6 +139,10 @@ public abstract class ImageMap {
     protected abstract boolean hasColorCached();
 
     protected abstract void unloadColorCache();
+
+    public BufferedImage getHighResImage(int mapId) {
+        return null;
+    }
 
     public int getImageIndex() {
         return imageIndex;

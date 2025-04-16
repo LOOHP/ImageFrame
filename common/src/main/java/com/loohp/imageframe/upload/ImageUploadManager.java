@@ -24,10 +24,10 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalNotification;
 import com.loohp.imageframe.ImageFrame;
-import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.FileUtils;
 import com.loohp.imageframe.utils.JarUtils;
 import com.loohp.imageframe.utils.SizeLimitedByteArrayOutputStream;
+import com.loohp.platformscheduler.Scheduler;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -61,7 +61,7 @@ public class ImageUploadManager implements AutoCloseable {
     private final Map<UUID, PendingUpload> pendingUploads;
     private final AtomicLong imagesUploadedCounter;
 
-    public ImageUploadManager(boolean enabled, int port) {
+    public ImageUploadManager(boolean enabled, String host, int port) {
         try {
             this.webRootDir = new File(ImageFrame.plugin.getDataFolder(), "upload/web");
             this.uploadDir = new File(ImageFrame.plugin.getDataFolder(), "upload/images");
@@ -89,7 +89,7 @@ public class ImageUploadManager implements AutoCloseable {
             if (enabled) {
                 System.setProperty("sun.net.httpserver.maxReqTime", "30");
                 System.setProperty("sun.net.httpserver.maxRspTime", "30");
-                this.server = HttpServer.create(new InetSocketAddress(port), 0);
+                this.server = HttpServer.create(new InetSocketAddress(host, port), 8);
                 this.server.createContext("/", new FileHandler());
                 this.server.createContext("/upload", new UploadHandler());
                 this.server.setExecutor(Executors.newFixedThreadPool(8));

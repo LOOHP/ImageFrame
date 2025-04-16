@@ -36,7 +36,6 @@ import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
 import com.loohp.imageframe.objectholders.MutablePair;
-import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.objectholders.URLAnimatedImageMap;
 import com.loohp.imageframe.objectholders.URLImageMap;
 import com.loohp.imageframe.objectholders.URLStaticImageMap;
@@ -50,6 +49,7 @@ import com.loohp.imageframe.utils.MCVersion;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.MathUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
+import com.loohp.platformscheduler.Scheduler;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -202,7 +202,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (ImageFrame.uploadServiceEnabled && url.equalsIgnoreCase("upload")) {
                                             UUID user = isConsole ? ImageMap.CONSOLE_CREATOR : player.getUniqueId();
                                             PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceHost, user))), 2);
+                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user))), 2);
                                             url = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                         }
                                         if (HTTPRequestUtils.getContentSize(url) > ImageFrame.maxImageFileSize) {
@@ -359,7 +359,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (ImageFrame.uploadServiceEnabled && url.equalsIgnoreCase("upload")) {
                                                 UUID user = player.getUniqueId();
                                                 PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                                Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceHost, user))), 2);
+                                                Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user))), 2);
                                                 url = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                             }
                                             if (!ImageFrame.isURLAllowed(url)) {
@@ -797,7 +797,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (ImageFrame.uploadServiceEnabled && urlImageMap.getUrl().equalsIgnoreCase("upload")) {
                                             UUID user = !(sender instanceof Player) ? ImageMap.CONSOLE_CREATOR : ((Player) sender).getUniqueId();
                                             PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceHost, user))), 2);
+                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sender.sendMessage(ImageFrame.messageUploadLink.replace("{URL}", pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user))), 2);
                                             String newUrl = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                             if (HTTPRequestUtils.getContentSize(newUrl) > ImageFrame.maxImageFileSize) {
                                                 sender.sendMessage(ImageFrame.messageImageOverMaxFileSize.replace("{Size}", ImageFrame.maxImageFileSize + ""));

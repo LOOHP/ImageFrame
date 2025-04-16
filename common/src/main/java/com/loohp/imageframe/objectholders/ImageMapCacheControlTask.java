@@ -21,6 +21,8 @@
 package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.platformscheduler.ScheduledTask;
+import com.loohp.platformscheduler.Scheduler;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,7 +35,7 @@ public class ImageMapCacheControlTask implements Runnable, AutoCloseable {
     private final AtomicBoolean locked;
     private final AtomicBoolean closed;
 
-    private final AtomicReference<Scheduler.ScheduledTask> task;
+    private final AtomicReference<ScheduledTask> task;
     private final AtomicInteger noViewerCounts;
 
     public ImageMapCacheControlTask(ImageMap imageMap) {

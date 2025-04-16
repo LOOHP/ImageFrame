@@ -22,7 +22,7 @@ package com.loohp.imageframe.utils;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
-import com.loohp.imageframe.objectholders.Scheduler;
+import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;

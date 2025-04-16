@@ -22,6 +22,9 @@ permissions:
   imageframe.create.animated:
     default: op
     description: Allow players to create new animated image maps
+  imageframe.create.highres:
+    default: op
+    description: Allow players to create new image maps with highres value
   imageframe.create.others:
     default: op
     description: Allow players to create image maps for other players, applies to overlay and clone, bypasses owning limit

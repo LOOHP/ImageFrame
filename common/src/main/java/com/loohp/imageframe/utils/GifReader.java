@@ -20,7 +20,7 @@
 
 package com.loohp.imageframe.utils;
 
-import com.loohp.imageframe.objectholders.Scheduler;
+import com.loohp.platformscheduler.Scheduler;
 import com.madgag.gif.fmsware.GifDecoder;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;

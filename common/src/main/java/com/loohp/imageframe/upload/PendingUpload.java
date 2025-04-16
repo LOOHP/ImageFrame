@@ -65,12 +65,12 @@ public class PendingUpload {
         }
     }
 
-    public String getUrl(String host, UUID user) {
+    public String getUrl(String domain, UUID user) {
         String name = Bukkit.getOfflinePlayer(user).getName();
         if (name == null) {
-            return host + "?user=" + user + "&id=" + id + "&expire=" + expire;
+            return domain + "?user=" + user + "&id=" + id + "&expire=" + expire;
         } else {
-            return host + "?user=" + user + "&id=" + id + "&expire=" + expire + "&name=" + name;
+            return domain + "?user=" + user + "&id=" + id + "&expire=" + expire + "&name=" + name;
         }
     }
 }

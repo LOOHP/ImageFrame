@@ -21,8 +21,8 @@
 package com.loohp.imageframe.updater;
 
 import com.loohp.imageframe.ImageFrame;
-import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
+import com.loohp.platformscheduler.Scheduler;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;

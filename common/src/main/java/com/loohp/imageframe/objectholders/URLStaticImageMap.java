@@ -28,6 +28,7 @@ import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.MapUtils;
+import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;

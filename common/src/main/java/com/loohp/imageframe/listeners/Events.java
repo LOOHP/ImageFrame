@@ -22,9 +22,10 @@ package com.loohp.imageframe.listeners;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
-import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.ModernEventsUtils;
+import com.loohp.platformscheduler.Scheduler;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -280,18 +281,21 @@ public class Events implements Listener {
         if (ModernEventsUtils.modernEventsExists()) {
             return;
         }
-        for (Entity entity : event.getChunk().getEntities()) {
-            if (entity instanceof ItemFrame) {
-                ItemFrame itemFrame = (ItemFrame) entity;
-                ItemStack itemStack = itemFrame.getItem();
-                MapView mapView = MapUtils.getItemMapView(itemStack);
-                if (mapView != null) {
-                    if (ImageFrame.imageMapManager.isMapDeleted(mapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(mapView.getId())) {
-                        Scheduler.runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false), itemFrame);
+        Chunk chunk = event.getChunk();
+        Scheduler.executeOrScheduleSync(ImageFrame.plugin, () -> {
+            for (Entity entity : chunk.getEntities()) {
+                if (entity instanceof ItemFrame) {
+                    ItemFrame itemFrame = (ItemFrame) entity;
+                    ItemStack itemStack = itemFrame.getItem();
+                    MapView mapView = MapUtils.getItemMapView(itemStack);
+                    if (mapView != null) {
+                        if (ImageFrame.imageMapManager.isMapDeleted(mapView) && !ImageFrame.exemptMapIdsFromDeletion.satisfies(mapView.getId())) {
+                            Scheduler.runTask(ImageFrame.plugin, () -> itemFrame.setItem(new ItemStack(Material.MAP, itemStack.getAmount()), false), itemFrame);
+                        }
                     }
                 }
             }
-        }
+        }, chunk);
     }
 
     public static class ModernEvents implements Listener {

@@ -22,6 +22,8 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.ThrowingSupplier;
+import com.loohp.platformscheduler.ScheduledTask;
+import com.loohp.platformscheduler.Scheduler;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -41,7 +43,7 @@ public class ImageMapCreationTask<T> extends CompletableFuture<T> implements Run
     private final UUID creator;
     private final ThrowingSupplier<T> creationTask;
 
-    private final Scheduler.ScheduledTask monitorTask;
+    private final ScheduledTask monitorTask;
     private final String queuingMessageTemplate;
     private final String processingMessageTemplate;
 

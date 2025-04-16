@@ -154,10 +154,15 @@ UploadService:
   #Changing this value requires a restart
   Enabled: true
   #This is only used for displaying to the end user
-  Host: "http://change.this.to.your.server.ip.in.the.config"
-  #Port in which the webserver is hosted, make sure it is not blocked by your firewall
-  #Changing this value requires a restart
-  Port: 8517
+  DisplayURL: "http://change.this.to.your.server.ip.in.the.config"
+  WebServer:
+    #Address in which the webserver binds to, defaults to 0.0.0.0
+    #Use 127.0.0.1 to limit to local access
+    #Changing this value requires a restart
+    Host: "0.0.0.0"
+    #Port in which the webserver is hosted, make sure it is not blocked by your firewall
+    #Changing this value requires a restart
+    Port: 8517
 
 #ImageFrame's built in survival friendly way of making invisible item frames
 InvisibleFrame:

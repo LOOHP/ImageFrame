@@ -22,8 +22,9 @@ package com.loohp.imageframe.invisibleframe;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
-import com.loohp.imageframe.objectholders.Scheduler;
 import com.loohp.imageframe.utils.MCVersion;
+import com.loohp.platformscheduler.ScheduledTask;
+import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -163,10 +164,10 @@ public class InvisibleFrameManager implements Listener {
             if (ImageFrame.invisibleFrameGlowEmptyFrames) {
                 itemFrame.setGlowing(true);
             }
-            itemFrame.setInvisible(false);
+            itemFrame.setVisible(true);
         } else {
             itemFrame.setGlowing(false);
-            itemFrame.setInvisible(true);
+            itemFrame.setVisible(false);
         }
     }
 
@@ -320,7 +321,7 @@ public class InvisibleFrameManager implements Listener {
             return;
         }
         AtomicReference<Runnable> runnableReference = new AtomicReference<>(null);
-        AtomicReference<Scheduler.ScheduledTask> taskReference = new AtomicReference<>(null);
+        AtomicReference<ScheduledTask> taskReference = new AtomicReference<>(null);
         runnableReference.set(new Runnable() {
             int conversionsRemaining = ImageFrame.invisibleFrameMaxConversionsPerSplash;
             boolean firstTick = true;
@@ -329,7 +330,7 @@ public class InvisibleFrameManager implements Listener {
                 if (firstTick) {
                     firstTick = false;
                 } else if (!areaEffectCloud.isValid()) {
-                    Scheduler.ScheduledTask task = taskReference.get();
+                    ScheduledTask task = taskReference.get();
                     if (task != null) {
                         task.cancel();
                     }

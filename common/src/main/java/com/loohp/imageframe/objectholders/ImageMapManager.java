@@ -28,6 +28,8 @@ import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.FileUtils;
 import com.loohp.imageframe.utils.MapUtils;
+import com.loohp.platformscheduler.ScheduledTask;
+import com.loohp.platformscheduler.Scheduler;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -80,7 +82,7 @@ public class ImageMapManager implements AutoCloseable {
     private final List<ImageMapRenderEventListener> renderEventListeners;
     private final Set<Integer> deletedMapIds;
 
-    private final Scheduler.ScheduledTask tickCounterTask;
+    private final ScheduledTask tickCounterTask;
 
     public ImageMapManager(File dataFolder) {
         this.maps = new ConcurrentHashMap<>();
@@ -163,6 +165,10 @@ public class ImageMapManager implements AutoCloseable {
     }
 
     public ImageMap getFromMapId(int id) {
+        MapView mapView = Bukkit.getMap(id);
+        if (mapView == null) {
+            return null;
+        }
         return getFromMapView(Bukkit.getMap(id));
     }
 

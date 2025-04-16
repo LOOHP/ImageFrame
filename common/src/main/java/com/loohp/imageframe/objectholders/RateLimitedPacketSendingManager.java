@@ -22,6 +22,7 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
+import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
