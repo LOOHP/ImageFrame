@@ -158,6 +158,7 @@ public class V1_21_5 extends NMSWrapper {
     @Override
     public int getNextAvailableMapId(World world) {
         try {
+            persistentIdCountsLastMapIdField.setAccessible(true);
             WorldServer worldServer = ((CraftWorld) world).getHandle();
             PersistentIdCounts persistentIdCounts = worldServer.p().J().w().a(PersistentIdCounts.b);
             return persistentIdCountsLastMapIdField.getInt(persistentIdCounts) + 1;
