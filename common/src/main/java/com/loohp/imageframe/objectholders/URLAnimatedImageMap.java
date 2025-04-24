@@ -183,6 +183,7 @@ public class URLAnimatedImageMap extends URLImageMap {
         this.cachedImages = cachedImages;
         this.pausedAt = pausedAt;
         this.tickOffset = tickOffset;
+        this.cacheControlTask.loadCacheIfManual();
     }
 
     @Override

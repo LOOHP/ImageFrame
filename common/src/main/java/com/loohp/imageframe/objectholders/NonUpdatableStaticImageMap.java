@@ -181,6 +181,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
     protected NonUpdatableStaticImageMap(ImageMapManager manager, int imageIndex, String name, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
+        this.cacheControlTask.loadCacheIfManual();
     }
 
     @Override

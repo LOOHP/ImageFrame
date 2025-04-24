@@ -148,6 +148,16 @@ Settings:
   #Changing this option requires a restart
   HandleAnimatedMapsOnMainThread: false
   SendAnimatedMapsOnMainThread: false
+  #Valid modes are "DYNAMIC" and "MANUAL_PERSISTENT"
+  #DYNAMIC: load and unload image cache depending on whether a player is viewing
+  #May use more CPU and image might appear with a slight delay
+  #MANUAL_PERSISTENT: image cache stay loaded from server start
+  #May use more memory
+  #Changing this setting requires a restart
+  CacheControlMode: "DYNAMIC"
+  #Set this to true if you have corrupted 0 size map data in the world folder (not the ImageFrame plugin folder)
+  #Set this to false if your system's file IO is slow
+  TryDeleteBlankMapFiles: false
 
 #ImageFrame's convenient upload system where you can upload directly through an embedded web server
 UploadService:

@@ -20,15 +20,35 @@
 
 package com.loohp.imageframe.objectholders;
 
-public interface ImageMapCacheControlTask extends AutoCloseable {
+import java.util.concurrent.atomic.AtomicBoolean;
 
-    ImageMap getImageMap();
+public class ImageMapManualPersistentCacheControlTask implements ImageMapCacheControlTask {
 
-    void loadCacheIfManual();
+    private final ImageMap imageMap;
+    private final AtomicBoolean closed;
 
-    boolean isClosed();
+    public ImageMapManualPersistentCacheControlTask(ImageMap imageMap) {
+        this.imageMap = imageMap;
+        this.closed = new AtomicBoolean(false);
+    }
 
     @Override
-    void close();
+    public ImageMap getImageMap() {
+        return imageMap;
+    }
 
+    @Override
+    public void loadCacheIfManual() {
+        imageMap.loadColorCache();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed.get();
+    }
+
+    @Override
+    public void close() {
+        closed.set(true);
+    }
 }

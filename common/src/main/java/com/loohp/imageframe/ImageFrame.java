@@ -32,6 +32,7 @@ import com.loohp.imageframe.objectholders.IFPlayerManager;
 import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
+import com.loohp.imageframe.objectholders.ImageMapCacheControlMode;
 import com.loohp.imageframe.objectholders.ImageMapCreationTaskManager;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.IntRange;
@@ -170,6 +171,9 @@ public class ImageFrame extends JavaPlugin {
     public static boolean mapRenderersContextual;
     public static boolean handleAnimatedMapsOnMainThread;
     public static boolean sendAnimatedMapsOnMainThread;
+
+    public static ImageMapCacheControlMode<?> cacheControlMode;
+    public static boolean tryDeleteBlankMapFiles;
 
     public static boolean uploadServiceEnabled;
     public static String uploadServiceDisplayURL;
@@ -480,6 +484,9 @@ public class ImageFrame extends JavaPlugin {
         mapRenderersContextual = config.getConfiguration().getBoolean("Settings.MapRenderersContextual");
         handleAnimatedMapsOnMainThread = config.getConfiguration().getBoolean("Settings.HandleAnimatedMapsOnMainThread");
         sendAnimatedMapsOnMainThread = config.getConfiguration().getBoolean("Settings.SendAnimatedMapsOnMainThread");
+
+        cacheControlMode = ImageMapCacheControlMode.valueOf(config.getConfiguration().getString("Settings.CacheControlMode"));
+        tryDeleteBlankMapFiles = config.getConfiguration().getBoolean("Settings.TryDeleteBlankMapFiles");
 
         uploadServiceEnabled = config.getConfiguration().getBoolean("UploadService.Enabled");
         uploadServiceDisplayURL = config.getConfiguration().getString("UploadService.DisplayURL");

@@ -448,11 +448,13 @@ public class MapUtils {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void tryDeleteBlankDataFile(World world, int mapId) {
-        File dataFolder = getWorldDataFolder(world);
-        if (dataFolder.exists() && dataFolder.isDirectory()) {
-            File mapFile = new File(dataFolder, "map_" + mapId + ".dat");
-            if (mapFile.exists() && mapFile.length() <= 0) {
-                mapFile.delete();
+        if (ImageFrame.tryDeleteBlankMapFiles) {
+            File dataFolder = getWorldDataFolder(world);
+            if (dataFolder.exists() && dataFolder.isDirectory()) {
+                File mapFile = new File(dataFolder, "map_" + mapId + ".dat");
+                if (mapFile.exists() && mapFile.length() <= 0) {
+                    mapFile.delete();
+                }
             }
         }
     }

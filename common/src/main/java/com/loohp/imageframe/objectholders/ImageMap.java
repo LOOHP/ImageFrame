@@ -92,7 +92,7 @@ public abstract class ImageMap {
     protected ImageMapAccessControl accessControl;
     protected final long creationTime;
 
-    private final ImageMapCacheControlTask cacheControlTask;
+    protected final ImageMapCacheControlTask cacheControlTask;
     private boolean isValid;
 
     public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
@@ -118,7 +118,7 @@ public abstract class ImageMap {
         this.accessControl = new ImageMapAccessControl(this, hasAccess);
         this.creationTime = creationTime;
 
-        this.cacheControlTask = new ImageMapCacheControlTask(this);
+        this.cacheControlTask = ImageFrame.cacheControlMode.newInstance(this);
         this.isValid = true;
 
         this.accessControl.setPermissionWithoutSave(creator, null);
