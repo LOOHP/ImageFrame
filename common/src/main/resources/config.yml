@@ -154,7 +154,7 @@ Settings:
   #MANUAL_PERSISTENT: image cache stay loaded from server start
   #May use more memory
   #Changing this setting requires a restart
-  CacheControlMode: "DYNAMIC"
+  CacheControlMode: "MANUAL_PERSISTENT"
   #Set this to true if you have corrupted 0 size map data in the world folder (not the ImageFrame plugin folder)
   #Set this to false if your system's file IO is slow
   TryDeleteBlankMapFiles: false
