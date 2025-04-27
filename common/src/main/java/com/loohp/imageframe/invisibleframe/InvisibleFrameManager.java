@@ -102,16 +102,18 @@ public class InvisibleFrameManager implements Listener {
 
     private void addRecipes() {
         ItemStack result = new ItemStack(Material.valueOf("GLOW_ITEM_FRAME"));
-        CraftingRecipe vanillaRecipe = (CraftingRecipe) Bukkit.getRecipesFor(result).stream()
-                .filter(r -> r instanceof CraftingRecipe)
-                .findFirst()
-                .orElse(null);
         ShapelessRecipe recipe = new ShapelessRecipe(INVISIBLE_GLOW_ITEM_FRAME_CRAFTING_KEY, withInvisibleItemFrameData(result))
                 .addIngredient(Material.valueOf("GLOW_INK_SAC"))
                 .addIngredient(new RecipeChoice.ExactChoice(withInvisibleItemFrameData(new ItemStack(Material.ITEM_FRAME))));
-        if (vanillaRecipe != null) {
-            recipe.setCategory(vanillaRecipe.getCategory());
-            recipe.setGroup(vanillaRecipe.getGroup());
+        if (ImageFrame.version.isNewerOrEqualTo(MCVersion.V1_20)) {
+            CraftingRecipe vanillaRecipe = (CraftingRecipe) Bukkit.getRecipesFor(result).stream()
+                    .filter(r -> r instanceof CraftingRecipe)
+                    .findFirst()
+                    .orElse(null);
+            if (vanillaRecipe != null) {
+                recipe.setCategory(vanillaRecipe.getCategory());
+                recipe.setGroup(vanillaRecipe.getGroup());
+            }
         }
         Bukkit.addRecipe(recipe);
     }
