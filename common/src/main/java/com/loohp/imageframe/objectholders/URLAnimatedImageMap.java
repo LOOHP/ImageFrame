@@ -417,7 +417,7 @@ public class URLAnimatedImageMap extends URLImageMap {
 
     @Override
     public Set<Integer> getFakeMapIds() {
-        return fakeMapIdsSet == null ? Collections.emptySet() : fakeMapIdsSet;
+        return fakeMapIdsSet;
     }
 
     @Override

@@ -183,6 +183,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 }
             }
             ImageMap imageMap = animationData.getImageMap();
+
             if (!imageMap.requiresAnimationService()) {
                 data.setAnimationData(AnimationData.EMPTY);
                 continue;
@@ -195,8 +196,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             }
             Set<Player> requiresSending = new HashSet<>();
             Set<Player> needReset = new HashSet<>();
-            Iterator<Player> itr = players.iterator();
-            while (itr.hasNext()) {
+            for (Iterator<Player> itr = players.iterator(); itr.hasNext();) {
                 Player player = itr.next();
                 MapMarkerEditManager.MapMarkerEditData edit = ImageFrame.mapMarkerEditManager.getActiveEditing(player);
                 if (edit != null && Objects.equals(edit.getImageMap(), imageMap)) {
@@ -208,8 +208,11 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 Set<Integer> pendingKnownIds = pendingKnownMapIds.get(player);
                 if (knownIds != null && !knownIds.contains(mapId)) {
                     if (pendingKnownIds != null && !pendingKnownIds.contains(mapId)) {
-                        pendingKnownIds.addAll(imageMap.getFakeMapIds());
-                        requiresSending.add(player);
+                        Set<Integer> fakeMapIds = imageMap.getFakeMapIds();
+                        if (fakeMapIds != null) {
+                            pendingKnownIds.addAll(fakeMapIds);
+                            requiresSending.add(player);
+                        }
                     }
                     itr.remove();
                 }
@@ -368,11 +371,13 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
         Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
             Set<Integer> ids = imageMap.getFakeMapIds();
-            for (Set<Integer> knownIds : knownMapIds.values()) {
-                knownIds.removeAll(ids);
-            }
-            for (Set<Integer> pendingKnownIds : pendingKnownMapIds.values()) {
-                pendingKnownIds.removeAll(ids);
+            if (ids != null) {
+                for (Set<Integer> knownIds : knownMapIds.values()) {
+                    knownIds.removeAll(ids);
+                }
+                for (Set<Integer> pendingKnownIds : pendingKnownMapIds.values()) {
+                    pendingKnownIds.removeAll(ids);
+                }
             }
         });
     }

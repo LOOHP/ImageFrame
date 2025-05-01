@@ -133,6 +133,8 @@ public abstract class ImageMap {
     protected void reloadColorCache() {
         if (hasColorCached()) {
             loadColorCache();
+        } else {
+            cacheControlTask.loadCacheIfManual();
         }
     }
 
