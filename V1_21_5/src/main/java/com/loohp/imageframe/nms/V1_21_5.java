@@ -83,6 +83,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -97,7 +98,13 @@ public class V1_21_5 extends NMSWrapper {
         try {
             nmsEntityByteDataWatcherField = ReflectionUtils.findDeclaredField(net.minecraft.world.entity.Entity.class, DataWatcherObject.class, "DATA_SHARED_FLAGS_ID", "am");
             craftMapViewWorldMapField = CraftMapView.class.getDeclaredField("worldMap");
-            persistentIdCountsLastMapIdField = ReflectionUtils.findDeclaredField(PersistentIdCounts.class, int.class, "lastMapId", "d");
+            Field persistentIdCountsLastMapIdField0;
+            try {
+                persistentIdCountsLastMapIdField0 = ReflectionUtils.findDeclaredField(PersistentIdCounts.class, int.class, "lastMapId", "d");
+            } catch (NoSuchFieldException e) {
+                persistentIdCountsLastMapIdField0 = ReflectionUtils.findDeclaredField(PersistentIdCounts.class, AtomicInteger.class, "lastMapId", "d");
+            }
+            persistentIdCountsLastMapIdField = persistentIdCountsLastMapIdField0;
             renderDataCursorsField = RenderData.class.getField("cursors");
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
@@ -161,7 +168,12 @@ public class V1_21_5 extends NMSWrapper {
             persistentIdCountsLastMapIdField.setAccessible(true);
             WorldServer worldServer = ((CraftWorld) world).getHandle();
             PersistentIdCounts persistentIdCounts = worldServer.p().J().w().a(PersistentIdCounts.b);
-            return persistentIdCountsLastMapIdField.getInt(persistentIdCounts) + 1;
+            if (persistentIdCountsLastMapIdField.getType().equals(AtomicInteger.class)) {
+                AtomicInteger atomicInteger = (AtomicInteger) persistentIdCountsLastMapIdField.get(persistentIdCounts);
+                return atomicInteger.get() + 1;
+            } else {
+                return persistentIdCountsLastMapIdField.getInt(persistentIdCounts) + 1;
+            }
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -183,8 +195,13 @@ public class V1_21_5 extends NMSWrapper {
             MapId mapId = new MapId(id);
             worldServer.a(mapId, worldMap);
             PersistentIdCounts persistentIdCounts = worldServer.p().J().w().a(PersistentIdCounts.b);
-            int lastMapId = persistentIdCountsLastMapIdField.getInt(persistentIdCounts);
-            persistentIdCountsLastMapIdField.setInt(persistentIdCounts, Math.max(lastMapId, id));
+            if (persistentIdCountsLastMapIdField.getType().equals(AtomicInteger.class)) {
+                AtomicInteger atomicInteger = (AtomicInteger) persistentIdCountsLastMapIdField.get(persistentIdCounts);
+                atomicInteger.getAndUpdate(lastMapId -> Math.max(lastMapId, id));
+            } else {
+                int lastMapId = persistentIdCountsLastMapIdField.getInt(persistentIdCounts);
+                persistentIdCountsLastMapIdField.setInt(persistentIdCounts, Math.max(lastMapId, id));
+            }
             persistentIdCounts.f();
             return Bukkit.getMap(id);
         } catch (IllegalAccessException e) {
