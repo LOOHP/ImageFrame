@@ -26,7 +26,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>1.8.2.0</version>
+    <version>1.8.3.0</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -292,25 +292,25 @@
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-gson</artifactId>
-            <version>4.18.0</version>
+            <version>4.23.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-legacy</artifactId>
-            <version>4.18.0</version>
+            <version>4.23.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-plain</artifactId>
-            <version>4.18.0</version>
+            <version>4.23.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-api</artifactId>
-            <version>4.18.0</version>
+            <version>4.23.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -460,6 +460,12 @@
         <dependency>
             <groupId>com.loohp</groupId>
             <artifactId>ImageFrame-V1_21_5</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.loohp</groupId>
+            <artifactId>ImageFrame-V1_21_6</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

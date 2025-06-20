@@ -37,6 +37,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -98,16 +99,24 @@ public class IFPlayerManager implements AutoCloseable, Listener {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(file.toPath()), StandardCharsets.UTF_8))) {
                     return IFPlayer.load(this, GSON.fromJson(reader, JsonObject.class));
                 } catch (Exception e) {
-                    throw new RuntimeException("Unable to load ImageFrame player data from " + file.getAbsolutePath(), e);
-                }
-            } else {
-                try {
-                    return IFPlayer.create(this, uuid);
-                } catch (Exception e) {
-                    throw new RuntimeException("Unable to create ImageFrame player data for " + uuid, e);
+                    new RuntimeException("Unable to load ImageFrame player data from " + file.getAbsolutePath(), e).printStackTrace();
+                    try {
+                        Files.copy(file.toPath(), new File(file.getParentFile(), file.getName() + ".bak").toPath());
+                    } catch (IOException ex) {
+                        new RuntimeException("Unable to backup ImageFrame player data from " + file.getAbsolutePath(), ex).printStackTrace();
+                    }
                 }
             }
+            return createNewIfPlayer(uuid);
         });
+    }
+
+    private IFPlayer createNewIfPlayer(UUID uuid) {
+        try {
+            return IFPlayer.create(this, uuid);
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to create ImageFrame player data for " + uuid, e);
+        }
     }
 
 }
