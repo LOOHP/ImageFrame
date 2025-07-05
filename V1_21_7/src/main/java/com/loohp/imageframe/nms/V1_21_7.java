@@ -87,14 +87,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
-public class V1_21_6 extends NMSWrapper {
+public class V1_21_7 extends NMSWrapper {
 
     private final Field nmsEntityByteDataWatcherField;
     private final Field craftMapViewWorldMapField;
     private final Field persistentIdCountsLastMapIdField;
     private final Field renderDataCursorsField;
 
-    public V1_21_6() {
+    public V1_21_7() {
         try {
             nmsEntityByteDataWatcherField = ReflectionUtils.findDeclaredField(net.minecraft.world.entity.Entity.class, DataWatcherObject.class, "DATA_SHARED_FLAGS_ID", "az");
             craftMapViewWorldMapField = CraftMapView.class.getDeclaredField("worldMap");
@@ -277,7 +277,7 @@ public class V1_21_6 extends NMSWrapper {
 
     @Override
     public void sendPacket(Player player, Object packet) {
-        ((CraftPlayer) player).getHandle().g.sendPacket((Packet<?>) packet);
+        ((CraftPlayer) player).getHandle().g.b((Packet<?>) packet);
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
