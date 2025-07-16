@@ -20,32 +20,21 @@
 
 package com.loohp.imageframe.utils;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import com.loohp.imageframe.ImageFrame;
+import com.loohp.platformscheduler.Scheduler;
+import org.bukkit.Chunk;
+import org.bukkit.command.BlockCommandSender;
+import org.bukkit.command.CommandSender;
 
-public class DataTypeIO {
-	
-	public static int readVarInt(DataInputStream in) throws IOException {
-		int i = 0;
-		int j = 0;
-		byte b;
-		do {
-			b = in.readByte();
-			i |= (b & 127) << j++ * 7;
-			if (j > 5) {
-				throw new RuntimeException("VarInt too big");
-			}
-		} while ((b & 128) == 128);
-		return i;
-	}
-	
-	public static void writeVarInt(DataOutputStream out, int value) throws IOException {
-		while ((value & -128) != 0) {
-			out.writeByte(value & 127 | 128);
-			value >>>= 7;
-		}
-		out.writeByte(value);
-	}
+public class CommandSenderUtils {
+
+    public static void sendMessage(CommandSender sender, String message) {
+        if (sender instanceof BlockCommandSender) {
+            Chunk chunk = ((BlockCommandSender) sender).getBlock().getChunk();
+            Scheduler.executeOrScheduleSync(ImageFrame.plugin, () -> sender.sendMessage(message), chunk);
+        } else {
+            sender.sendMessage(message);
+        }
+    }
 
 }
