@@ -65,6 +65,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public class AnimatedFakeMapManager implements Listener, Runnable {
 
@@ -92,46 +93,60 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
     }
 
-    private Map<UUID, CompletableFuture<ItemFrameInfo>> collectItemFramesInfo(boolean async) {
+    private Map<UUID, CompletableFuture<ItemFrameInfo>> collectItemFramesInfo() {
         Map<UUID, CompletableFuture<ItemFrameInfo>> futures = new HashMap<>();
+
         for (Map.Entry<UUID, TrackedItemFrameData> entry : itemFrames.entrySet()) {
             UUID uuid = entry.getKey();
             ItemFrame itemFrame = entry.getValue().getItemFrame();
+
             CompletableFuture<ItemFrameInfo> future = new CompletableFuture<>();
+
             Runnable task = () -> {
                 try {
-                    if (itemFrame.isValid()) {
-                        Set<Player> trackedPlayers;
-                        if (Scheduler.getPlatform() instanceof FoliaScheduler) {
-                            try {
-                                //noinspection deprecation
-                                trackedPlayers = itemFrame.getTrackedPlayers();
-                            } catch (Throwable e) {
-                                trackedPlayers = NMS.getInstance().getEntityTrackers(itemFrame);
-                            }
-                        } else {
+                    if (!itemFrame.isValid()) {
+                        future.complete(null);
+                        return;
+                    }
+                    Set<Player> trackedPlayers;
+                    if (Scheduler.getPlatform() instanceof FoliaScheduler) {
+                        try {
+                            //noinspection deprecation
+                            trackedPlayers = itemFrame.getTrackedPlayers();
+                        } catch (Throwable e) {
                             trackedPlayers = NMS.getInstance().getEntityTrackers(itemFrame);
                         }
-                        future.complete(new ItemFrameInfo(itemFrame.getEntityId(), trackedPlayers, itemFrame.getItem()));
                     } else {
-                        future.complete(null);
+                        trackedPlayers = NMS.getInstance().getEntityTrackers(itemFrame);
                     }
+                    // Prepare off-thread-safe copies only
+                    int entityId = itemFrame.getEntityId();
+                    ItemStack itemCopy = itemFrame.getItem() == null ? null : itemFrame.getItem().clone();
+                    Set<UUID> trackedPlayerIds = (trackedPlayers == null || trackedPlayers.isEmpty())
+                            ? Collections.emptySet()
+                            : Collections.unmodifiableSet(
+                            trackedPlayers.stream()
+                                    .filter(Objects::nonNull)
+                                    .map(Player::getUniqueId)
+                                    .collect(Collectors.toSet())
+                    );
+
+                    future.complete(new ItemFrameInfo(entityId, trackedPlayerIds, itemCopy));
                 } catch (Throwable e) {
                     future.completeExceptionally(e);
                 }
             };
-            if (async) {
-                task.run();
-            } else {
-                Scheduler.executeOrScheduleSync(ImageFrame.plugin, task, itemFrame);
-            }
+
+            Scheduler.executeOrScheduleSync(ImageFrame.plugin, task, itemFrame);
+
             futures.put(uuid, future);
         }
+
         return futures;
     }
 
     public void run() {
-        Map<UUID, CompletableFuture<ItemFrameInfo>> entityTrackers = collectItemFramesInfo(!ImageFrame.handleAnimatedMapsOnMainThread);
+        Map<UUID, CompletableFuture<ItemFrameInfo>> entityTrackers = collectItemFramesInfo();
         Map<Player, List<FakeItemUtils.ItemFrameUpdateData>> updateData = new HashMap<>();
         long deadline = System.currentTimeMillis() + 2000;
         for (Map.Entry<UUID, CompletableFuture<ItemFrameInfo>> entry : entityTrackers.entrySet()) {
