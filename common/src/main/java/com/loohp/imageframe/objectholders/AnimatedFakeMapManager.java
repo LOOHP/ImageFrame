@@ -93,6 +93,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
     }
 
     private Map<UUID, CompletableFuture<ItemFrameInfo>> collectItemFramesInfo(boolean async) {
+        boolean isFolia = Scheduler.getPlatform() instanceof FoliaScheduler;
         Map<UUID, CompletableFuture<ItemFrameInfo>> futures = new HashMap<>();
         for (Map.Entry<UUID, TrackedItemFrameData> entry : itemFrames.entrySet()) {
             UUID uuid = entry.getKey();
@@ -102,7 +103,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                 try {
                     if (itemFrame.isValid()) {
                         Set<Player> trackedPlayers;
-                        if (Scheduler.getPlatform() instanceof FoliaScheduler) {
+                        if (isFolia) {
                             try {
                                 //noinspection deprecation
                                 trackedPlayers = itemFrame.getTrackedPlayers();
@@ -120,7 +121,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                     future.completeExceptionally(e);
                 }
             };
-            if (async) {
+            if (async && !isFolia) {
                 task.run();
             } else {
                 Scheduler.executeOrScheduleSync(ImageFrame.plugin, task, itemFrame);
