@@ -27,7 +27,7 @@
     <parent>
         <groupId>com.loohp</groupId>
         <artifactId>ImageFrame-Parent</artifactId>
-        <version>1.8.6.0</version>
+        <version>1.8.7.0</version>
     </parent>
 
     <artifactId>ImageFrame-V1_18_2</artifactId>
@@ -48,25 +48,25 @@
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-gson</artifactId>
-            <version>4.23.0</version>
+            <version>4.25.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-legacy</artifactId>
-            <version>4.23.0</version>
+            <version>4.25.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-plain</artifactId>
-            <version>4.23.0</version>
+            <version>4.25.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-api</artifactId>
-            <version>4.23.0</version>
+            <version>4.25.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
