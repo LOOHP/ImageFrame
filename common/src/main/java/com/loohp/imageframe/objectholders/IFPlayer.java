@@ -103,10 +103,16 @@ public class IFPlayer {
         JsonObject json = new JsonObject();
         json.addProperty("uuid", uuid.toString());
         JsonObject preferenceJson = new JsonObject();
+		int propertiesAdded = 0;
         for (Map.Entry<IFPlayerPreference<?>, Object> entry : preferences.entrySet()) {
             IFPlayerPreference<?> preference = entry.getKey();
-            preferenceJson.add(preference.getJsonName(), preference.getSerializer(Object.class).apply(entry.getValue()));
+			final Object value = entry.getValue();
+			if (value != preference.getDefaultValue(this)) {
+				preferenceJson.add(preference.getJsonName(), preference.getSerializer(Object.class).apply(entry.getValue()));
+				propertiesAdded++;
+			}
         }
+		if (propertiesAdded == 0) return;
         json.add("preferences", preferenceJson);
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8))) {
             pw.println(GSON.toJson(json));
