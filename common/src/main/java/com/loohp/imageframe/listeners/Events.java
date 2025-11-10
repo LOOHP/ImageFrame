@@ -21,7 +21,6 @@
 package com.loohp.imageframe.listeners;
 
 import com.loohp.imageframe.ImageFrame;
-import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.ModernEventsUtils;
 import com.loohp.platformscheduler.Scheduler;
@@ -52,8 +51,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
 
-import java.util.Collection;
-import java.util.function.IntFunction;
+import static com.loohp.imageframe.objectholders.CombinedMapItemHandler.containsCombinedMaps;
+import static com.loohp.imageframe.objectholders.CombinedMapItemHandler.isCombinedMaps;
 
 public class Events implements Listener {
 
@@ -165,31 +164,6 @@ public class Events implements Listener {
                 event.setResult(Event.Result.DENY);
             }
         }
-    }
-
-    public boolean containsCombinedMaps(IntFunction<ItemStack> slotAccess, int size) {
-        return containsCombinedMaps(slotAccess, 0, size);
-    }
-
-    public boolean containsCombinedMaps(IntFunction<ItemStack> slotAccess, int begin, int size) {
-        for (int i = begin; i < size; i++) {
-            ItemStack itemStack = slotAccess.apply(i);
-            if (isCombinedMaps(itemStack)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean containsCombinedMaps(Collection<ItemStack> itemStacks) {
-        return itemStacks.stream().anyMatch(itemStack -> isCombinedMaps(itemStack));
-    }
-
-    public boolean isCombinedMaps(ItemStack itemStack) {
-        if (itemStack != null && itemStack.getType().equals(Material.PAPER)) {
-            return NMS.getInstance().getCombinedMapItemInfo(itemStack) != null;
-        }
-        return false;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

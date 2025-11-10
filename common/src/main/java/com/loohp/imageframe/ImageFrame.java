@@ -28,6 +28,7 @@ import com.loohp.imageframe.metrics.Charts;
 import com.loohp.imageframe.metrics.Metrics;
 import com.loohp.imageframe.objectholders.AnimatedFakeMapManager;
 import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
+import com.loohp.imageframe.objectholders.CustomClientNetworkManager;
 import com.loohp.imageframe.objectholders.IFPlayerManager;
 import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
@@ -180,6 +181,8 @@ public class ImageFrame extends JavaPlugin {
     public static String uploadServiceServerAddress;
     public static int uploadServiceServerPort;
 
+    public static boolean imageFrameClientEnabled;
+
     public static int invisibleFrameMaxConversionsPerSplash;
     public static boolean invisibleFrameGlowEmptyFrames;
 
@@ -193,6 +196,7 @@ public class ImageFrame extends JavaPlugin {
     public static InvisibleFrameManager invisibleFrameManager;
     public static ImageMapCreationTaskManager imageMapCreationTaskManager;
     public static ImageUploadManager imageUploadManager;
+    public static CustomClientNetworkManager customClientNetworkManager;
 
     public static boolean isURLAllowed(String link) {
         if (!restrictImageUrlEnabled) {
@@ -333,6 +337,7 @@ public class ImageFrame extends JavaPlugin {
         invisibleFrameManager = new InvisibleFrameManager();
         imageMapCreationTaskManager = new ImageMapCreationTaskManager(ImageFrame.parallelProcessingLimit);
         imageUploadManager = new ImageUploadManager(uploadServiceEnabled, uploadServiceServerAddress, uploadServiceServerPort);
+        customClientNetworkManager = new CustomClientNetworkManager(imageFrameClientEnabled);
 
         if (isPluginEnabled("PlaceholderAPI")) {
             new Placeholders().register();
@@ -492,6 +497,8 @@ public class ImageFrame extends JavaPlugin {
         uploadServiceDisplayURL = config.getConfiguration().getString("UploadService.DisplayURL");
         uploadServiceServerAddress = config.getConfiguration().getString("UploadService.WebServer.Host");
         uploadServiceServerPort = config.getConfiguration().getInt("UploadService.WebServer.Port");
+
+        imageFrameClientEnabled = config.getConfiguration().getBoolean("ImageFrameClient.Enabled");
 
         invisibleFrameMaxConversionsPerSplash = config.getConfiguration().getInt("InvisibleFrame.MaxConversionsPerSplash");
         invisibleFrameGlowEmptyFrames = config.getConfiguration().getBoolean("InvisibleFrame.GlowEmptyFrames");

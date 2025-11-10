@@ -22,12 +22,15 @@ package com.loohp.imageframe.utils;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
+import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
+import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
 import com.loohp.imageframe.objectholders.DitheringType;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapHitTargetResult;
 import com.loohp.imageframe.objectholders.IntPosition;
 import com.loohp.imageframe.objectholders.MapPacketSentCallback;
 import com.loohp.imageframe.objectholders.MutablePair;
+import com.loohp.platformscheduler.Scheduler;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -39,6 +42,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
@@ -457,6 +461,29 @@ public class MapUtils {
                 }
             }
         }
+    }
+
+    public static Future<Boolean> canViewMap(Player player, MapView mapView) {
+        return Scheduler.callSyncMethod(ImageFrame.plugin, () -> {
+            if (NMS.getInstance().getViewers(mapView).contains(player)) {
+                return true;
+            }
+            ImageMap imageMap = ImageFrame.imageMapManager.getFromMapView(mapView);
+            if (imageMap == null) {
+                return false;
+            }
+            InventoryView inventoryView = player.getOpenInventory();
+            for (int i = 0; i < inventoryView.countSlots(); i++) {
+                ItemStack itemStack = inventoryView.getItem(i);
+                if (CombinedMapItemHandler.isCombinedMaps(itemStack)) {
+                    CombinedMapItemInfo info = NMS.getInstance().getCombinedMapItemInfo(itemStack);
+                    if (imageMap.getImageIndex() == info.getImageMapIndex()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
     }
 
 }

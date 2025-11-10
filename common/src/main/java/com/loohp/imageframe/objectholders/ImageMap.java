@@ -142,7 +142,7 @@ public abstract class ImageMap {
 
     protected abstract void unloadColorCache();
 
-    public BufferedImage getHighResImage(int mapId) {
+    public BufferedImage getOriginalImage(int mapId) {
         return null;
     }
 

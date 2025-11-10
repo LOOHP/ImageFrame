@@ -224,6 +224,15 @@ public class NonUpdatableStaticImageMap extends ImageMap {
     }
 
     @Override
+    public BufferedImage getOriginalImage(int mapId) {
+        int index = mapIds.indexOf(mapId);
+        if (index < 0 || index >= cachedImages.length) {
+            return null;
+        }
+        return cachedImages[index].get();
+    }
+
+    @Override
     public ImageMap deepClone(String name, UUID creator) throws Exception {
         BufferedImage[] images = new BufferedImage[cachedImages.length];
         for (int i = 0; i < images.length; i++) {

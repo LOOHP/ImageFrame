@@ -56,6 +56,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static com.loohp.imageframe.utils.ImageUtils.resizeImageFillWidth;
+
 public class URLStaticImageMap extends URLImageMap {
 
     public static Future<? extends URLStaticImageMap> create(ImageMapManager manager, String name, String url, int width, int height, DitheringType ditheringType, UUID creator) throws Exception {
@@ -177,6 +179,15 @@ public class URLStaticImageMap extends URLImageMap {
     }
 
     @Override
+    public BufferedImage getOriginalImage(int mapId) {
+        int index = mapIds.indexOf(mapId);
+        if (index < 0 || index >= cachedImages.length) {
+            return null;
+        }
+        return cachedImages[index].get();
+    }
+
+    @Override
     public void loadColorCache() {
         if (cachedImages == null) {
             return;
@@ -189,7 +200,7 @@ public class URLStaticImageMap extends URLImageMap {
         Graphics2D g = combined.createGraphics();
         int index = 0;
         for (FileLazyMappedBufferedImage image : cachedImages) {
-            g.drawImage(image.get(), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, null);
+            g.drawImage(resizeImageFillWidth(image.get(), MapUtils.MAP_WIDTH), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, null);
             index++;
         }
         g.dispose();
@@ -236,11 +247,12 @@ public class URLStaticImageMap extends URLImageMap {
         if (image == null) {
             throw new RuntimeException("Unable to read or download image, does this url directly links to an image? (" + url + ")");
         }
-        image = MapUtils.resize(image, width, height);
+        int hdMapWidth = image.getWidth() / width;
+        image = MapUtils.resize(image, width, height, hdMapWidth);
         int i = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                cachedImages[i++] = FileLazyMappedBufferedImage.fromImage(MapUtils.getSubImage(image, x, y));
+                cachedImages[i++] = FileLazyMappedBufferedImage.fromImage(MapUtils.getSubImage(image, x, y, hdMapWidth));
             }
         }
         reloadColorCache();

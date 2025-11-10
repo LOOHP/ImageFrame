@@ -33,6 +33,7 @@ import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -147,6 +148,11 @@ public class MinecraftURLOverlayImageMap extends URLStaticImageMap {
 
     protected MinecraftURLOverlayImageMap(ImageMapManager manager, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, imageIndex, name, url, cachedImages, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
+    }
+
+    @Override
+    public BufferedImage getOriginalImage(int mapId) {
+        return null;
     }
 
     @Override
