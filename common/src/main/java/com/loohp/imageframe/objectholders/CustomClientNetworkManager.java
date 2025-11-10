@@ -94,6 +94,10 @@ public class CustomClientNetworkManager implements PluginMessageListener, Listen
         Bukkit.getServer().getPluginManager().registerEvents(this, ImageFrame.plugin);
     }
 
+    public Set<UUID> getPlayers() {
+        return Collections.unmodifiableSet(acknowledged);
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
