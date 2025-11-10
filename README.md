@@ -34,6 +34,10 @@ Plugins built against Spigot usually also work with [Paper](https://papermc.io/)
 ```
 Replace `VERSION` with the version number.
 
+## Official Addons
+
+- [ImageFrameClient](https://github.com/LOOHP/ImageFrameClient) (Complementary client mod for servers with ImageFrame to display HD and full color images)
+
 ## Partnerships
 
 ### Server Hosting
