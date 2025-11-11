@@ -43,6 +43,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -124,19 +125,24 @@ public class CustomClientNetworkManager implements PluginMessageListener, Listen
 
     @EventHandler
     public void onUpdate(ImageMapUpdatedEvent event) {
+        ImageMap imageMap = event.getImageMap();
+        notifyHdMapUpdated(acknowledged, Collections.singletonList(imageMap), imageMap.getMapIds());
+    }
+
+    public void notifyHdMapUpdated(Collection<UUID> players, Collection<ImageMap> imageMaps, Collection<Integer> mapIds) {
         handle(() -> {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            ImageMap imageMap = event.getImageMap();
-            writeVarInt(out, 1);
-            out.writeInt(imageMap.getImageIndex());
-            List<Integer> mapIds = imageMap.getMapIds();
+            writeVarInt(out, imageMaps.size());
+            for (ImageMap imageMap : imageMaps) {
+                out.writeInt(imageMap.getImageIndex());
+            }
             writeVarInt(out, mapIds.size());
             for (int mapId : mapIds) {
                 out.writeInt(mapId);
             }
             return out.toByteArray();
         }, () -> true, out -> {
-            for (UUID uuid : acknowledged) {
+            for (UUID uuid : players) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player != null) {
                     player.sendPluginMessage(ImageFrame.plugin, CLIENTBOUND_HD_UPDATE_SIGNAL, out);
