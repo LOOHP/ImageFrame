@@ -24,6 +24,7 @@ import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.api.events.HDMapPreRespondEvent;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.platformscheduler.Scheduler;
@@ -48,7 +49,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -67,6 +67,8 @@ public class CustomClientNetworkManager implements PluginMessageListener, Listen
 
     public static final String SERVERBOUND_IMAGEMAP_DETAILS_REQUEST = "imageframe:serverbound_imagemap_details";
     public static final String CLIENTBOUND_IMAGEMAP_DETAILS_RESPONSE = "imageframe:clientbound_imagemap_details";
+
+    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     private final Map<UUID, Long> acknowledgements;
     private final Set<UUID> acknowledged;
@@ -165,58 +167,56 @@ public class CustomClientNetworkManager implements PluginMessageListener, Listen
                         List<byte[]> list = new ArrayList<>();
                         ByteArrayDataOutput out = ByteStreams.newDataOutput();
                         out.writeInt(mapId);
-                        if (imageMap == null) {
-                            out.writeBoolean(true);
-                            writeVarInt(out, 0);
-                            out.writeBoolean(false);
-                        } else {
-                            try {
-                                MapView mapView = imageMap.getMapViewFromMapId(mapId);
-                                if (MapUtils.canViewMap(player, mapView).get()) {
-                                    out.writeBoolean(true);
-                                    BufferedImage image = imageMap.getOriginalImage(mapId);
-                                    if (image == null) {
-                                        writeVarInt(out, 0);
-                                        out.writeBoolean(false);
-                                    } else {
-                                        try {
-                                            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                                            ImageIO.write(image, "png", byteArrayOutputStream);
-                                            byte[] array = byteArrayOutputStream.toByteArray();
-                                            List<byte[]> chunked = chunked(array, 32000);
-                                            writeVarInt(out, chunked.get(0).length);
-                                            out.write(chunked.get(0));
-                                            if (chunked.size() <= 1) {
-                                                out.writeBoolean(false);
-                                            } else {
-                                                int multipartId = ThreadLocalRandom.current().nextInt();
-                                                out.writeBoolean(true);
-                                                out.writeInt(multipartId);
-                                                for (int i = 1; i < chunked.size(); i++) {
-                                                    ByteArrayDataOutput outMulti = ByteStreams.newDataOutput();
-                                                    outMulti.writeInt(mapId);
-                                                    outMulti.writeInt(multipartId);
-                                                    outMulti.writeInt(i);
-                                                    writeVarInt(outMulti, chunked.get(i).length);
-                                                    outMulti.write(chunked.get(i));
-                                                    outMulti.writeBoolean(i + 1 >= chunked.size());
-                                                    list.add(outMulti.toByteArray());
-                                                }
-                                            }
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                            writeVarInt(out, 0);
-                                            out.writeBoolean(false);
-                                        }
-                                    }
-                                } else {
-                                    out.writeBoolean(false);
+                        try {
+                            MapView mapView = imageMap == null ? null : imageMap.getMapViewFromMapId(mapId);
+                            boolean requestAccepted = imageMap == null || MapUtils.canViewMap(player, mapView).get();
+                            BufferedImage image = imageMap == null ? null : imageMap.getOriginalImage(mapId);
+                            HDMapPreRespondEvent event = new HDMapPreRespondEvent(player, mapId, imageMap, mapView, requestAccepted, image);
+                            Bukkit.getPluginManager().callEvent(event);
+                            requestAccepted = event.isRequestAccepted();
+                            image = event.getImage();
+                            out.writeBoolean(requestAccepted);
+                            if (image == null) {
+                                writeVarInt(out, 0);
+                                out.writeBoolean(false);
+                            } else {
+                                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                                byte[] array;
+                                try {
+                                    ImageIO.write(image, "png", byteArrayOutputStream);
+                                    array = byteArrayOutputStream.toByteArray();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                    array = EMPTY_BYTE_ARRAY;
+                                }
+                                if (array.length == 0) {
                                     writeVarInt(out, 0);
                                     out.writeBoolean(false);
+                                } else {
+                                    List<byte[]> chunked = chunked(array, 32000);
+                                    writeVarInt(out, chunked.get(0).length);
+                                    out.write(chunked.get(0));
+                                    if (chunked.size() <= 1) {
+                                        out.writeBoolean(false);
+                                    } else {
+                                        int multipartId = ThreadLocalRandom.current().nextInt();
+                                        out.writeBoolean(true);
+                                        out.writeInt(multipartId);
+                                        for (int i = 1; i < chunked.size(); i++) {
+                                            ByteArrayDataOutput outMulti = ByteStreams.newDataOutput();
+                                            outMulti.writeInt(mapId);
+                                            outMulti.writeInt(multipartId);
+                                            outMulti.writeInt(i);
+                                            writeVarInt(outMulti, chunked.get(i).length);
+                                            outMulti.write(chunked.get(i));
+                                            outMulti.writeBoolean(i + 1 >= chunked.size());
+                                            list.add(outMulti.toByteArray());
+                                        }
+                                    }
                                 }
-                            } catch (InterruptedException | ExecutionException e) {
-                                throw new RuntimeException(e);
                             }
+                        } catch (Throwable e) {
+                            throw new RuntimeException(e);
                         }
                         list.add(0, out.toByteArray());
                         return list;

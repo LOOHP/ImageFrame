@@ -38,4 +38,12 @@ public class ImageUtils {
         return b;
     }
 
+    public static BufferedImage copy(BufferedImage source) {
+        BufferedImage b = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = b.createGraphics();
+        g.drawImage(source, 0, 0, null);
+        g.dispose();
+        return b;
+    }
+
 }
