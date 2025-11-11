@@ -110,7 +110,7 @@ public class CustomClientNetworkManager implements PluginMessageListener, Listen
                 out.writeLong(id);
                 player.sendPluginMessage(ImageFrame.plugin, CLIENTBOUND_ACKNOWLEDGEMENT, out.toByteArray());
             }
-        }, 10);
+        }, 40);
     }
 
     @EventHandler
