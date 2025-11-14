@@ -79,7 +79,7 @@
                             <relocations>
                                 <relocation>
                                     <pattern>com.loohp.platformscheduler</pattern>
-                                    <shadedPattern>com.loohp.interactivechat.libs.com.loohp.platformscheduler</shadedPattern>
+                                    <shadedPattern>com.loohp.imageframe.libs.com.loohp.platformscheduler</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.simpleyaml</pattern>
