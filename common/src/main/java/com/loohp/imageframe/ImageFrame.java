@@ -35,6 +35,7 @@ import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.ImageMapCacheControlMode;
 import com.loohp.imageframe.objectholders.ImageMapCreationTaskManager;
+import com.loohp.imageframe.objectholders.ImageMapLoaders;
 import com.loohp.imageframe.objectholders.ImageMapManager;
 import com.loohp.imageframe.objectholders.IntRange;
 import com.loohp.imageframe.objectholders.IntRangeList;
@@ -342,6 +343,8 @@ public class ImageFrame extends JavaPlugin {
         if (isPluginEnabled("PlaceholderAPI")) {
             new Placeholders().register();
         }
+
+        ImageMapLoaders.init();
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
     }

@@ -27,7 +27,7 @@
     <parent>
         <groupId>com.loohp</groupId>
         <artifactId>ImageFrame-Parent</artifactId>
-        <version>1.8.7.1</version>
+        <version>1.8.7.2</version>
     </parent>
 
     <artifactId>ImageFrame-V1_21_3</artifactId>

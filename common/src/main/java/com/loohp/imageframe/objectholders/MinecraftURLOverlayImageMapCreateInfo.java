@@ -20,38 +20,21 @@
 
 package com.loohp.imageframe.objectholders;
 
-import java.util.Objects;
+import org.bukkit.map.MapView;
 
-public class Holder<T> {
+import java.util.List;
+import java.util.UUID;
 
-    public static <T> Holder<T> hold(T value) {
-        return new Holder<>(value);
+public class MinecraftURLOverlayImageMapCreateInfo extends URLImageMapCreateInfo {
+
+    private final List<MapView> mapViews;
+
+    public MinecraftURLOverlayImageMapCreateInfo(ImageMapManager manager, String name, String url, List<MapView> mapViews, int width, int height, DitheringType ditheringType, UUID creator) {
+        super(manager, name, url, width, height, ditheringType, creator);
+        this.mapViews = mapViews;
     }
 
-    private T value;
-
-    private Holder(T value) {
-        this.value = value;
-    }
-
-    public T getValue() {
-        return value;
-    }
-
-    public void setValue(T value) {
-        this.value = value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Holder<?> holder = (Holder<?>) o;
-        return Objects.equals(value, holder.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
+    public List<MapView> getMapViews() {
+        return mapViews;
     }
 }

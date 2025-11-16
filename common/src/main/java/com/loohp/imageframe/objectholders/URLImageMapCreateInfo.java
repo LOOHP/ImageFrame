@@ -20,28 +20,18 @@
 
 package com.loohp.imageframe.objectholders;
 
-import org.bukkit.map.MapCursor;
-import org.bukkit.map.MapView;
-
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-public abstract class URLImageMap extends ImageMap {
+public class URLImageMapCreateInfo extends ImageMapCreateInfo {
 
-    protected String url;
+    private final String url;
 
-    public URLImageMap(ImageMapManager manager, ImageMapLoader<?, ?> loader, int imageIndex, String name, String url, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
-        super(manager, loader, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
+    public URLImageMapCreateInfo(ImageMapManager manager, String name, String url, int width, int height, DitheringType ditheringType, UUID creator) {
+        super(manager, name, width, height, ditheringType, creator);
         this.url = url;
     }
 
     public String getUrl() {
         return url;
     }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
 }

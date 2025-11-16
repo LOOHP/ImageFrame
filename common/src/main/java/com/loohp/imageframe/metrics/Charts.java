@@ -46,13 +46,27 @@ public class Charts {
             }
         }));
 
+        metrics.addCustomChart(new Metrics.AdvancedPie("images_created_by_type_id", new Callable<Map<String, Integer>>() {
+            @Override
+            public Map<String, Integer> call() throws Exception {
+                Map<String, Integer> valueMap = new HashMap<>();
+                for (ImageMap imageMap : ImageFrame.imageMapManager.getMaps()) {
+                    String type = imageMap.getType().asString();
+                    valueMap.merge(type, 1, Integer::sum);
+                }
+                return valueMap;
+            }
+        }));
+
         metrics.addCustomChart(new Metrics.AdvancedPie("images_created_by_type", new Callable<Map<String, Integer>>() {
             @Override
             public Map<String, Integer> call() throws Exception {
                 Map<String, Integer> valueMap = new HashMap<>();
                 for (ImageMap imageMap : ImageFrame.imageMapManager.getMaps()) {
-                    String type = imageMap.getClass().getName();
-                    valueMap.merge(type, 1, Integer::sum);
+                    String type = imageMap.getLegacyType();
+                    if (type != null) {
+                        valueMap.merge(type, 1, Integer::sum);
+                    }
                 }
                 return valueMap;
             }

@@ -21,18 +21,12 @@
 package com.loohp.imageframe.objectholders;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
-import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.MapUtils;
-import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCursor;
-import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
 import java.awt.Graphics2D;
@@ -42,144 +36,19 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 public class NonUpdatableStaticImageMap extends ImageMap {
-
-    public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, int width, int height, DitheringType ditheringType, UUID creator) throws Exception {
-        return create(manager, name, images, null, width, height, ditheringType, creator);
-    }
-
-    public static Future<? extends NonUpdatableStaticImageMap> create(ImageMapManager manager, String name, BufferedImage[] images, List<Integer> mapIds, int width, int height, DitheringType ditheringType, UUID creator) throws Exception {
-        World world = MapUtils.getMainWorld();
-        int mapsCount = width * height;
-        if (images.length != mapsCount) {
-            throw new IllegalArgumentException("images length not the same as width * height");
-        }
-        List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapsCount);
-        List<Map<String, MapCursor>> markers = new ArrayList<>(mapsCount);
-        for (int i = 0; i < mapsCount; i++) {
-            if (mapIds == null) {
-                mapViewsFuture.add(MapUtils.createMap(world));
-            } else {
-                mapViewsFuture.add(MapUtils.getMapOrCreateMissing(world, mapIds.get(i)));
-            }
-            markers.add(new ConcurrentHashMap<>());
-        }
-        List<MapView> mapViews = new ArrayList<>(mapsCount);
-        mapIds = new ArrayList<>(mapsCount);
-        for (Future<MapView> future : mapViewsFuture) {
-            try {
-                MapView mapView = future.get();
-                Scheduler.runTask(ImageFrame.plugin, () -> {
-                    for (MapRenderer renderer : mapView.getRenderers()) {
-                        mapView.removeRenderer(renderer);
-                    }
-                });
-                mapViews.add(mapView);
-                mapIds.add(mapView.getId());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, -1, name, Arrays.stream(images).map(i -> FileLazyMappedBufferedImage.fromImage(i)).toArray(FileLazyMappedBufferedImage[]::new), mapViews, mapIds, markers, width, height, ditheringType, creator, Collections.emptyMap(), System.currentTimeMillis());
-        return FutureUtils.callAsyncMethod(() -> {
-            FutureUtils.callSyncMethod(() -> {
-                for (int i = 0; i < mapViews.size(); i++) {
-                    mapViews.get(i).addRenderer(new NonUpdatableStaticImageMapRenderer(map, i));
-                }
-            }).get();
-            map.update(false);
-            return map;
-        });
-    }
-
-    @SuppressWarnings("unused")
-    public static Future<? extends NonUpdatableStaticImageMap> load(ImageMapManager manager, File folder, JsonObject json) throws Exception {
-        if (!json.get("type").getAsString().equals(NonUpdatableStaticImageMap.class.getName())) {
-            throw new IllegalArgumentException("invalid type");
-        }
-        int imageIndex = json.get("index").getAsInt();
-        String name = json.has("name") ? json.get("name").getAsString() : "Unnamed";
-        int width = json.get("width").getAsInt();
-        int height = json.get("height").getAsInt();
-        DitheringType ditheringType = DitheringType.fromName(json.has("ditheringType") ? json.get("ditheringType").getAsString() : null);
-        long creationTime = json.get("creationTime").getAsLong();
-        UUID creator = UUID.fromString(json.get("creator").getAsString());
-        Map<UUID, ImageMapAccessPermissionType> hasAccess;
-        if (json.has("hasAccess")) {
-            JsonObject accessJson = json.get("hasAccess").getAsJsonObject();
-            hasAccess = new HashMap<>(accessJson.size());
-            for (Map.Entry<String, JsonElement> entry : accessJson.entrySet()) {
-                hasAccess.put(UUID.fromString(entry.getKey()), ImageMapAccessPermissionType.valueOf(entry.getValue().getAsString().toUpperCase()));
-            }
-        } else {
-            hasAccess = Collections.emptyMap();
-        }
-        JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
-        List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
-        List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
-        FileLazyMappedBufferedImage[] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()];
-        List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
-        World world = Bukkit.getWorlds().get(0);
-        int i = 0;
-        for (JsonElement dataJson : mapDataJson) {
-            JsonObject jsonObject = dataJson.getAsJsonObject();
-            int mapId = jsonObject.get("mapid").getAsInt();
-            mapIds.add(mapId);
-            mapViewsFuture.add(MapUtils.getMapOrCreateMissing(world, mapId));
-            cachedImages[i] = FileLazyMappedBufferedImage.fromFile(new File(folder, jsonObject.get("image").getAsString()));
-            Map<String, MapCursor> mapCursors = new ConcurrentHashMap<>();
-            if (jsonObject.has("markers")) {
-                JsonArray markerArray = jsonObject.get("markers").getAsJsonArray();
-                for (JsonElement element : markerArray) {
-                    JsonObject markerData = element.getAsJsonObject();
-                    String markerName = markerData.get("name").getAsString();
-                    byte x = markerData.get("x").getAsByte();
-                    byte y = markerData.get("y").getAsByte();
-                    MapCursor.Type type = MapCursor.Type.valueOf(markerData.get("type").getAsString().toUpperCase());
-                    byte direction = markerData.get("direction").getAsByte();
-                    boolean visible = markerData.get("visible").getAsBoolean();
-                    JsonElement caption = markerData.get("caption");
-                    mapCursors.put(markerName, new MapCursor(x, y, direction, type, visible, caption.isJsonNull() ? null : caption.getAsString()));
-                }
-            }
-            markers.add(mapCursors);
-            i++;
-        }
-        List<MapView> mapViews = new ArrayList<>(mapViewsFuture.size());
-        for (Future<MapView> future : mapViewsFuture) {
-            mapViews.add(future.get());
-        }
-        NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(manager, imageIndex, name, cachedImages, mapViews, mapIds, markers, width, height, ditheringType, creator, hasAccess, creationTime);
-        return FutureUtils.callSyncMethod(() -> {
-            for (int u = 0; u < mapViews.size(); u++) {
-                MapView mapView = mapViews.get(u);
-                for (MapRenderer renderer : mapView.getRenderers()) {
-                    mapView.removeRenderer(renderer);
-                }
-                mapView.addRenderer(new NonUpdatableStaticImageMapRenderer(map, u));
-            }
-            return map;
-        });
-    }
 
     protected final FileLazyMappedBufferedImage[] cachedImages;
 
     protected byte[][] cachedColors;
 
-    protected NonUpdatableStaticImageMap(ImageMapManager manager, int imageIndex, String name, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
-        super(manager, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
+    protected NonUpdatableStaticImageMap(ImageMapManager manager, ImageMapLoader<?, ?> loader, int imageIndex, String name, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+        super(manager, loader, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
         this.cacheControlTask.loadCacheIfManual();
     }
@@ -243,7 +112,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             g.dispose();
             images[i] = newImage;
         }
-        NonUpdatableStaticImageMap imageMap = create(manager, name, images, width, height, ditheringType, creator).get();
+        NonUpdatableStaticImageMap imageMap = ((NonUpdatableStaticImageMapLoader) loader).create(new NonUpdatableImageMapCreateInfo(manager, name, images, width, height, ditheringType, creator)).get();
         List<Map<String, MapCursor>> newList = imageMap.getMapMarkers();
         int i = 0;
         for (Map<String, MapCursor> map : getMapMarkers()) {
@@ -274,7 +143,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         File folder = new File(manager.getDataFolder(), String.valueOf(imageIndex));
         folder.mkdirs();
         JsonObject json = new JsonObject();
-        json.addProperty("type", this.getClass().getName());
+        json.addProperty("type", loader.getIdentifier().asString());
         json.addProperty("index", imageIndex);
         json.addProperty("name", name);
         json.addProperty("width", width);

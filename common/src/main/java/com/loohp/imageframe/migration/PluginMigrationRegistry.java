@@ -28,11 +28,9 @@ public class PluginMigrationRegistry {
 
     private static final Map<String, ExternalPluginMigration> REGISTERED_MIGRATIONS = new ConcurrentHashMap<>();
 
-    static {
-        register(new DrMapMigration());
-        register(new ImageOnMapMigration());
-        register(new ImageMapMigration());
-    }
+    public static final DrMapMigration DR_MAP_MIGRATION = register(new DrMapMigration());
+    public static final ImageOnMapMigration IMAGE_ON_MAP_MIGRATION = register(new ImageOnMapMigration());
+    public static final ImageMapMigration IMAGE_MAP_MIGRATION = register(new ImageMapMigration());
 
     public static Set<String> getPluginNames() {
         return REGISTERED_MIGRATIONS.keySet();
@@ -43,11 +41,16 @@ public class PluginMigrationRegistry {
         if (migration != null) {
             return migration;
         }
-        return REGISTERED_MIGRATIONS.entrySet().stream().filter(e -> e.getKey().equalsIgnoreCase(plugin)).findFirst().map(e -> e.getValue()).orElse(null);
+        return REGISTERED_MIGRATIONS.entrySet().stream()
+                .filter(e -> e.getKey().equalsIgnoreCase(plugin))
+                .findFirst()
+                .map(e -> e.getValue())
+                .orElse(null);
     }
 
-    public static void register(ExternalPluginMigration migration) {
+    public static <T extends ExternalPluginMigration> T register(T migration) {
         REGISTERED_MIGRATIONS.put(migration.externalPluginName(), migration);
+        return migration;
     }
 
 }

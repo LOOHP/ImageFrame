@@ -22,13 +22,13 @@ package com.loohp.imageframe.objectholders;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.imageframe.utils.StringUtils;
 import com.loohp.platformscheduler.Scheduler;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Rotation;
@@ -42,11 +42,6 @@ import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -69,16 +63,8 @@ public abstract class ImageMap {
     public static final String UNKNOWN_CREATOR_NAME = "???";
     public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
-    @SuppressWarnings("unchecked")
-    public static Future<? extends ImageMap> load(ImageMapManager manager, File folder) throws Exception {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(new File(folder, "data.json").toPath()), StandardCharsets.UTF_8))) {
-            JsonObject json = GSON.fromJson(reader, JsonObject.class);
-            String type = json.get("type").getAsString();
-            return (Future<? extends ImageMap>) Class.forName(type).getMethod("load", ImageMapManager.class, File.class, JsonObject.class).invoke(null, manager, folder, json);
-        }
-    }
-
     protected final ImageMapManager manager;
+    protected final ImageMapLoader<?, ?> loader;
 
     protected int imageIndex;
     protected String name;
@@ -95,7 +81,7 @@ public abstract class ImageMap {
     protected final ImageMapCacheControlTask cacheControlTask;
     private boolean isValid;
 
-    public ImageMap(ImageMapManager manager, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+    public ImageMap(ImageMapManager manager, ImageMapLoader<?, ?> loader, int imageIndex, String name, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         if (mapViews.size() != width * height) {
             throw new IllegalArgumentException("mapViews size does not equal width * height");
         }
@@ -106,6 +92,7 @@ public abstract class ImageMap {
             throw new IllegalArgumentException("mapViews size does not equal mapIds size");
         }
         this.manager = manager;
+        this.loader = loader;
         this.imageIndex = imageIndex;
         this.name = StringUtils.sanitize(name);
         this.mapViews = Collections.unmodifiableList(mapViews);
@@ -126,6 +113,15 @@ public abstract class ImageMap {
 
     public ImageMapManager getManager() {
         return manager;
+    }
+
+    public Key getType() {
+        return loader.getIdentifier();
+    }
+
+    @Deprecated
+    public String getLegacyType() {
+        return loader.getLegacyType();
     }
 
     protected abstract void loadColorCache();

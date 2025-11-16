@@ -20,28 +20,30 @@
 
 package com.loohp.imageframe.objectholders;
 
-import org.bukkit.map.MapCursor;
-import org.bukkit.map.MapView;
-
+import java.awt.image.BufferedImage;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-public abstract class URLImageMap extends ImageMap {
+public class NonUpdatableImageMapCreateInfo extends ImageMapCreateInfo {
 
-    protected String url;
+    private final BufferedImage[] images;
+    private final List<Integer> mapIds;
 
-    public URLImageMap(ImageMapManager manager, ImageMapLoader<?, ?> loader, int imageIndex, String name, String url, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
-        super(manager, loader, imageIndex, name, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
-        this.url = url;
+    public NonUpdatableImageMapCreateInfo(ImageMapManager manager, String name, BufferedImage[] images, List<Integer> mapIds, int width, int height, DitheringType ditheringType, UUID creator) {
+        super(manager, name, width, height, ditheringType, creator);
+        this.images = images;
+        this.mapIds = mapIds;
     }
 
-    public String getUrl() {
-        return url;
+    public NonUpdatableImageMapCreateInfo(ImageMapManager manager, String name, BufferedImage[] images, int width, int height, DitheringType ditheringType, UUID creator) {
+        this(manager, name, images, null, width, height, ditheringType, creator);
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public BufferedImage[] getImages() {
+        return images;
     }
 
+    public List<Integer> getMapIds() {
+        return mapIds;
+    }
 }

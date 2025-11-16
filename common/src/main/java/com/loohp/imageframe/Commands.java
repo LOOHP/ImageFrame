@@ -32,13 +32,15 @@ import com.loohp.imageframe.objectholders.ImageMapAccessControl;
 import com.loohp.imageframe.objectholders.ImageMapAccessPermissionType;
 import com.loohp.imageframe.objectholders.ImageMapCreationTask;
 import com.loohp.imageframe.objectholders.ImageMapCreationTaskManager;
+import com.loohp.imageframe.objectholders.ImageMapLoader;
+import com.loohp.imageframe.objectholders.ImageMapLoaders;
 import com.loohp.imageframe.objectholders.ItemFrameSelectionManager;
 import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMap;
+import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMapCreateInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
-import com.loohp.imageframe.objectholders.URLAnimatedImageMap;
 import com.loohp.imageframe.objectholders.URLImageMap;
-import com.loohp.imageframe.objectholders.URLStaticImageMap;
+import com.loohp.imageframe.objectholders.URLImageMapCreateInfo;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.upload.ImageUploadManager;
 import com.loohp.imageframe.upload.PendingUpload;
@@ -223,11 +225,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         String finalUrl = url;
                                         String finalImageType = imageType;
                                         creationTask = ImageFrame.imageMapCreationTaskManager.enqueue(owner, name, width, height, () -> {
-                                            if (finalImageType.equals(MapUtils.GIF_CONTENT_TYPE) && sender.hasPermission("imageframe.create.animated")) {
-                                                return URLAnimatedImageMap.create(ImageFrame.imageMapManager, name, finalUrl, width, height, ditheringType, owner).get();
-                                            } else {
-                                                return URLStaticImageMap.create(ImageFrame.imageMapManager, name, finalUrl, width, height, ditheringType, owner).get();
-                                            }
+                                            ImageMapLoader<? extends URLImageMap, URLImageMapCreateInfo> loader = ImageMapLoaders.getLoader(URLImageMap.class, URLImageMapCreateInfo.class, finalImageType, sender);
+                                            return loader.create(new URLImageMapCreateInfo(ImageFrame.imageMapManager, name, finalUrl, width, height, ditheringType, owner)).get();
                                         });
                                         ImageMap imageMap = creationTask.get();
                                         ImageFrame.imageMapManager.addMap(imageMap);
@@ -372,7 +371,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 throw new IOException("Image over max file size");
                                             }
                                             String finalUrl = url;
-                                            creationTask = ImageFrame.imageMapCreationTaskManager.enqueue(owner, name, width, height, () -> MinecraftURLOverlayImageMap.create(ImageFrame.imageMapManager, name, finalUrl, mapViews, width, height, ditheringType, player.getUniqueId()).get());
+                                            creationTask = ImageFrame.imageMapCreationTaskManager.enqueue(owner, name, width, height, () -> {
+                                                ImageMapLoader<? extends MinecraftURLOverlayImageMap, MinecraftURLOverlayImageMapCreateInfo> loader = ImageMapLoaders.getLoader(MinecraftURLOverlayImageMap.class, MinecraftURLOverlayImageMapCreateInfo.class, null, sender);
+                                                return loader.create(new MinecraftURLOverlayImageMapCreateInfo(ImageFrame.imageMapManager, name, finalUrl, mapViews, width, height, ditheringType, player.getUniqueId())).get();
+                                            });
                                             ImageMap imageMap = creationTask.get();
                                             ImageFrame.imageMapManager.addMap(imageMap);
                                             CommandSenderUtils.sendMessage(sender, ImageFrame.messageImageMapCreated);

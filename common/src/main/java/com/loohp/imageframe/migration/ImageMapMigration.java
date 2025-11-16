@@ -22,11 +22,13 @@ package com.loohp.imageframe.migration;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.DitheringType;
+import com.loohp.imageframe.objectholders.ImageMapLoaders;
+import com.loohp.imageframe.objectholders.NonUpdatableImageMapCreateInfo;
 import com.loohp.imageframe.objectholders.NonUpdatableStaticImageMap;
+import com.loohp.imageframe.objectholders.NonUpdatableStaticImageMapLoader;
 import com.loohp.imageframe.utils.MapUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.simpleyaml.configuration.file.YamlConfiguration;
 import org.simpleyaml.configuration.serialization.ConfigurationSerializable;
 import org.simpleyaml.configuration.serialization.ConfigurationSerialization;
@@ -72,9 +74,9 @@ public class ImageMapMigration implements ExternalPluginMigration {
             return;
         }
         try {
+            NonUpdatableStaticImageMapLoader loader = ImageMapLoaders.getLoader(NonUpdatableStaticImageMapLoader.class);
             ConfigurationSerialization.registerClass(ImageMap.class);
             YamlConfiguration mapConfig = YamlConfiguration.loadConfiguration(new File(ImageFrame.plugin.getDataFolder().getParent() + "/ImageMaps/maps.yml"));
-            World world = MapUtils.getMainWorld();
             for (Map.Entry<String, Object> entry : mapConfig.getConfigurationSection("maps").getValues(false).entrySet()) {
                 String key = entry.getKey();
                 try {
@@ -83,7 +85,7 @@ public class ImageMapMigration implements ExternalPluginMigration {
                     String fileName = data.getFilename();
                     BufferedImage[] images = new BufferedImage[] {MapUtils.getSubImage(ImageIO.read(new File(folder, fileName)), data.getX(), data.getY())};
                     String name = "ImageMaps_" + mapId;
-                    NonUpdatableStaticImageMap imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, DitheringType.NEAREST_COLOR, owner).get();
+                    NonUpdatableStaticImageMap imageMap = loader.create(new NonUpdatableImageMapCreateInfo(ImageFrame.imageMapManager, name, images, Collections.singletonList(mapId), 1, 1, DitheringType.NEAREST_COLOR, owner)).get();
                     ImageFrame.imageMapManager.addMap(imageMap);
                     Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Migrated ImageMaps " + key + " to " + name);
                 } catch (Exception e) {
@@ -105,10 +107,10 @@ public class ImageMapMigration implements ExternalPluginMigration {
     @SerializableAs("ImageMaps.Map")
     public static class ImageMap implements ConfigurationSerializable {
 
-        private String filename;
-        private int x;
-        private int y;
-        private double scale;
+        private final String filename;
+        private final int x;
+        private final int y;
+        private final double scale;
 
         public ImageMap(String filename, int x, int y, double scale) {
             this.filename = filename;

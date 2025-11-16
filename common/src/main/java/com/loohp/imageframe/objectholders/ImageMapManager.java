@@ -244,7 +244,7 @@ public class ImageMapManager implements AutoCloseable {
         for (File file : files) {
             if (file.isDirectory()) {
                 try {
-                    futures.add(new MutablePair<>(file, ImageMap.load(this, file)));
+                    futures.add(new MutablePair<>(file, ImageMapLoaders.load(this, file)));
                 } catch (Throwable e) {
                     Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to load ImageMap data in " + file.getAbsolutePath());
                     e.printStackTrace();

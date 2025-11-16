@@ -22,11 +22,12 @@ package com.loohp.imageframe.migration;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.DitheringType;
+import com.loohp.imageframe.objectholders.ImageMapLoaders;
+import com.loohp.imageframe.objectholders.NonUpdatableImageMapCreateInfo;
 import com.loohp.imageframe.objectholders.NonUpdatableStaticImageMap;
-import com.loohp.imageframe.utils.MapUtils;
+import com.loohp.imageframe.objectholders.NonUpdatableStaticImageMapLoader;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.simpleyaml.configuration.file.YamlFile;
 
 import javax.imageio.ImageIO;
@@ -70,7 +71,7 @@ public class ImageOnMapMigration implements ExternalPluginMigration {
             Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageOnMap plugin data folder not found");
             return;
         }
-        World world = MapUtils.getMainWorld();
+        NonUpdatableStaticImageMapLoader loader = ImageMapLoaders.getLoader(NonUpdatableStaticImageMapLoader.class);
         File imageFolder = new File(ImageFrame.plugin.getDataFolder().getParent() + "/ImageOnMap/images");
         for (File file : userFolder.listFiles()) {
             String fileNameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf("."));
@@ -116,11 +117,11 @@ public class ImageOnMapMigration implements ExternalPluginMigration {
                         }
                         NonUpdatableStaticImageMap imageMap;
                         if (ImageFrame.imageMapManager.getFromCreator(owner, name) == null) {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, name, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner).get();
+                            imageMap = loader.create(new NonUpdatableImageMapCreateInfo(ImageFrame.imageMapManager, name, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner)).get();
                         } else if (ImageFrame.imageMapManager.getFromCreator(owner, iomId) == null) {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, iomId, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner).get();
+                            imageMap = loader.create(new NonUpdatableImageMapCreateInfo(ImageFrame.imageMapManager, iomId, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner)).get();
                         } else {
-                            imageMap = NonUpdatableStaticImageMap.create(ImageFrame.imageMapManager, "ImageOnMap-" + iomId, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner).get();
+                            imageMap = loader.create(new NonUpdatableImageMapCreateInfo(ImageFrame.imageMapManager, "ImageOnMap-" + iomId, images, mapIds, width, height, DitheringType.NEAREST_COLOR, owner)).get();
                         }
                         ImageFrame.imageMapManager.addMap(imageMap);
                         Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Migrated ImageOnMap " + file.getName() + " to " + name + " of " + owner);

@@ -39,7 +39,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -191,19 +190,6 @@ public class GifReader {
 
     private static List<ImageFrame> readGifMethodFallback(InputStream input) throws IOException {
         return Collections.singletonList(new ImageFrame(ImageIO.read(input)));
-    }
-
-    public static int getFrameAt(Collection<ImageFrame> frames, int ms) {
-        int current = 0;
-        int i = 0;
-        for (ImageFrame frame : frames) {
-            current += frame.getDelay();
-            if (current >= ms) {
-                return i;
-            }
-            i++;
-        }
-        return -1;
     }
 
     public static class ImageFrame {
