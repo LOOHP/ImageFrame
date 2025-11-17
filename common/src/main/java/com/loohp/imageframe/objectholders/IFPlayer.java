@@ -32,10 +32,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class IFPlayer {
@@ -105,8 +102,10 @@ public class IFPlayer {
         JsonObject preferenceJson = new JsonObject();
         for (Map.Entry<IFPlayerPreference<?>, Object> entry : preferences.entrySet()) {
             IFPlayerPreference<?> preference = entry.getKey();
-            preferenceJson.add(preference.getJsonName(), preference.getSerializer(Object.class).apply(entry.getValue()));
+			final Object value = entry.getValue();
+			if (!Objects.equals(value, preference.getDefaultValue(this))) preferenceJson.add(preference.getJsonName(), preference.getSerializer(Object.class).apply(value));
         }
+		if (preferenceJson.size() == 0) return;
         json.add("preferences", preferenceJson);
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8))) {
             pw.println(GSON.toJson(json));
