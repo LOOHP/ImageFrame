@@ -45,11 +45,11 @@ import static com.loohp.imageframe.utils.ImageUtils.resizeImageFillWidth;
 
 public class URLStaticImageMap extends URLImageMap {
 
-    protected final FileLazyMappedBufferedImage[] cachedImages;
+    protected final LazyMappedBufferedImage[] cachedImages;
 
     protected byte[][] cachedColors;
 
-    protected URLStaticImageMap(ImageMapManager manager, ImageMapLoader<?, ?> loader, int imageIndex, String name, String url, FileLazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
+    protected URLStaticImageMap(ImageMapManager manager, ImageMapLoader<?, ?> loader, int imageIndex, String name, String url, LazyMappedBufferedImage[] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime) {
         super(manager, loader, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
         this.cacheControlTask.loadCacheIfManual();
@@ -76,7 +76,7 @@ public class URLStaticImageMap extends URLImageMap {
         BufferedImage combined = new BufferedImage(width * MapUtils.MAP_WIDTH, height * MapUtils.MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = combined.createGraphics();
         int index = 0;
-        for (FileLazyMappedBufferedImage image : cachedImages) {
+        for (LazyMappedBufferedImage image : cachedImages) {
             g.drawImage(resizeImageFillWidth(image.get(), MapUtils.MAP_WIDTH), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, null);
             index++;
         }

@@ -26,7 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 
-public class FileLazyMappedBufferedImage {
+public class FileLazyMappedBufferedImage implements LazyMappedBufferedImage {
 
     public static FileLazyMappedBufferedImage fromFile(File file) {
         return new FileLazyMappedBufferedImage(file, null, null);
@@ -57,10 +57,12 @@ public class FileLazyMappedBufferedImage {
         this.weakReference = weakReference;
     }
 
+    @Override
     public File getFile() {
         return file;
     }
 
+    @Override
     public boolean canSetFile(File file) {
         if (this.file != null) {
             return this.file.equals(file);
@@ -68,6 +70,7 @@ public class FileLazyMappedBufferedImage {
         return file != null;
     }
 
+    @Override
     public synchronized void setFile(File file) {
         if (this.file != null) {
             if (this.file.equals(file)) {
@@ -88,6 +91,7 @@ public class FileLazyMappedBufferedImage {
         this.strongReference = null;
     }
 
+    @Override
     public synchronized BufferedImage get() {
         if (strongReference != null) {
             return strongReference;
@@ -105,6 +109,7 @@ public class FileLazyMappedBufferedImage {
         return image;
     }
 
+    @Override
     public synchronized BufferedImage getIfLoaded() {
         if (strongReference != null) {
             return strongReference;

@@ -23,10 +23,10 @@ package com.loohp.imageframe.objectholders;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.media.MediaFrame;
 import com.loohp.imageframe.media.MediaLoader;
-import com.loohp.imageframe.media.MediaLoadingException;
 import net.kyori.adventure.key.Key;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -55,8 +55,8 @@ public abstract class ImageMapLoader<T extends ImageMap, C extends ImageMapCreat
 
     public abstract boolean isSupported(String imageType);
 
-    public boolean isPreferred(String imageType) {
-        return false;
+    public ImageMapLoaderPriority getPriority(String imageType) {
+        return ImageMapLoaderPriority.NORMAL;
     }
 
     public void registerMediaLoaderFirst(MediaLoader mediaLoader) {
@@ -94,18 +94,22 @@ public abstract class ImageMapLoader<T extends ImageMap, C extends ImageMapCreat
         return -1;
     }
 
-    public Iterator<MediaFrame> tryLoadMedia(String url) throws MediaLoadingException {
-        List<MediaLoadingException.MediaLoadingExceptionEntry> exceptions = new ArrayList<>();
+    public Iterator<MediaFrame> tryLoadMedia(String url) throws IOException {
+        List<IOException> exceptions = new ArrayList<>();
         for (MediaLoader mediaLoader : mediaLoaders) {
             try {
                 if (mediaLoader.shouldTryRead(url)) {
                     return mediaLoader.tryLoad(url);
                 }
             } catch (Exception e) {
-                exceptions.add(new MediaLoadingException.MediaLoadingExceptionEntry(mediaLoader.getIdentifier(), e));
+                exceptions.add(new IOException("Unable to read or download media with MediaLoader " + mediaLoader.getIdentifier(), e));
             }
         }
-        throw new MediaLoadingException("Unable to read or download media with ImageMapLoader " + getIdentifier().asString() + ", does this url directly links to the gif? (" + url + ")", exceptions);
+        IOException e = new IOException("Unable to read or download media with ImageMapLoader " + getIdentifier().asString() + ", does this url directly links to the gif? (" + url + ")");
+        for (IOException ex : exceptions) {
+            e.addSuppressed(ex);
+        }
+        throw e;
     }
 
     public abstract Future<T> create(C createInfo) throws Exception;

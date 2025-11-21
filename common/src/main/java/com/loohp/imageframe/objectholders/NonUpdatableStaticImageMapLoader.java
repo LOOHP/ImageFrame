@@ -83,6 +83,11 @@ public class NonUpdatableStaticImageMapLoader extends ImageMapLoader<NonUpdatabl
     }
 
     @Override
+    public ImageMapLoaderPriority getPriority(String imageType) {
+        return ImageMapLoaderPriority.LOWEST;
+    }
+
+    @Override
     public Future<NonUpdatableStaticImageMap> create(NonUpdatableImageMapCreateInfo createInfo) throws Exception {
         World world = MapUtils.getMainWorld();
         int mapsCount = createInfo.getWidth() * createInfo.getHeight();
@@ -117,7 +122,7 @@ public class NonUpdatableStaticImageMapLoader extends ImageMapLoader<NonUpdatabl
                 throw new RuntimeException(e);
             }
         }
-        NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(createInfo.getManager(), this, -1, createInfo.getName(), Arrays.stream(images).map(i -> FileLazyMappedBufferedImage.fromImage(i)).toArray(FileLazyMappedBufferedImage[]::new), mapViews, mapIds, markers, createInfo.getWidth(), createInfo.getHeight(), createInfo.getDitheringType(), createInfo.getCreator(), Collections.emptyMap(), System.currentTimeMillis());
+        NonUpdatableStaticImageMap map = new NonUpdatableStaticImageMap(createInfo.getManager(), this, -1, createInfo.getName(), Arrays.stream(images).map(i -> FileLazyMappedBufferedImage.fromImage(i)).toArray(LazyMappedBufferedImage[]::new), mapViews, mapIds, markers, createInfo.getWidth(), createInfo.getHeight(), createInfo.getDitheringType(), createInfo.getCreator(), Collections.emptyMap(), System.currentTimeMillis());
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -151,7 +156,7 @@ public class NonUpdatableStaticImageMapLoader extends ImageMapLoader<NonUpdatabl
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
-        FileLazyMappedBufferedImage[] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()];
+        LazyMappedBufferedImage[] cachedImages = new LazyMappedBufferedImage[mapDataJson.size()];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         World world = Bukkit.getWorlds().get(0);
         int i = 0;

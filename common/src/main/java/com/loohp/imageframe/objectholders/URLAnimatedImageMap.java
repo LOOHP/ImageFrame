@@ -49,7 +49,7 @@ import java.util.UUID;
 
 public class URLAnimatedImageMap extends URLImageMap {
 
-    protected final FileLazyMappedBufferedImage[][] cachedImages;
+    protected final LazyMappedBufferedImage[][] cachedImages;
 
     protected byte[][][] cachedColors;
     protected int[][] fakeMapIds;
@@ -57,7 +57,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     protected int pausedAt;
     protected int tickOffset;
 
-    protected URLAnimatedImageMap(ImageMapManager manager, ImageMapLoader<?, ?> loader, int imageIndex, String name, String url, FileLazyMappedBufferedImage[][] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime, int pausedAt, int tickOffset) {
+    protected URLAnimatedImageMap(ImageMapManager manager, ImageMapLoader<?, ?> loader, int imageIndex, String name, String url, LazyMappedBufferedImage[][] cachedImages, List<MapView> mapViews, List<Integer> mapIds, List<Map<String, MapCursor>> mapMarkers, int width, int height, DitheringType ditheringType, UUID creator, Map<UUID, ImageMapAccessPermissionType> hasAccess, long creationTime, int pausedAt, int tickOffset) {
         super(manager, loader, imageIndex, name, url, mapViews, mapIds, mapMarkers, width, height, ditheringType, creator, hasAccess, creationTime);
         this.cachedImages = cachedImages;
         this.pausedAt = pausedAt;
@@ -82,10 +82,11 @@ public class URLAnimatedImageMap extends URLImageMap {
         }
         Graphics2D[] g = Arrays.stream(combined).map(i -> i.createGraphics()).toArray(Graphics2D[]::new);
         int index = 0;
-        for (FileLazyMappedBufferedImage[] images : cachedImages) {
+        for (LazyMappedBufferedImage[] images : cachedImages) {
             int f = 0;
-            for (FileLazyMappedBufferedImage image : images) {
-                g[f++].drawImage(image.get(), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, null);
+            for (LazyMappedBufferedImage image : images) {
+                //noinspection SuspiciousNameCombination
+                g[f++].drawImage(image.get(), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH, null);
             }
             index++;
         }
@@ -97,7 +98,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             combinedData[i] = MapUtils.toMapPaletteBytes(combined[i], ditheringType);
         }
         int i = 0;
-        for (FileLazyMappedBufferedImage[] images : cachedImages) {
+        for (LazyMappedBufferedImage[] images : cachedImages) {
             byte[][] data = new byte[images.length][];
             int[] mapIds = new int[data.length];
             Arrays.fill(mapIds, -1);
@@ -139,10 +140,10 @@ public class URLAnimatedImageMap extends URLImageMap {
     public void update(boolean save) throws Exception {
         List<BufferedImage> images = CollectionUtils.toList(new TimedMediaFrameIterator(loader.tryLoadMedia(url), 50));
         for (int i = 0; i < cachedImages.length; i++) {
-            cachedImages[i] = new FileLazyMappedBufferedImage[images.size()];
+            cachedImages[i] = new LazyMappedBufferedImage[images.size()];
         }
         int index = 0;
-        Map<IntPosition, FileLazyMappedBufferedImage> previousImages = new HashMap<>();
+        Map<IntPosition, LazyMappedBufferedImage> previousImages = new HashMap<>();
         for (BufferedImage image : images) {
             image = MapUtils.resize(image, width, height);
             int i = 0;
@@ -150,8 +151,8 @@ public class URLAnimatedImageMap extends URLImageMap {
                 for (int x = 0; x < width; x++) {
                     IntPosition intPosition = new IntPosition(x, y);
                     BufferedImage subImage = MapUtils.getSubImage(image, x, y);
-                    FileLazyMappedBufferedImage previousFile = previousImages.get(intPosition);
-                    FileLazyMappedBufferedImage file;
+                    LazyMappedBufferedImage previousFile = previousImages.get(intPosition);
+                    LazyMappedBufferedImage file;
                     if (previousFile == null || !MapUtils.areImagesEqual(subImage, previousFile.getIfLoaded())) {
                         file = FileLazyMappedBufferedImage.fromImage(subImage);
                     } else {
@@ -338,7 +339,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             JsonObject dataJson = new JsonObject();
             dataJson.addProperty("mapid", mapIds.get(i));
             JsonArray framesArray = new JsonArray();
-            for (FileLazyMappedBufferedImage image : cachedImages[i]) {
+            for (LazyMappedBufferedImage image : cachedImages[i]) {
                 int index = u++;
                 File file = new File(folder, index + ".png");
                 if (image.canSetFile(file)) {

@@ -18,33 +18,21 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.loohp.imageframe.media;
+package com.loohp.imageframe.objectholders;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
 
-public class MediaFrame {
+public interface LazyMappedBufferedImage {
 
-    public static MediaFrame staticFrame(BufferedImage image) {
-        return new MediaFrame(image, -1);
-    }
+    File getFile();
 
-    public static MediaFrame animatedFrame(BufferedImage image, int durationMs) {
-        return new MediaFrame(image, durationMs);
-    }
+    boolean canSetFile(File file);
 
-    private final BufferedImage image;
-    private final int durationMs;
+    void setFile(File file);
 
-    private MediaFrame(BufferedImage image, int durationMs) {
-        this.image = image;
-        this.durationMs = durationMs;
-    }
+    BufferedImage get();
 
-    public BufferedImage getImage() {
-        return image;
-    }
+    BufferedImage getIfLoaded();
 
-    public int getDurationMs() {
-        return durationMs;
-    }
 }

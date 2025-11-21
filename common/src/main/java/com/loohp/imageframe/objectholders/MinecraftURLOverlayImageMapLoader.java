@@ -78,6 +78,11 @@ public class MinecraftURLOverlayImageMapLoader extends ImageMapLoader<MinecraftU
     }
 
     @Override
+    public ImageMapLoaderPriority getPriority(String imageType) {
+        return ImageMapLoaderPriority.LOWEST;
+    }
+
+    @Override
     public Future<MinecraftURLOverlayImageMap> create(MinecraftURLOverlayImageMapCreateInfo createInfo) throws Exception {
         int mapsCount = createInfo.getWidth() * createInfo.getHeight();
         List<MapView> mapViews = createInfo.getMapViews();
@@ -93,7 +98,7 @@ public class MinecraftURLOverlayImageMapLoader extends ImageMapLoader<MinecraftU
             }
             markers.add(new ConcurrentHashMap<>());
         }
-        MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(createInfo.getManager(), this, -1, createInfo.getName(), createInfo.getUrl(), new FileLazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, createInfo.getWidth(), createInfo.getHeight(), createInfo.getDitheringType(), createInfo.getCreator(), Collections.emptyMap(), System.currentTimeMillis());
+        MinecraftURLOverlayImageMap map = new MinecraftURLOverlayImageMap(createInfo.getManager(), this, -1, createInfo.getName(), createInfo.getUrl(), new LazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, createInfo.getWidth(), createInfo.getHeight(), createInfo.getDitheringType(), createInfo.getCreator(), Collections.emptyMap(), System.currentTimeMillis());
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -128,7 +133,7 @@ public class MinecraftURLOverlayImageMapLoader extends ImageMapLoader<MinecraftU
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
-        FileLazyMappedBufferedImage[] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()];
+        LazyMappedBufferedImage[] cachedImages = new LazyMappedBufferedImage[mapDataJson.size()];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         World world = Bukkit.getWorlds().get(0);
         int i = 0;

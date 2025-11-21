@@ -82,7 +82,7 @@ public class ImageMapLoaders {
                 .filter(l -> createInfoClass.equals(l.getImageMapCreateInfoClass()))
                 .filter(l -> l.isSupported(imageType))
                 .filter(l -> l.getExtraPermissions().stream().allMatch(p -> sender.hasPermission(p)))
-                .max(Comparator.comparing((ImageMapLoader<?, ?> l) -> l.isPreferred(imageType)))
+                .max(Comparator.comparing((ImageMapLoader<?, ?> l) -> l.getPriority(imageType)))
                 .orElse(null);
     }
 
@@ -113,7 +113,7 @@ public class ImageMapLoaders {
         }
     }
 
-    private static <T extends MediaLoader> T registerLoader(T loader, ImageMapLoader<?, ?>... imageMapLoaders) {
+    public static <T extends MediaLoader> T registerLoader(T loader, ImageMapLoader<?, ?>... imageMapLoaders) {
         for (ImageMapLoader<?, ?> imageMapLoader : imageMapLoaders) {
             imageMapLoader.registerMediaLoaderLast(loader);
             Bukkit.getServer().getConsoleSender().sendMessage(ChatColor.GRAY + "[ImageFrame] Registered MediaLoader " + loader.getIdentifier().asString() + " to ImageMapLoader " + imageMapLoader.getIdentifier().asString());

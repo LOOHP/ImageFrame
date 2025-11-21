@@ -81,6 +81,11 @@ public class URLStaticImageMapLoader extends ImageMapLoader<URLStaticImageMap, U
     }
 
     @Override
+    public ImageMapLoaderPriority getPriority(String imageType) {
+        return ImageMapLoaderPriority.LOWEST;
+    }
+
+    @Override
     public Future<URLStaticImageMap> create(URLImageMapCreateInfo createInfo) throws Exception {
         World world = MapUtils.getMainWorld();
         int mapsCount = createInfo.getWidth() * createInfo.getHeight();
@@ -106,7 +111,7 @@ public class URLStaticImageMapLoader extends ImageMapLoader<URLStaticImageMap, U
                 throw new RuntimeException(e);
             }
         }
-        URLStaticImageMap map = new URLStaticImageMap(createInfo.getManager(), this, -1, createInfo.getName(), createInfo.getUrl(), new FileLazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, createInfo.getWidth(), createInfo.getHeight(), createInfo.getDitheringType(), createInfo.getCreator(), Collections.emptyMap(), System.currentTimeMillis());
+        URLStaticImageMap map = new URLStaticImageMap(createInfo.getManager(), this, -1, createInfo.getName(), createInfo.getUrl(), new LazyMappedBufferedImage[mapsCount], mapViews, mapIds, markers, createInfo.getWidth(), createInfo.getHeight(), createInfo.getDitheringType(), createInfo.getCreator(), Collections.emptyMap(), System.currentTimeMillis());
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -141,7 +146,7 @@ public class URLStaticImageMapLoader extends ImageMapLoader<URLStaticImageMap, U
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
-        FileLazyMappedBufferedImage[] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()];
+        LazyMappedBufferedImage[] cachedImages = new LazyMappedBufferedImage[mapDataJson.size()];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         World world = Bukkit.getWorlds().get(0);
         int i = 0;

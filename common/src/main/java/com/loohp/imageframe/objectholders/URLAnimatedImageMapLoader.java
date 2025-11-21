@@ -80,8 +80,8 @@ public class URLAnimatedImageMapLoader extends ImageMapLoader<URLAnimatedImageMa
     }
 
     @Override
-    public boolean isPreferred(String imageType) {
-        return isSupported(imageType);
+    public ImageMapLoaderPriority getPriority(String imageType) {
+        return isSupported(imageType) ? ImageMapLoaderPriority.LOW : super.getPriority(imageType);
     }
 
     @Override
@@ -106,7 +106,7 @@ public class URLAnimatedImageMapLoader extends ImageMapLoader<URLAnimatedImageMa
             mapViews.add(mapView);
             mapIds.add(mapView.getId());
         }
-        URLAnimatedImageMap map = new URLAnimatedImageMap(createInfo.getManager(), this, -1, createInfo.getName(), createInfo.getUrl(), new FileLazyMappedBufferedImage[mapsCount][], mapViews, mapIds, markers, createInfo.getWidth(), createInfo.getHeight(), createInfo.getDitheringType(), createInfo.getCreator(), Collections.emptyMap(), System.currentTimeMillis(), -1, 0);
+        URLAnimatedImageMap map = new URLAnimatedImageMap(createInfo.getManager(), this, -1, createInfo.getName(), createInfo.getUrl(), new LazyMappedBufferedImage[mapsCount][], mapViews, mapIds, markers, createInfo.getWidth(), createInfo.getHeight(), createInfo.getDitheringType(), createInfo.getCreator(), Collections.emptyMap(), System.currentTimeMillis(), -1, 0);
         return FutureUtils.callAsyncMethod(() -> {
             FutureUtils.callSyncMethod(() -> {
                 for (int i = 0; i < mapViews.size(); i++) {
@@ -141,7 +141,7 @@ public class URLAnimatedImageMapLoader extends ImageMapLoader<URLAnimatedImageMa
         JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
         List<Future<MapView>> mapViewsFuture = new ArrayList<>(mapDataJson.size());
         List<Integer> mapIds = new ArrayList<>(mapDataJson.size());
-        FileLazyMappedBufferedImage[][] cachedImages = new FileLazyMappedBufferedImage[mapDataJson.size()][];
+        LazyMappedBufferedImage[][] cachedImages = new LazyMappedBufferedImage[mapDataJson.size()][];
         List<Map<String, MapCursor>> markers = new ArrayList<>(mapDataJson.size());
         World world = Bukkit.getWorlds().get(0);
         int i = 0;
@@ -151,7 +151,7 @@ public class URLAnimatedImageMapLoader extends ImageMapLoader<URLAnimatedImageMa
             mapIds.add(mapId);
             mapViewsFuture.add(MapUtils.getMapOrCreateMissing(world, mapId));
             JsonArray framesArray = jsonObject.get("images").getAsJsonArray();
-            FileLazyMappedBufferedImage[] images = new FileLazyMappedBufferedImage[framesArray.size()];
+            LazyMappedBufferedImage[] images = new LazyMappedBufferedImage[framesArray.size()];
             int u = 0;
             for (JsonElement element : framesArray) {
                 images[u++] = FileLazyMappedBufferedImage.fromFile(new File(folder, element.getAsString()));

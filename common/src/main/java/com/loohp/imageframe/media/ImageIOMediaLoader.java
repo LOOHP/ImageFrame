@@ -27,6 +27,7 @@ import net.kyori.adventure.key.Key;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Iterator;
 
 public class ImageIOMediaLoader implements MediaLoader {
@@ -46,6 +47,9 @@ public class ImageIOMediaLoader implements MediaLoader {
     @Override
     public Iterator<MediaFrame> tryLoad(String url) throws Exception {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(HTTPRequestUtils.download(url, ImageFrame.maxImageFileSize)));
+        if (image == null) {
+            throw new IOException("ImageIO cannot read media type in " + url);
+        }
         return MediaLoader.staticImage(image);
     }
 }
