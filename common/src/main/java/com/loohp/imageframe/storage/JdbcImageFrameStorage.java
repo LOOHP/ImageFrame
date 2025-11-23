@@ -60,17 +60,22 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntConsumer;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("UnnecessarySemicolon")
-public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
+public class JdbcImageFrameStorage implements ImageFrameStorage {
 
     public static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
@@ -81,6 +86,7 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
 
     private AtomicLong lastUpdateFetch;
     private ScheduledTask updateFetchTask;
+    private ScheduledTask periodicSyncTask;
 
     public JdbcImageFrameStorage(File localDataFolder, String jdbcUrl, String username, String password, int activePollInterval) {
         this.localDataFolder = localDataFolder;
@@ -125,6 +131,22 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
         }
     }
 
+    private void setupTasks(ImageMapManager imageMapManager, IFPlayerManager ifPlayerManager) {
+        if (lastUpdateFetch == null) {
+            lastUpdateFetch = new AtomicLong(System.currentTimeMillis());
+        } else {
+            lastUpdateFetch.set(System.currentTimeMillis());
+        }
+        if (updateFetchTask != null) {
+            updateFetchTask.cancel();
+        }
+        updateFetchTask = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> activeUpdate(imageMapManager, ifPlayerManager), activePollInterval + 100, activePollInterval);
+        if (periodicSyncTask != null) {
+            periodicSyncTask.cancel();
+        }
+        periodicSyncTask = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> imageMapManager.syncMaps(), (activePollInterval * 12L) + 100, activePollInterval * 12L);
+    }
+
     private void prepareDatabase() {
         try (
             Connection connection = dataSource.getConnection();
@@ -139,12 +161,16 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS INSTANCE_IMAGE_MAP_DATA (IMAGE_INDEX INT NOT NULL, INSTANCE_ID CHAR(36) NOT NULL, DATA LONGTEXT NOT NULL, PRIMARY KEY (IMAGE_INDEX, INSTANCE_ID))");
             // Deleted maps set
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS DELETED_MAPS (INSTANCE_ID CHAR(36) NOT NULL, MAP_ID INT NOT NULL, PRIMARY KEY (INSTANCE_ID, MAP_ID))");
-            // Player data
-            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS PLAYERS (UUID CHAR(36) NOT NULL PRIMARY KEY, DATA LONGTEXT NOT NULL)");
             // Sequence table for image indices (only for ID allocation)
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS IMAGE_MAP_INDEX_SEQUENCE (ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY)");
             // Track last update time per image_index
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS IMAGE_MAP_UPDATE_STATE (IMAGE_INDEX INT NOT NULL PRIMARY KEY, LAST_UPDATED TIMESTAMP(3) NOT NULL, UPDATED_BY_INSTANCE CHAR(36) NOT NULL)");
+
+            // Player data
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS PLAYERS (UUID CHAR(36) NOT NULL PRIMARY KEY, DATA LONGTEXT NOT NULL)");
+            // Track last update time per player so instances can detect changes
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS PLAYER_UPDATE_STATE (UUID CHAR(36) NOT NULL PRIMARY KEY, LAST_UPDATED TIMESTAMP NOT NULL, UPDATED_BY_INSTANCE CHAR(36) NOT NULL)");
+
             // If sequence table is empty, initialize AUTO_INCREMENT to max(image_index) + 1
             try (
                 Statement s2 = connection.createStatement();
@@ -189,8 +215,31 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
     }
 
     @Override
+    public JdbcImageFrameStorageLoader getLoader() {
+        return ImageFrameStorageLoaders.JDBC;
+    }
+
+    @Override
     public LazyBufferedImageSource getSource(int imageIndex, String fileName) {
         return new MySqlLazyBufferedImageSource(this, imageIndex, fileName);
+    }
+
+    @Override
+    public Set<Integer> getAllImageIndexes() {
+        String sql = "SELECT IMAGE_INDEX FROM IMAGE_MAPS";
+        Set<Integer> result = new HashSet<>();
+        try (
+            Connection connection = dataSource.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery()
+        ) {
+            while (rs.next()) {
+                result.add(rs.getInt("IMAGE_INDEX"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to fetch all ImageMap indexes from database", e);
+        }
+        return result;
     }
 
     @Override
@@ -236,14 +285,13 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
                 int id = rs.getInt(1);
 
                 // Occasionally prune old rows (does not affect AUTO_INCREMENT)
-                if (id % 1000 == 0) {
+                if (id % 50 == 0) {
                     String pruneSql = "DELETE FROM IMAGE_MAP_INDEX_SEQUENCE WHERE ID < ?";
                     try (PreparedStatement prune = connection.prepareStatement(pruneSql)) {
-                        prune.setInt(1, id - 500); // keep a small recent window
+                        prune.setInt(1, id - 25); // keep a small recent window
                         prune.executeUpdate();
                     }
                 }
-
                 return id;
             }
         }
@@ -348,7 +396,7 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
     }
 
     @Override
-    public List<MutablePair<String, Future<? extends ImageMap>>> loadMaps(ImageMapManager manager, Set<Integer> deletedMapIds) {
+    public List<MutablePair<String, Future<? extends ImageMap>>> loadMaps(ImageMapManager imageMapManager, Set<Integer> deletedMapIds, IFPlayerManager ifPlayerManager) {
         List<MutablePair<String, Future<? extends ImageMap>>> futures = new ArrayList<>();
 
         String sqlMaps = "SELECT BASE.IMAGE_INDEX AS IMAGE_INDEX, BASE.DATA AS BASE_DATA, INST.DATA AS INST_DATA FROM IMAGE_MAPS BASE LEFT JOIN INSTANCE_IMAGE_MAP_DATA INST ON INST.IMAGE_INDEX = BASE.IMAGE_INDEX AND INST.INSTANCE_ID = ? ORDER BY BASE.IMAGE_INDEX ASC";
@@ -370,7 +418,7 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
 
                     JsonObject mergedJson = JsonUtils.merge(baseJson, instanceJson).getAsJsonObject();
 
-                    Future<? extends ImageMap> future = ImageMapLoaders.load(manager, mergedJson);
+                    Future<? extends ImageMap> future = ImageMapLoaders.load(imageMapManager, mergedJson);
                     futures.add(new MutablePair<>("database:" + imageIndex, future));
                 }
             }
@@ -381,26 +429,33 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
 
         deletedMapIds.addAll(loadDeletedMaps());
 
-        if (lastUpdateFetch == null) {
-            lastUpdateFetch = new AtomicLong(System.currentTimeMillis());
-        } else {
-            lastUpdateFetch.set(System.currentTimeMillis());
-        }
-        if (updateFetchTask != null) {
-            updateFetchTask.cancel();
-        }
-        updateFetchTask = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, () -> updateMaps(manager), activePollInterval + 100, activePollInterval);
+        setupTasks(imageMapManager, ifPlayerManager);
 
         return futures;
     }
 
-    public void updateMaps(ImageMapManager manager) {
+    public void activeUpdate(ImageMapManager imageMapManager, IFPlayerManager ifPlayerManager) {
         try {
             long lastUpdated = lastUpdateFetch.get();
-            List<ImageMapUpdateInfo> updateInfo = getUpdatedImageIndexesSince(lastUpdated);
-            for (ImageMapUpdateInfo info : updateInfo) {
+            List<ImageMapUpdateInfo> imageMapUpdateInfo = getUpdatedImageIndexesSince(lastUpdated);
+            for (ImageMapUpdateInfo info : imageMapUpdateInfo) {
                 try {
-                    manager.updateMap(info.getImageIndex(), info.exists());
+                    imageMapManager.updateMap(info.getImageIndex(), info.exists());
+                    lastUpdated = Math.max(lastUpdated, info.getLastUpdated());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            List<PlayerUpdateInfo> playerUpdateInfo = getUpdatedPlayersSince(lastUpdated);
+            Map<UUID, JsonObject> playerInfo = loadPlayerDataBulk(playerUpdateInfo.stream().map(p -> p.getUniqueId()).collect(Collectors.toSet()));
+            for (PlayerUpdateInfo info : playerUpdateInfo) {
+                try {
+                    UUID uuid = info.getUniqueId();
+                    IFPlayer ifPlayer = ifPlayerManager.getIFPlayerIfLoaded(uuid);
+                    JsonObject playerJson = playerInfo.get(uuid);
+                    if (ifPlayer != null && playerJson != null) {
+                        ifPlayer.applyUpdate(playerJson);
+                    }
                     lastUpdated = Math.max(lastUpdated, info.getLastUpdated());
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -498,7 +553,7 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
     }
 
     @Override
-    public IFPlayer loadPlayerData(IFPlayerManager manager, UUID uuid) {
+    public JsonObject loadPlayerData(IFPlayerManager manager, UUID uuid) {
         String sql = "SELECT DATA FROM PLAYERS WHERE UUID = ?";
         try (
             Connection connection = dataSource.getConnection();
@@ -510,8 +565,7 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
                     return null;
                 }
                 String jsonString = rs.getString("DATA");
-                JsonObject json = GSON.fromJson(jsonString, JsonObject.class);
-                return IFPlayer.load(manager, json);
+                return GSON.fromJson(jsonString, JsonObject.class);
             }
         } catch (Exception e) {
             new RuntimeException("Unable to load ImageFrame player data for " + uuid + " from database", e).printStackTrace();
@@ -519,42 +573,150 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
         }
     }
 
-    @Override
-    public void savePlayerData(UUID uuid, JsonObject json) throws IOException {
-        String sql = "INSERT INTO PLAYERS (UUID, DATA) VALUES (?, ?) ON DUPLICATE KEY UPDATE DATA = VALUES(DATA)";
+    public Map<UUID, JsonObject> loadPlayerDataBulk(Set<UUID> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<UUID, JsonObject> result = new HashMap<>();
+        StringBuilder sqlBuilder = new StringBuilder("SELECT UUID, DATA FROM PLAYERS WHERE UUID IN (");
+        StringJoiner joiner = new StringJoiner(", ");
+        for (int i = 0; i < uuids.size(); i++) {
+            joiner.add("?");
+        }
+        sqlBuilder.append(joiner).append(")");
+        String sql = sqlBuilder.toString();
         try (
             Connection connection = dataSource.getConnection();
             PreparedStatement ps = connection.prepareStatement(sql);
         ) {
-            ps.setString(1, uuid.toString());
-            ps.setString(2, GSON.toJson(json));
-            ps.executeUpdate();
+            int index = 1;
+            for (UUID uuid : uuids) {
+                ps.setString(index++, uuid.toString());
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String uuidStr = rs.getString("UUID");
+                    String jsonString = rs.getString("DATA");
+                    UUID uuid;
+                    try {
+                        uuid = UUID.fromString(uuidStr);
+                    } catch (IllegalArgumentException ignored) {
+                        continue;
+                    }
+                    try {
+                        JsonObject json = GSON.fromJson(jsonString, JsonObject.class);
+                        if (json != null) {
+                            result.put(uuid, json);
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to bulk load player data from database", e);
+        }
+        return result;
+    }
+
+    @Override
+    public void savePlayerData(UUID uuid, JsonObject json) throws IOException {
+        String sqlPlayer = "INSERT INTO PLAYERS (UUID, DATA) VALUES (?, ?) ON DUPLICATE KEY UPDATE DATA = VALUES(DATA)";
+        String sqlUpdateState = "INSERT INTO PLAYER_UPDATE_STATE (UUID, LAST_UPDATED, UPDATED_BY_INSTANCE) VALUES (?, NOW(), ?) ON DUPLICATE KEY UPDATE LAST_UPDATED = VALUES(LAST_UPDATED), UPDATED_BY_INSTANCE = VALUES(UPDATED_BY_INSTANCE)";
+
+        try (Connection connection = dataSource.getConnection()) {
+            // 1) Save player JSON
+            try (PreparedStatement ps = connection.prepareStatement(sqlPlayer)) {
+                ps.setString(1, uuid.toString());
+                ps.setString(2, GSON.toJson(json));
+                ps.executeUpdate();
+            }
+            // 2) Update player update-state
+            try (PreparedStatement ps = connection.prepareStatement(sqlUpdateState)) {
+                ps.setString(1, uuid.toString());
+                ps.setString(2, instanceId.toString());
+                ps.executeUpdate();
+            }
         } catch (SQLException e) {
             throw new IOException("Unable to save ImageFrame player data for " + uuid + " to database", e);
         }
     }
 
-    public List<ImageMapUpdateInfo> getUpdatedImageIndexesSince(long sinceMillis) throws IOException {
-        String sql = "SELECT UPD.IMAGE_INDEX AS IMAGE_INDEX, UPD.LAST_UPDATED AS LAST_UPDATED, BASE.IMAGE_INDEX AS EXISTS_FLAG FROM IMAGE_MAP_UPDATE_STATE UPD LEFT JOIN IMAGE_MAPS BASE ON BASE.IMAGE_INDEX = UPD.IMAGE_INDEX WHERE UPD.LAST_UPDATED > ? AND UPD.UPDATED_BY_INSTANCE <> ?";
-        List<ImageMapUpdateInfo> result = new ArrayList<>();
-        Timestamp sinceTs = new Timestamp(sinceMillis);
+    @Override
+    public Set<UUID> getAllSavedPlayerData() {
+        String sql = "SELECT UUID FROM PLAYERS";
+        Set<UUID> result = new HashSet<>();
         try (
             Connection connection = dataSource.getConnection();
             PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
         ) {
-            ps.setTimestamp(1, sinceTs);
-            ps.setString(2, instanceId.toString());
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    int imageIndex = rs.getInt("IMAGE_INDEX");
-                    boolean exists = rs.getObject("EXISTS_FLAG") != null;
-                    Timestamp lastUpdated = rs.getTimestamp("LAST_UPDATED");
-                    result.add(new ImageMapUpdateInfo(imageIndex, exists, lastUpdated.getTime()));
+            while (rs.next()) {
+                String uuidStr = rs.getString("uuid");
+                try {
+                    result.add(UUID.fromString(uuidStr));
+                } catch (IllegalArgumentException ignore) {
                 }
             }
         } catch (SQLException e) {
+            throw new RuntimeException("Unable to load ImageFrame player data list from database", e);
+        }
+        return result;
+    }
+
+    public List<ImageMapUpdateInfo> getUpdatedImageIndexesSince(long sinceMillis) throws IOException {
+        String sql = "SELECT UPD.IMAGE_INDEX AS IMAGE_INDEX, UPD.LAST_UPDATED AS LAST_UPDATED, BASE.IMAGE_INDEX AS EXISTS_FLAG FROM IMAGE_MAP_UPDATE_STATE UPD LEFT JOIN IMAGE_MAPS BASE ON BASE.IMAGE_INDEX = UPD.IMAGE_INDEX WHERE UPD.LAST_UPDATED > ? AND UPD.UPDATED_BY_INSTANCE <> ?";
+        String pruneSql = "DELETE FROM IMAGE_MAP_UPDATE_STATE WHERE LAST_UPDATED < (NOW() - INTERVAL 14 DAY)";
+        List<ImageMapUpdateInfo> result = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection()) {
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setTimestamp(1, new Timestamp(sinceMillis));
+                ps.setString(2, instanceId.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        int imageIndex = rs.getInt("IMAGE_INDEX");
+                        boolean exists = rs.getObject("EXISTS_FLAG") != null;
+                        Timestamp lastUpdated = rs.getTimestamp("LAST_UPDATED");
+                        result.add(new ImageMapUpdateInfo(imageIndex, exists, lastUpdated.getTime()));
+                    }
+                }
+            }
+            try (PreparedStatement prune = connection.prepareStatement(pruneSql)) {
+                prune.executeUpdate();
+            }
+        } catch (SQLException e) {
             throw new IOException("Unable to fetch updated image indices since " + sinceMillis, e);
+        }
+        return result;
+    }
+
+    public List<PlayerUpdateInfo> getUpdatedPlayersSince(long sinceMillis) throws IOException {
+        String sql = "SELECT PUS.UUID AS UUID, PUS.LAST_UPDATED AS LAST_UPDATED FROM PLAYER_UPDATE_STATE PUS WHERE PUS.LAST_UPDATED > ? AND PUS.UPDATED_BY_INSTANCE <> ?";
+        String pruneSql = "DELETE FROM PLAYER_UPDATE_STATE WHERE LAST_UPDATED < (NOW() - INTERVAL 14 DAY)";
+        List<PlayerUpdateInfo> result = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection()) {
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setTimestamp(1, new Timestamp(sinceMillis));
+                ps.setString(2, instanceId.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String uuidStr = rs.getString("UUID");
+                        Timestamp lastUpdated = rs.getTimestamp("LAST_UPDATED");
+                        UUID uuid;
+                        try {
+                            uuid = UUID.fromString(uuidStr);
+                        } catch (IllegalArgumentException e) {
+                            continue;
+                        }
+                        long lastUpdatedMillis = (lastUpdated != null) ? lastUpdated.getTime() : 0L;
+                        result.add(new PlayerUpdateInfo(uuid, lastUpdatedMillis));
+                    }
+                }
+            }
+            try (PreparedStatement prune = connection.prepareStatement(pruneSql)) {
+                prune.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new IOException("Unable to fetch updated players since " + sinceMillis, e);
         }
         return result;
     }
@@ -563,6 +725,9 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
     public void close() {
         if (updateFetchTask != null) {
             updateFetchTask.cancel();
+        }
+        if (periodicSyncTask != null) {
+            periodicSyncTask.cancel();
         }
         dataSource.close();
     }
@@ -665,6 +830,25 @@ public class JdbcImageFrameStorage implements ImageFrameStorage, AutoCloseable {
 
         public boolean exists() {
             return exists;
+        }
+
+        public long getLastUpdated() {
+            return lastUpdated;
+        }
+    }
+
+    public static class PlayerUpdateInfo {
+
+        private final UUID uuid;
+        private final long lastUpdated;
+
+        public PlayerUpdateInfo(UUID uuid, long lastUpdated) {
+            this.uuid = uuid;
+            this.lastUpdated = lastUpdated;
+        }
+
+        public UUID getUniqueId() {
+            return uuid;
         }
 
         public long getLastUpdated() {

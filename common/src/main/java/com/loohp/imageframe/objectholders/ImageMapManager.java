@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe.objectholders;
 
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -204,15 +205,23 @@ public class ImageMapManager implements AutoCloseable {
             if (imageMap == null) {
                 if (exist) {
                     JsonObject json = imageFrameStorage.loadImageMapData(imageIndex);
-                    addMap(ImageMapLoaders.load(this, json).get());
+                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                        try {
+                            addMap(ImageMapLoaders.load(this, json).get());
+                        } catch (Exception e) {
+                            throw new RuntimeException("Unable to update map " + imageIndex + " from source", e);
+                        }
+                    });
                 }
             } else {
                 if (exist) {
                     JsonObject json = imageFrameStorage.loadImageMapData(imageIndex);
-                    if (imageMap.applyUpdate(json)) {
-                        imageMap.reloadColorCache();
-                        Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(imageMap));
-                    }
+                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                        if (imageMap.applyUpdate(json)) {
+                            imageMap.reloadColorCache();
+                            Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(imageMap));
+                        }
+                    });
                 } else {
                     deleteMap(imageIndex);
                 }
@@ -220,6 +229,10 @@ public class ImageMapManager implements AutoCloseable {
         } catch (Exception e) {
             throw new RuntimeException("Unable to update map " + imageIndex + " from source", e);
         }
+    }
+
+    public Set<Integer> getDeletedMapIds() {
+        return Collections.unmodifiableSet(deletedMapIds);
     }
 
     public boolean isMapDeleted(int mapId) {
@@ -230,10 +243,10 @@ public class ImageMapManager implements AutoCloseable {
         return isMapDeleted(mapView.getId());
     }
 
-    public synchronized void loadMaps() {
+    public synchronized void loadMaps(IFPlayerManager ifPlayerManager) {
         maps.clear();
         mapsByView.clear();
-        List<MutablePair<String, Future<? extends ImageMap>>> futures = imageFrameStorage.loadMaps(this, deletedMapIds);
+        List<MutablePair<String, Future<? extends ImageMap>>> futures = imageFrameStorage.loadMaps(this, deletedMapIds, ifPlayerManager);
         Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
             int count = 0;
             for (MutablePair<String, Future<? extends ImageMap>> pair : futures) {
@@ -247,6 +260,36 @@ public class ImageMapManager implements AutoCloseable {
             }
             Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Data loading completed! Loaded " + count + " ImageMaps!");
         });
+    }
+
+    public void syncMaps() {
+        syncMaps(false);
+    }
+
+    public synchronized void syncMaps(boolean verbose) {
+        Set<Integer> indexesFromStorage = imageFrameStorage.getAllImageIndexes();
+        Set<Integer> indexesFromLocal = maps.keySet();
+        int added = 0;
+        int deleted = 0;
+        for (int index : Sets.symmetricDifference(indexesFromStorage, indexesFromLocal)) {
+           try {
+               boolean exist = indexesFromStorage.contains(index);
+               updateMap(index, exist);
+               if (exist) {
+                   added++;
+               } else {
+                   deleted++;
+               }
+           } catch (Throwable e) {
+               if (verbose) {
+                   Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] Unable to sync ImageMap data for index " + index);
+               }
+               e.printStackTrace();
+           }
+        }
+        if (verbose) {
+            Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Data sync completed! Newly loaded " + added + " and deleted " + deleted + " ImageMaps!");
+        }
     }
 
     public synchronized void saveDeletedMaps() {

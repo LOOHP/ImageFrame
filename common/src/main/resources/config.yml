@@ -1,5 +1,7 @@
 Messages:
   Reloaded: "&eImageFrame has been reloaded!"
+  Resync: "&aPerforming resync! See console for details."
+  StorageMigration: "&aPerforming storage migration! See console for details."
   ImageMapProcessing: "&eImageMap is being processed, please wait!"
   #Leave this empty ("") to disable action bar message
   ImageMapProcessingActionBar: "&eImageMap &a{Name} &eis being processed{Dots}"

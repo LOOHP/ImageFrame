@@ -24,6 +24,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.media.TimedMediaFrameIterator;
+import com.loohp.imageframe.storage.ImageFrameStorage;
 import com.loohp.imageframe.utils.CollectionUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
@@ -310,7 +311,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
-    public void save() throws Exception {
+    public void save(ImageFrameStorage storage, boolean saveAsCopy) throws Exception {
         if (imageIndex < 0) {
             throw new IllegalStateException("ImageMap with index < 0 cannot be saved");
         }
@@ -341,13 +342,13 @@ public class URLAnimatedImageMap extends URLImageMap {
             JsonArray framesArray = new JsonArray();
             for (LazyMappedBufferedImage image : cachedImages[i]) {
                 int index = u++;
-                LazyBufferedImageSource source = manager.getStorage().getSource(imageIndex, index + ".png");
-                if (image.canSetSource(source)) {
+                LazyBufferedImageSource source = storage.getSource(imageIndex, index + ".png");
+                if (saveAsCopy) {
+                    image.saveCopy(source);
+                } else if (image.canSetSource(source)) {
                     image.setSource(source);
-                    framesArray.add(index + ".png");
-                } else {
-                    framesArray.add(image.getSource().getFileName());
                 }
+                framesArray.add(index + ".png");
             }
             dataJson.add("images", framesArray);
             JsonArray markerArray = new JsonArray();
@@ -367,7 +368,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             mapDataJson.add(dataJson);
         }
         json.add("mapdata", mapDataJson);
-        manager.getStorage().saveImageMapData(imageIndex, json);
+        storage.saveImageMapData(imageIndex, json);
     }
 
     public static class URLAnimatedImageMapRenderer extends ImageMapRenderer {

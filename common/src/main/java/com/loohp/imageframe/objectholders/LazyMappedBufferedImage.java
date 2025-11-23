@@ -30,6 +30,8 @@ public interface LazyMappedBufferedImage {
 
     void setSource(LazyBufferedImageSource source);
 
+    void saveCopy(LazyBufferedImageSource source);
+
     BufferedImage get();
 
     BufferedImage getIfLoaded();

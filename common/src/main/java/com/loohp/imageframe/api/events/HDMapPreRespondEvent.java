@@ -23,15 +23,15 @@ package com.loohp.imageframe.api.events;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.map.MapView;
 
 import java.awt.image.BufferedImage;
 
 import static com.loohp.imageframe.utils.ImageUtils.copy;
 
-public class HDMapPreRespondEvent extends PlayerEvent {
+public class HDMapPreRespondEvent extends Event {
 
     private static final HandlerList HANDLERS = new HandlerList();
 
@@ -39,6 +39,7 @@ public class HDMapPreRespondEvent extends PlayerEvent {
         return HANDLERS;
     }
 
+    private final Player player;
     private final int mapId;
     private final ImageMap imageMap;
     private final MapView mapView;
@@ -47,13 +48,17 @@ public class HDMapPreRespondEvent extends PlayerEvent {
     private BufferedImage image;
 
     public HDMapPreRespondEvent(Player player, int mapId, ImageMap imageMap, MapView mapView, boolean requestAccepted, BufferedImage image) {
-        super(player, !Scheduler.isPrimaryThread());
+        super(!Scheduler.isPrimaryThread());
         this.player = player;
         this.mapId = mapId;
         this.imageMap = imageMap;
         this.mapView = mapView;
         this.requestAccepted = requestAccepted;
         this.image = image;
+    }
+
+    public Player getPlayer() {
+        return player;
     }
 
     public int getMapId() {

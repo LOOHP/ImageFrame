@@ -23,6 +23,8 @@ package com.loohp.imageframe.storage;
 import net.kyori.adventure.key.Key;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,12 +40,20 @@ public class ImageFrameStorageLoaders {
         return loader;
     }
 
-    public static ImageFrameStorage create(Key type, File dataFolder, Map<String, String> options) {
+    public static Collection<ImageFrameStorageLoader<?>> getRegisteredLoaders() {
+        return Collections.unmodifiableCollection(LOADERS.values());
+    }
+
+    public static ImageFrameStorageLoader<?> getLoader(Key type) {
         ImageFrameStorageLoader<?> loader = LOADERS.get(type);
         if (loader == null) {
             throw new IllegalStateException("Unknown loader type " + type.asString());
         }
-        return loader.create(dataFolder, options);
+        return loader;
+    }
+
+    public static ImageFrameStorage create(Key type, File dataFolder, Map<String, String> options) {
+        return getLoader(type).create(dataFolder, options);
     }
 
 }

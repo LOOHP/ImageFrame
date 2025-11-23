@@ -119,6 +119,13 @@ public class Charts {
             }
         }));
 
+        metrics.addCustomChart(new Metrics.SimplePie("storage_type", new Callable<String>() {
+            @Override
+            public String call() throws Exception {
+                return ImageFrame.imageFrameStorage.getLoader().getIdentifier().asString();
+            }
+        }));
+
         metrics.addCustomChart(new Metrics.SingleLineChart("players_with_imageframe_client", new Callable<Integer>() {
             @Override
             public Integer call() throws Exception {

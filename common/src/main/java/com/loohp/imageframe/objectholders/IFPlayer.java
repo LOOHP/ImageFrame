@@ -20,10 +20,11 @@
 
 package com.loohp.imageframe.objectholders;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.storage.ImageFrameStorage;
+import com.loohp.platformscheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
@@ -65,6 +66,19 @@ public class IFPlayer {
         this.preferences = new ConcurrentHashMap<>(preferences);
     }
 
+    public void applyUpdate(JsonObject json) {
+        Map<IFPlayerPreference<?>, Object> preferences = new HashMap<>();
+        JsonObject preferenceJson = json.get("preferences").getAsJsonObject();
+        for (IFPlayerPreference<?> preference : IFPlayerPreference.values()) {
+            JsonElement element = preferenceJson.get(preference.getJsonName());
+            if (element != null) {
+                preferences.put(preference, preference.getDeserializer().apply(element));
+            }
+        }
+        this.preferences.clear();
+        this.preferences.putAll(preferences);
+    }
+
     public OfflinePlayer getLocalPlayer() {
         return Bukkit.getOfflinePlayer(uuid);
     }
@@ -88,9 +102,24 @@ public class IFPlayer {
 
     public void setPreference(IFPlayerPreference<?> preference, Object value) {
         preferences.put(preference, value);
+        saveInternal();
+    }
+
+    private void saveInternal() {
+        Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+            try {
+                save();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public void save() throws Exception {
+        save(manager.getStorage());
+    }
+
+    public void save(ImageFrameStorage storage) throws Exception {
         JsonObject json = new JsonObject();
         json.addProperty("uuid", uuid.toString());
         JsonObject preferenceJson = new JsonObject();
@@ -99,7 +128,7 @@ public class IFPlayer {
             preferenceJson.add(preference.getJsonName(), preference.getSerializer(Object.class).apply(entry.getValue()));
         }
         json.add("preferences", preferenceJson);
-        manager.getStorage().savePlayerData(uuid, json);
+        storage.savePlayerData(uuid, json);
     }
 
 }

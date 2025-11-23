@@ -22,8 +22,7 @@ package com.loohp.imageframe.objectholders;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.storage.ImageFrameStorage;
 import com.loohp.platformscheduler.Scheduler;
@@ -84,13 +83,17 @@ public class IFPlayerManager implements AutoCloseable, Listener {
     }
 
     public IFPlayer getIFPlayer(UUID uuid) {
-        return loadedPlayers.computeIfAbsent(uuid, k -> {
-            IFPlayer player = imageFrameStorage.loadPlayerData(this, uuid);
-            if (player != null) {
-                return player;
+        return loadedPlayers.computeIfAbsent(uuid, id -> {
+            JsonObject json = imageFrameStorage.loadPlayerData(this, id);
+            if (json != null) {
+                return IFPlayer.load(this, json);
             }
-            return createNewIfPlayer(uuid);
+            return createNewIfPlayer(id);
         });
+    }
+
+    public IFPlayer getIFPlayerIfLoaded(UUID uuid) {
+        return loadedPlayers.get(uuid);
     }
 
     private IFPlayer createNewIfPlayer(UUID uuid) {

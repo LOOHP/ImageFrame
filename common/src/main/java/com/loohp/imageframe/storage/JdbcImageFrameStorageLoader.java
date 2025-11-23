@@ -28,10 +28,22 @@ import java.util.Map;
 public class JdbcImageFrameStorageLoader implements ImageFrameStorageLoader<JdbcImageFrameStorage> {
 
     private static final Key IDENTIFIER = Key.key("imageframe", "jdbc");
+    private static final String[] REQUIRED_OPTIONS = new String[] {"JdbcUrl", "Username", "Password"};
+    private static final String[] OPTIONAL_OPTIONS = new String[] {"ActivePollInterval"};
 
     @Override
     public Key getIdentifier() {
         return IDENTIFIER;
+    }
+
+    @Override
+    public String[] getRequiredOptions() {
+        return REQUIRED_OPTIONS;
+    }
+
+    @Override
+    public String[] getOptionalOptions() {
+        return OPTIONAL_OPTIONS;
     }
 
     @Override
@@ -42,8 +54,7 @@ public class JdbcImageFrameStorageLoader implements ImageFrameStorageLoader<Jdbc
         int activePollInterval = 100;
         try {
             activePollInterval = Integer.parseInt(options.get("ActivePollInterval")) * 20;
-        } catch (NumberFormatException e) {
-            e.printStackTrace();
+        } catch (NumberFormatException ignore) {
         }
         if (jdbcUrl == null || username == null || password == null) {
             throw new IllegalArgumentException("Missing database details");

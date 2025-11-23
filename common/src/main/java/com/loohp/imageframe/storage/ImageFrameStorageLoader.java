@@ -29,6 +29,10 @@ public interface ImageFrameStorageLoader<T extends ImageFrameStorage> {
 
     Key getIdentifier();
 
+    String[] getRequiredOptions();
+
+    String[] getOptionalOptions();
+
     T create(File dataFolder, Map<String, String> options);
 
 }

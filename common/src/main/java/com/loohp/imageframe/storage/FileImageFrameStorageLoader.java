@@ -28,10 +28,22 @@ import java.util.Map;
 public class FileImageFrameStorageLoader implements ImageFrameStorageLoader<FileImageFrameStorage> {
 
     private static final Key IDENTIFIER = Key.key("imageframe", "file");
+    private static final String[] REQUIRED_OPTIONS = new String[0];
+    private static final String[] OPTIONAL_OPTIONS = new String[0];
 
     @Override
     public Key getIdentifier() {
         return IDENTIFIER;
+    }
+
+    @Override
+    public String[] getRequiredOptions() {
+        return REQUIRED_OPTIONS;
+    }
+
+    @Override
+    public String[] getOptionalOptions() {
+        return OPTIONAL_OPTIONS;
     }
 
     @Override

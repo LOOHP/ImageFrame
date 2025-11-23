@@ -94,6 +94,15 @@ permissions:
   imageframe.giveinvisibleframe:
     default: op
     description: Allow players to give invisible item frames
+  imageframe.reload:
+    default: op
+    description: Allows you reload the config file
+  imageframe.resync:
+    default: op
+    description: Allows you force sync changes from storage
+  imageframe.storagemigrate:
+    default: op
+    description: Allows you to send data to a different storage type
   imageframe.update:
     default: op
     description: Allows you receive update messages

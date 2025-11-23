@@ -23,6 +23,7 @@ package com.loohp.imageframe.objectholders;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
+import com.loohp.imageframe.storage.ImageFrameStorage;
 import com.loohp.imageframe.utils.MapUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -133,7 +134,7 @@ public class URLStaticImageMap extends URLImageMap {
     }
 
     @Override
-    public void save() throws Exception {
+    public void save(ImageFrameStorage storage, boolean saveAsCopy) throws Exception {
         if (imageIndex < 0) {
             throw new IllegalStateException("ImageMap with index < 0 cannot be saved");
         }
@@ -177,9 +178,15 @@ public class URLStaticImageMap extends URLImageMap {
         }
         json.add("mapdata", mapDataJson);
         for (int i = 0; i < cachedImages.length; i++) {
-            cachedImages[i].setSource(manager.getStorage().getSource(imageIndex, i + ".png"));
+            LazyMappedBufferedImage cachedImage = cachedImages[i];
+            LazyBufferedImageSource source = storage.getSource(imageIndex, i + ".png");
+            if (saveAsCopy) {
+                cachedImage.saveCopy(source);
+            } else if (cachedImage.canSetSource(source)) {
+                cachedImage.setSource(source);
+            }
         }
-        manager.getStorage().saveImageMapData(imageIndex, json);
+        storage.saveImageMapData(imageIndex, json);
     }
 
     public static class URLStaticImageMapRenderer extends ImageMapRenderer {

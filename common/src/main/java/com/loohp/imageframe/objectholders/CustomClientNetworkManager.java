@@ -102,17 +102,29 @@ public class CustomClientNetworkManager implements PluginMessageListener, Listen
         return Collections.unmodifiableSet(acknowledged);
     }
 
-    @EventHandler
-    public void onJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
+    public boolean hasPlayer(Player player) {
+        return hasPlayer(player.getUniqueId());
+    }
+
+    public boolean hasPlayer(UUID uuid) {
+        return acknowledged.contains(uuid);
+    }
+
+    public void sendAcknowledgement(Player player) {
         long id = ThreadLocalRandom.current().nextLong();
         acknowledgements.put(player.getUniqueId(), id);
 
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeLong(id);
+        player.sendPluginMessage(ImageFrame.plugin, CLIENTBOUND_ACKNOWLEDGEMENT, out.toByteArray());
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
         Scheduler.runTaskLater(ImageFrame.plugin, () -> {
             if (player.isOnline()) {
-                ByteArrayDataOutput out = ByteStreams.newDataOutput();
-                out.writeLong(id);
-                player.sendPluginMessage(ImageFrame.plugin, CLIENTBOUND_ACKNOWLEDGEMENT, out.toByteArray());
+                sendAcknowledgement(player);
             }
         }, 40);
     }

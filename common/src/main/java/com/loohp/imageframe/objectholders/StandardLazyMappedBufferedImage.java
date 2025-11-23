@@ -90,6 +90,15 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
     }
 
     @Override
+    public void saveCopy(LazyBufferedImageSource source) {
+        try {
+            source.saveImage(get());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public synchronized BufferedImage get() {
         if (strongReference != null) {
             return strongReference;

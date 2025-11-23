@@ -93,6 +93,8 @@ public class ImageFrame extends JavaPlugin {
     public static ScheduledTask updaterTask = null;
 
     public static String messageReloaded;
+    public static String messageResync;
+    public static String messageStorageMigration;
     public static String messageImageMapProcessing;
     public static String messageImageMapProcessingActionBar;
     public static String messageImageMapQueuedActionBar;
@@ -335,7 +337,6 @@ public class ImageFrame extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new Events.ModernEvents(), this);
         }
 
-
         imageFrameStorage = ImageFrameStorageLoaders.create(storageType, getDataFolder(), storageOptions);
         imageMapManager = new ImageMapManager(imageFrameStorage);
         ifPlayerManager = new IFPlayerManager(imageFrameStorage);
@@ -355,7 +356,7 @@ public class ImageFrame extends JavaPlugin {
 
         ImageMapLoaders.init();
 
-        Scheduler.runTaskAsynchronously(this, () -> imageMapManager.loadMaps());
+        Scheduler.runTaskAsynchronously(this, () -> imageMapManager.loadMaps(ifPlayerManager));
 
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] ImageFrame has been Enabled!");
     }
@@ -377,6 +378,9 @@ public class ImageFrame extends JavaPlugin {
         if (imageUploadManager != null) {
             imageUploadManager.close();
         }
+        if (imageFrameStorage != null) {
+            imageFrameStorage.close();
+        }
         getServer().getConsoleSender().sendMessage(ChatColor.RED + "[ImageFrame] ImageFrame has been Disabled!");
     }
 
@@ -388,6 +392,8 @@ public class ImageFrame extends JavaPlugin {
         viaDisableSmoothAnimationForLegacyPlayers = config.getConfiguration().getBoolean("Hooks.ViaVersion.DisableSmoothAnimationForLegacyPlayers");
 
         messageReloaded = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Reloaded"));
+        messageResync = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.Resync"));
+        messageStorageMigration = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.StorageMigration"));
         messageImageMapProcessing = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapProcessing"));
         messageImageMapProcessingActionBar = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapProcessingActionBar"));
         messageImageMapQueuedActionBar = ChatColorUtils.translateAlternateColorCodes('&', config.getConfiguration().getString("Messages.ImageMapQueuedActionBar"));

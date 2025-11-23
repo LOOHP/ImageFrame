@@ -20,7 +20,12 @@
 
 package com.loohp.imageframe.placeholderapi;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.objectholders.IFPlayer;
+import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.utils.ArrayUtils;
 import com.loohp.imageframe.utils.ImageMapUtils;
@@ -32,6 +37,8 @@ import org.bukkit.command.CommandSender;
 import java.util.concurrent.TimeUnit;
 
 public class Placeholders extends PlaceholderExpansion {
+
+    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
     @Override
     public String getAuthor() {
@@ -60,6 +67,16 @@ public class Placeholders extends PlaceholderExpansion {
 
     @Override
     public String onRequest(OfflinePlayer offlineplayer, String identifier) {
+        if (identifier.startsWith("imagemap_")) {
+            return handleImageMapRequest(offlineplayer, identifier.substring("imagemap_".length()));
+        }
+        if (identifier.startsWith("player_")) {
+            return handlePlayerRequest(offlineplayer, identifier.substring("player_".length()));
+        }
+        return null;
+    }
+
+    private String handleImageMapRequest(OfflinePlayer offlineplayer, String identifier) {
         int firstUnderscore;
         boolean nameQuoted;
         if (identifier.startsWith("\"")) {
@@ -130,6 +147,32 @@ public class Placeholders extends PlaceholderExpansion {
                     }
                 }
             }
+        }
+        return null;
+    }
+
+    private String handlePlayerRequest(OfflinePlayer offlineplayer, String identifier) {
+        if (identifier.startsWith("preference_")) {
+            String preferenceKey = identifier.substring("preference_".length());
+            if (preferenceKey.isEmpty()) {
+                return null;
+            }
+            IFPlayer ifPlayer = ImageFrame.ifPlayerManager.getIFPlayer(offlineplayer.getUniqueId());
+            if (ifPlayer == null) {
+                return null;
+            }
+            IFPlayerPreference<?> preference = IFPlayerPreference.valueOf(preferenceKey);
+            if (preference == null) {
+                return null;
+            }
+            JsonElement jsonElement = preference.getSerializer(Object.class).apply(ifPlayer.getPreference(preference));
+            if (jsonElement.isJsonPrimitive()) {
+                return jsonElement.getAsString();
+            }
+            if (jsonElement.isJsonNull()) {
+                return "null";
+            }
+            return GSON.toJson(jsonElement);
         }
         return null;
     }

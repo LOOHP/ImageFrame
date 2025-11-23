@@ -107,8 +107,31 @@ public class FileImageFrameStorage implements ImageFrameStorage {
     }
 
     @Override
+    public FileImageFrameStorageLoader getLoader() {
+        return ImageFrameStorageLoaders.FILE;
+    }
+
+    @Override
     public LazyBufferedImageSource getSource(int imageIndex, String fileName) {
         return new FileLazyBufferedImageSource(this, imageIndex, fileName);
+    }
+
+    @Override
+    public Set<Integer> getAllImageIndexes() {
+        imageMapFolder.mkdirs();
+        File[] files = imageMapFolder.listFiles();
+        Arrays.sort(files, FileUtils.BY_NUMBER_THEN_STRING);
+        Set<Integer> result = new HashSet<>();
+        for (File file : files) {
+            if (file.isDirectory()) {
+                try {
+                    int imageIndex = Integer.parseInt(file.getName());
+                    result.add(imageIndex);
+                } catch (NumberFormatException ignore) {
+                }
+            }
+        }
+        return result;
     }
 
     @Override
@@ -148,7 +171,7 @@ public class FileImageFrameStorage implements ImageFrameStorage {
     }
 
     @Override
-    public List<MutablePair<String, Future<? extends ImageMap>>> loadMaps(ImageMapManager manager, Set<Integer> deletedMapIds) {
+    public List<MutablePair<String, Future<? extends ImageMap>>> loadMaps(ImageMapManager manager, Set<Integer> deletedMapIds, IFPlayerManager ifPlayerManager) {
         imageMapFolder.mkdirs();
         File[] files = imageMapFolder.listFiles();
         Arrays.sort(files, FileUtils.BY_NUMBER_THEN_STRING);
@@ -227,12 +250,14 @@ public class FileImageFrameStorage implements ImageFrameStorage {
     }
 
     @Override
-    public IFPlayer loadPlayerData(IFPlayerManager manager, UUID uuid) {
+    public JsonObject loadPlayerData(IFPlayerManager manager, UUID uuid) {
         playerDataFolder.mkdirs();
         File file = new File(playerDataFolder, uuid + ".json");
         if (file.exists()) {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(file.toPath()), StandardCharsets.UTF_8))) {
-                return IFPlayer.load(manager, GSON.fromJson(reader, JsonObject.class));
+                JsonObject json = GSON.fromJson(reader, JsonObject.class);
+                IFPlayer.load(manager, json);
+                return json;
             } catch (Exception e) {
                 new RuntimeException("Unable to load ImageFrame player data from " + file.getAbsolutePath(), e).printStackTrace();
                 try {
@@ -253,6 +278,28 @@ public class FileImageFrameStorage implements ImageFrameStorage {
             pw.println(GSON.toJson(json));
             pw.flush();
         }
+    }
+
+    @Override
+    public Set<UUID> getAllSavedPlayerData() {
+        Set<UUID> players = new HashSet<>();
+        playerDataFolder.mkdirs();
+        File[] files = playerDataFolder.listFiles();
+        for (File file : files) {
+            if (file.isFile()) {
+                try {
+                    String fileName = file.getName();
+                    players.add(UUID.fromString(fileName.substring(0, fileName.indexOf("."))));
+                } catch (Throwable ignore) {
+                }
+            }
+        }
+        return players;
+    }
+
+    @Override
+    public void close() {
+        //do nothing
     }
 
     public static class FileLazyBufferedImageSource implements LazyBufferedImageSource {

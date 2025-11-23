@@ -21,7 +21,6 @@
 package com.loohp.imageframe.storage;
 
 import com.google.gson.JsonObject;
-import com.loohp.imageframe.objectholders.IFPlayer;
 import com.loohp.imageframe.objectholders.IFPlayerManager;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapManager;
@@ -35,11 +34,15 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.function.IntConsumer;
 
-public interface ImageFrameStorage {
+public interface ImageFrameStorage extends AutoCloseable {
 
     UUID getInstanceId();
 
+    ImageFrameStorageLoader<?> getLoader();
+
     LazyBufferedImageSource getSource(int imageIndex, String fileName);
+
+    Set<Integer> getAllImageIndexes();
 
     boolean hasImageMapData(int imageIndex);
 
@@ -49,7 +52,7 @@ public interface ImageFrameStorage {
 
     void deleteMap(int imageIndex);
 
-    List<MutablePair<String, Future<? extends ImageMap>>> loadMaps(ImageMapManager manager, Set<Integer> deletedMapIds);
+    List<MutablePair<String, Future<? extends ImageMap>>> loadMaps(ImageMapManager manager, Set<Integer> deletedMapIds, IFPlayerManager ifPlayerManager);
 
     void saveImageMapData(int imageIndex, JsonObject json) throws IOException;
 
@@ -57,8 +60,12 @@ public interface ImageFrameStorage {
 
     void saveDeletedMaps(Set<Integer> deletedMapIds);
 
-    IFPlayer loadPlayerData(IFPlayerManager manager, UUID uuid);
+    JsonObject loadPlayerData(IFPlayerManager manager, UUID uuid);
 
     void savePlayerData(UUID uuid, JsonObject json) throws IOException;
 
+    Set<UUID> getAllSavedPlayerData();
+
+    @Override
+    void close();
 }

@@ -41,6 +41,10 @@ import com.loohp.imageframe.objectholders.MinecraftURLOverlayImageMapCreateInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.objectholders.URLImageMap;
 import com.loohp.imageframe.objectholders.URLImageMapCreateInfo;
+import com.loohp.imageframe.storage.ImageFrameStorage;
+import com.loohp.imageframe.storage.ImageFrameStorageLoader;
+import com.loohp.imageframe.storage.ImageFrameStorageLoaders;
+import com.loohp.imageframe.storage.StorageMigrator;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.upload.ImageUploadManager;
 import com.loohp.imageframe.upload.PendingUpload;
@@ -48,6 +52,7 @@ import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.CommandSenderUtils;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.imageframe.utils.ImageMapUtils;
+import com.loohp.imageframe.utils.KeyUtils;
 import com.loohp.imageframe.utils.MCVersion;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.MathUtils;
@@ -75,6 +80,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +89,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Commands implements CommandExecutor, TabCompleter {
 
@@ -92,6 +99,15 @@ public class Commands implements CommandExecutor, TabCompleter {
         if (args.length == 0) {
             CommandSenderUtils.sendMessage(sender, ChatColor.DARK_AQUA + "ImageFrame written by LOOHP!");
             CommandSenderUtils.sendMessage(sender, ChatColor.GOLD + "You are running ImageFrame version: " + ImageFrame.plugin.getDescription().getVersion());
+            if (ImageFrame.imageFrameClientEnabled && sender instanceof Player) {
+                Player player = (Player) sender;
+                if (ImageFrame.customClientNetworkManager.hasPlayer(player)) {
+                    CommandSenderUtils.sendMessage(sender, ChatColor.GREEN + "Your ImageFrame Client is supported on the server!");
+                } else {
+                    ImageFrame.customClientNetworkManager.sendAcknowledgement(player);
+                    CommandSenderUtils.sendMessage(sender, ChatColor.YELLOW + "This server supports ImageFrame Client but you are not using it.");
+                }
+            }
             return true;
         }
 
@@ -99,6 +115,14 @@ public class Commands implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("imageframe.reload")) {
                 ImageFrame.plugin.reloadConfig();
                 CommandSenderUtils.sendMessage(sender, ImageFrame.messageReloaded);
+            } else {
+                CommandSenderUtils.sendMessage(sender, ImageFrame.messageNoPermission);
+            }
+            return true;
+        } else if (args[0].equalsIgnoreCase("resync")) {
+            if (sender.hasPermission("imageframe.resync")) {
+                CommandSenderUtils.sendMessage(sender, ImageFrame.messageResync);
+                Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> ImageFrame.imageMapManager.syncMaps(true));
             } else {
                 CommandSenderUtils.sendMessage(sender, ImageFrame.messageNoPermission);
             }
@@ -1386,6 +1410,60 @@ public class Commands implements CommandExecutor, TabCompleter {
                 CommandSenderUtils.sendMessage(sender, ImageFrame.messageInvalidUsage);
             }
             return true;
+        } else if (args[0].equalsIgnoreCase("storagemigrate")) {
+            if (args.length > 1) {
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    CommandSenderUtils.sendMessage(sender, ImageFrame.messageStorageMigration);
+                    Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                        try {
+                            ImageFrameStorageLoader<?> loader = ImageFrameStorageLoaders.getLoader(KeyUtils.imageFrameKey(args[1]));
+
+                            boolean forced = args.length > 2 && args[2].equalsIgnoreCase("forced");
+                            Map<String, String> options = new HashMap<>();
+
+                            int argIndex = 3;
+                            for (String optionKey : loader.getRequiredOptions()) {
+                                if (args.length > argIndex) {
+                                    options.put(optionKey, args[argIndex]);
+                                } else {
+                                    throw new IllegalArgumentException("Missing required option: " + optionKey);
+                                }
+                                argIndex++;
+                            }
+                            for (String optionKey : loader.getOptionalOptions()) {
+                                if (args.length > argIndex) {
+                                    options.put(optionKey, args[argIndex]);
+                                }
+                                argIndex++;
+                            }
+
+                            try (
+                                ImageFrameStorage targetStorage = ImageFrameStorageLoaders.create(KeyUtils.imageFrameKey(args[1]), ImageFrame.plugin.getDataFolder(), options);
+                                StorageMigrator storageMigrator = new StorageMigrator(ImageFrame.imageMapManager, ImageFrame.ifPlayerManager, targetStorage);
+                            ) {
+                                if (!storageMigrator.isTargetEmpty() && !forced) {
+                                    throw new IllegalStateException("Target storage is not empty, if you wish to migrate anyway, please set the forced flag to true.");
+                                } else {
+                                    Bukkit.getConsoleSender().sendMessage(ChatColor.GRAY + "[ImageFrame] Beginning to migrate image map data to " + loader.getIdentifier().asString());
+                                    storageMigrator.migrateImageMaps();
+                                    Bukkit.getConsoleSender().sendMessage(ChatColor.GRAY + "[ImageFrame] Beginning to migrate deleted maps data to " + loader.getIdentifier().asString());
+                                    storageMigrator.migrateDeletedMaps();
+                                    Bukkit.getConsoleSender().sendMessage(ChatColor.GRAY + "[ImageFrame] Beginning to migrate ImageFrame player data to " + loader.getIdentifier().asString());
+                                    storageMigrator.migrateIFPlayers();
+                                    Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ImageFrame] Successfully migrated data to " + loader.getIdentifier().asString() + ", please stop the server and switch to that storage type in the config.");
+                                }
+                            }
+                        } catch (Throwable e) {
+                            e.printStackTrace();
+                        }
+                    });
+                } else {
+                    CommandSenderUtils.sendMessage(sender, ImageFrame.messageNoPermission);
+                }
+            } else {
+                CommandSenderUtils.sendMessage(sender, ImageFrame.messageInvalidUsage);
+            }
+            return true;
         }
 
         CommandSenderUtils.sendMessage(sender, ChatColorUtils.translateAlternateColorCodes('&', Bukkit.spigot().getConfig().getString("messages.unknown-command")));
@@ -1400,6 +1478,9 @@ public class Commands implements CommandExecutor, TabCompleter {
             case 0:
                 if (sender.hasPermission("imageframe.reload")) {
                     tab.add("reload");
+                }
+                if (sender.hasPermission("imageframe.resync")) {
+                    tab.add("resync");
                 }
                 if (sender.hasPermission("imageframe.create")) {
                     tab.add("create");
@@ -1461,11 +1542,19 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.giveinvisibleframe")) {
                     tab.add("giveinvisibleframe");
                 }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    tab.add("storagemigrate");
+                }
                 return tab;
             case 1:
                 if (sender.hasPermission("imageframe.reload")) {
                     if ("reload".startsWith(args[0].toLowerCase())) {
                         tab.add("reload");
+                    }
+                }
+                if (sender.hasPermission("imageframe.resync")) {
+                    if ("resync".startsWith(args[0].toLowerCase())) {
+                        tab.add("resync");
                     }
                 }
                 if (sender.hasPermission("imageframe.create")) {
@@ -1566,6 +1655,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.giveinvisibleframe")) {
                     if ("giveinvisibleframe".startsWith(args[0].toLowerCase())) {
                         tab.add("giveinvisibleframe");
+                    }
+                }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    if ("storagemigrate".startsWith(args[0].toLowerCase())) {
+                        tab.add("storagemigrate");
                     }
                 }
                 return tab;
@@ -1708,6 +1802,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    if ("storagemigrate".equalsIgnoreCase(args[0])) {
+                        for (ImageFrameStorageLoader<?> loader : ImageFrameStorageLoaders.getRegisteredLoaders()) {
+                            if (!ImageFrame.imageFrameStorage.getLoader().getIdentifier().equals(loader.getIdentifier()) && loader.getIdentifier().asString().startsWith(args[1].toLowerCase())) {
+                                tab.add(loader.getIdentifier().asString());
+                            }
+                        }
+                    }
+                }
                 return tab;
             case 3:
                 if (sender.hasPermission("imageframe.create")) {
@@ -1828,6 +1931,16 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("<amount>");
                     }
                 }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    if ("storagemigrate".equalsIgnoreCase(args[0])) {
+                        if ("normal".startsWith(args[2].toLowerCase())) {
+                            tab.add("normal");
+                        }
+                        if ("forced".startsWith(args[2].toLowerCase())) {
+                            tab.add("forced");
+                        }
+                    }
+                }
                 return tab;
             case 4:
                 if (sender.hasPermission("imageframe.create")) {
@@ -1933,6 +2046,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    if ("storagemigrate".equalsIgnoreCase(args[0])) {
+                        try {
+                            ImageFrameStorageLoader<?> loader = ImageFrameStorageLoaders.getLoader(KeyUtils.imageFrameKey(args[1]));
+                            Stream.concat(Arrays.stream(loader.getRequiredOptions()).map(k -> "<" + k + ">"), Arrays.stream(loader.getOptionalOptions()).map(k -> "[" + k + "]"))
+                                    .findFirst()
+                                    .ifPresent(optionKey -> tab.add(optionKey));
+                        } catch (Throwable ignore) {
+                        }
+                    }
+                }
                 return tab;
             case 5:
                 if (sender.hasPermission("imageframe.create")) {
@@ -1970,6 +2094,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    if ("storagemigrate".equalsIgnoreCase(args[0])) {
+                        try {
+                            ImageFrameStorageLoader<?> loader = ImageFrameStorageLoaders.getLoader(KeyUtils.imageFrameKey(args[1]));
+                            Stream.concat(Arrays.stream(loader.getRequiredOptions()).map(k -> "<" + k + ">"), Arrays.stream(loader.getOptionalOptions()).map(k -> "[" + k + "]"))
+                                    .skip(1)
+                                    .findFirst()
+                                    .ifPresent(optionKey -> tab.add(optionKey));
+                        } catch (Throwable ignore) {
+                        }
+                    }
+                }
                 return tab;
             case 6:
                 if (sender.hasPermission("imageframe.create")) {
@@ -1997,6 +2133,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    if ("storagemigrate".equalsIgnoreCase(args[0])) {
+                        try {
+                            ImageFrameStorageLoader<?> loader = ImageFrameStorageLoaders.getLoader(KeyUtils.imageFrameKey(args[1]));
+                            Stream.concat(Arrays.stream(loader.getRequiredOptions()).map(k -> "<" + k + ">"), Arrays.stream(loader.getOptionalOptions()).map(k -> "[" + k + "]"))
+                                    .skip(2)
+                                    .findFirst()
+                                    .ifPresent(optionKey -> tab.add(optionKey));
+                        } catch (Throwable ignore) {
+                        }
+                    }
+                }
                 return tab;
             case 7:
                 if (sender.hasPermission("imageframe.create")) {
@@ -2008,12 +2156,36 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    if ("storagemigrate".equalsIgnoreCase(args[0])) {
+                        try {
+                            ImageFrameStorageLoader<?> loader = ImageFrameStorageLoaders.getLoader(KeyUtils.imageFrameKey(args[1]));
+                            Stream.concat(Arrays.stream(loader.getRequiredOptions()).map(k -> "<" + k + ">"), Arrays.stream(loader.getOptionalOptions()).map(k -> "[" + k + "]"))
+                                    .skip(3)
+                                    .findFirst()
+                                    .ifPresent(optionKey -> tab.add(optionKey));
+                        } catch (Throwable ignore) {
+                        }
+                    }
+                }
                 return tab;
             default:
                 if (sender.hasPermission("imageframe.marker")) {
                     if ("marker".equalsIgnoreCase(args[0])) {
                         if ("add".equalsIgnoreCase(args[1])) {
                             tab.add("[caption]...");
+                        }
+                    }
+                }
+                if (sender.hasPermission("imageframe.storagemigrate")) {
+                    if ("storagemigrate".equalsIgnoreCase(args[0])) {
+                        try {
+                            ImageFrameStorageLoader<?> loader = ImageFrameStorageLoaders.getLoader(KeyUtils.imageFrameKey(args[1]));
+                            Stream.concat(Arrays.stream(loader.getRequiredOptions()).map(k -> "<" + k + ">"), Arrays.stream(loader.getOptionalOptions()).map(k -> "[" + k + "]"))
+                                    .skip(args.length - 4)
+                                    .findFirst()
+                                    .ifPresent(optionKey -> tab.add(optionKey));
+                        } catch (Throwable ignore) {
                         }
                     }
                 }

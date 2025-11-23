@@ -25,6 +25,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
+import com.loohp.imageframe.storage.ImageFrameStorage;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.imageframe.utils.StringUtils;
@@ -299,7 +300,11 @@ public abstract class ImageMap {
         }
     }
 
-    public abstract void save() throws Exception;
+    public void save() throws Exception {
+        save(manager.getStorage(), false);
+    }
+
+    public abstract void save(ImageFrameStorage storage, boolean saveAsCopy) throws Exception;
 
     public ItemStack getMap(int x, int y, String mapNameFormat) {
         return getMap(x, y, mapNameFormat, itemStack -> itemStack);

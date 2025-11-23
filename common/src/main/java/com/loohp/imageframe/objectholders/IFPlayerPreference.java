@@ -33,14 +33,11 @@ public class IFPlayerPreference<T> {
 
     private static final Map<String, IFPlayerPreference<?>> VALUES = new ConcurrentHashMap<>();
 
-    public static final IFPlayerPreference<BooleanState> VIEW_ANIMATED_MAPS = new IFPlayerPreference<>("VIEW_ANIMATED_MAPS", "viewAnimatedMaps", BooleanState.class, BooleanState.STRING_VALUES_MAP, i -> BooleanState.UNSET, v -> v.getJsonValue(), j -> BooleanState.fromJsonValue(j), s -> StringDeserializerResult.accepted(BooleanState.fromString(s)));
+    public static final IFPlayerPreference<BooleanState> VIEW_ANIMATED_MAPS = register(new IFPlayerPreference<>("VIEW_ANIMATED_MAPS", "viewAnimatedMaps", BooleanState.class, BooleanState.STRING_VALUES_MAP, i -> BooleanState.UNSET, v -> v.getJsonValue(), j -> BooleanState.fromJsonValue(j), s -> StringDeserializerResult.accepted(BooleanState.fromString(s))));
 
-    static {
-        register(VIEW_ANIMATED_MAPS);
-    }
-
-    public static void register(IFPlayerPreference<?> preference) {
+    public static <T extends IFPlayerPreference<?>> T register(T preference) {
         VALUES.put(preference.name(), preference);
+        return preference;
     }
 
     public static Collection<IFPlayerPreference<?>> values() {
@@ -48,7 +45,7 @@ public class IFPlayerPreference<T> {
     }
 
     public static IFPlayerPreference<?> valueOf(String name) {
-        return VALUES.get(name);
+        return VALUES.get(name.toUpperCase());
     }
 
     private final String name;
