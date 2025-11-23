@@ -20,8 +20,9 @@
 
 package com.loohp.imageframe.objectholders;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.MapUtils;
@@ -46,11 +47,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -61,7 +64,6 @@ public abstract class ImageMap {
     public static final UUID CONSOLE_CREATOR = new UUID(0, 0);
     public static final String CONSOLE_CREATOR_NAME = "Console";
     public static final String UNKNOWN_CREATOR_NAME = "???";
-    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
     protected final ImageMapManager manager;
     protected final ImageMapLoader<?, ?> loader;
@@ -122,6 +124,48 @@ public abstract class ImageMap {
     @Deprecated
     public String getLegacyType() {
         return loader.getLegacyType();
+    }
+
+    public boolean applyUpdate(JsonObject json) {
+        this.name = json.has("name") ? json.get("name").getAsString() : "Unnamed";
+        this.creator = UUID.fromString(json.get("creator").getAsString());
+        DitheringType previousDitheringType = ditheringType;
+        this.ditheringType = DitheringType.fromName(json.has("ditheringType") ? json.get("ditheringType").getAsString() : null);
+
+        if (json.has("hasAccess")) {
+            JsonObject accessJson = json.get("hasAccess").getAsJsonObject();
+            Map<UUID, ImageMapAccessPermissionType> hasAccess = new HashMap<>(accessJson.size());
+            for (Map.Entry<String, JsonElement> entry : accessJson.entrySet()) {
+                hasAccess.put(UUID.fromString(entry.getKey()), ImageMapAccessPermissionType.valueOf(entry.getValue().getAsString().toUpperCase()));
+            }
+            this.accessControl.reapply(hasAccess);
+        }
+
+        JsonArray mapDataJson = json.get("mapdata").getAsJsonArray();
+        int i = 0;
+        for (JsonElement dataJson : mapDataJson) {
+            JsonObject jsonObject = dataJson.getAsJsonObject();
+            Map<String, MapCursor> mapCursors = new ConcurrentHashMap<>();
+            if (jsonObject.has("markers")) {
+                JsonArray markerArray = jsonObject.get("markers").getAsJsonArray();
+                for (JsonElement element : markerArray) {
+                    JsonObject markerData = element.getAsJsonObject();
+                    String markerName = markerData.get("name").getAsString();
+                    byte x = markerData.get("x").getAsByte();
+                    byte y = markerData.get("y").getAsByte();
+                    MapCursor.Type type = MapCursor.Type.valueOf(markerData.get("type").getAsString().toUpperCase());
+                    byte direction = markerData.get("direction").getAsByte();
+                    boolean visible = markerData.get("visible").getAsBoolean();
+                    JsonElement caption = markerData.get("caption");
+                    mapCursors.put(markerName, new MapCursor(x, y, direction, type, visible, caption.isJsonNull() ? null : caption.getAsString()));
+                }
+            }
+            Map<String, MapCursor> markers = this.mapMarkers.get(i++);
+            markers.clear();
+            markers.putAll(mapCursors);
+        }
+
+        return previousDitheringType != ditheringType;
     }
 
     protected abstract void loadColorCache();

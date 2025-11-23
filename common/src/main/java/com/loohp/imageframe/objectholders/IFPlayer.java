@@ -27,11 +27,6 @@ import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
-import java.io.File;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,8 +34,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class IFPlayer {
-
-    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
     public static IFPlayer create(IFPlayerManager manager, UUID player) throws Exception {
         IFPlayer ifPlayer = new IFPlayer(manager, player, Collections.emptyMap());
@@ -98,8 +91,6 @@ public class IFPlayer {
     }
 
     public void save() throws Exception {
-        manager.getDataFolder().mkdirs();
-        File file = new File(manager.getDataFolder(), uuid + ".json");
         JsonObject json = new JsonObject();
         json.addProperty("uuid", uuid.toString());
         JsonObject preferenceJson = new JsonObject();
@@ -108,10 +99,7 @@ public class IFPlayer {
             preferenceJson.add(preference.getJsonName(), preference.getSerializer(Object.class).apply(entry.getValue()));
         }
         json.add("preferences", preferenceJson);
-        try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8))) {
-            pw.println(GSON.toJson(json));
-            pw.flush();
-        }
+        manager.getStorage().savePlayerData(uuid, json);
     }
 
 }

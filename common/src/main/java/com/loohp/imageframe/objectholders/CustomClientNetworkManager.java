@@ -25,6 +25,7 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.HDMapPreRespondEvent;
+import com.loohp.imageframe.api.events.ImageMapDeletedEvent;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.platformscheduler.Scheduler;
@@ -125,6 +126,12 @@ public class CustomClientNetworkManager implements PluginMessageListener, Listen
 
     @EventHandler
     public void onUpdate(ImageMapUpdatedEvent event) {
+        ImageMap imageMap = event.getImageMap();
+        notifyHdMapUpdated(acknowledged, Collections.singletonList(imageMap), imageMap.getMapIds());
+    }
+
+    @EventHandler
+    public void onDelete(ImageMapDeletedEvent event) {
         ImageMap imageMap = event.getImageMap();
         notifyHdMapUpdated(acknowledged, Collections.singletonList(imageMap), imageMap.getMapIds());
     }

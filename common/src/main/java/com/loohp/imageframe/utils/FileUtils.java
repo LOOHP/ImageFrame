@@ -24,15 +24,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Comparator;
 
 public class FileUtils {
 
-    public static final Comparator<File> BY_NUMBER_THAN_STRING = (file1, file2) -> {
+    public static final Comparator<File> BY_NUMBER_THEN_STRING = (file1, file2) -> {
         String name1 = file1.getName();
         String name2 = file2.getName();
         boolean isNumber1 = false;
@@ -57,8 +54,6 @@ public class FileUtils {
             return 1;
         }
     };
-
-    private static final ClassLoader NULL_CLASSLOADER = null;
 
     public static void removeFolderRecursively(File folder) {
         if (folder.exists()) {
@@ -87,13 +82,6 @@ public class FileUtils {
 
     public static long copy(InputStream from, File to) throws IOException {
         return Files.copy(from, to.toPath());
-    }
-
-    public static void copyZipEntry(File zipFile, String fileName, File outputFile) throws IOException {
-        try (FileSystem fileSystem = FileSystems.newFileSystem(zipFile.toPath(), NULL_CLASSLOADER)) {
-            Path fileToExtract = fileSystem.getPath(fileName);
-            Files.copy(fileToExtract, outputFile.toPath());
-        }
     }
 
 }

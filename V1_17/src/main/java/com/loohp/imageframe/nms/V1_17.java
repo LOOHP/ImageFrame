@@ -22,6 +22,7 @@ package com.loohp.imageframe.nms;
 
 import com.google.common.collect.Collections2;
 import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
+import com.loohp.imageframe.objectholders.FilledMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.UUIDUtils;
 import com.loohp.imageframe.utils.UnsafeAccessor;
@@ -325,6 +326,27 @@ public class V1_17 extends NMSWrapper {
             tag.setFloat(CombinedMapItemInfo.PLACEMENT_YAW_KEY, placement.getYaw());
             tag.setIntArray(CombinedMapItemInfo.PLACEMENT_UUID_KEY, UUIDUtils.toIntArray(placement.getUniqueId()));
         }
+        return CraftItemStack.asCraftMirror(nmsItemStack);
+    }
+
+    @Override
+    public FilledMapItemInfo getFilledMapItemInfo(ItemStack itemStack) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        NBTTagCompound tag = nmsItemStack.getTag();
+        if (tag == null || !tag.hasKey(FilledMapItemInfo.KEY)) {
+            return null;
+        }
+        int imageMapIndex = tag.getInt(FilledMapItemInfo.KEY);
+        int mapPartIndex = tag.getInt(FilledMapItemInfo.INDEX_KEY);
+        return new FilledMapItemInfo(imageMapIndex, mapPartIndex);
+    }
+
+    @Override
+    public ItemStack withFilledMapItemInfo(ItemStack itemStack, FilledMapItemInfo filledMapItemInfo) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        NBTTagCompound tag = nmsItemStack.getOrCreateTag();
+        tag.setInt(FilledMapItemInfo.KEY, filledMapItemInfo.getImageMapIndex());
+        tag.setInt(FilledMapItemInfo.INDEX_KEY, filledMapItemInfo.getMapPartIndex());
         return CraftItemStack.asCraftMirror(nmsItemStack);
     }
 

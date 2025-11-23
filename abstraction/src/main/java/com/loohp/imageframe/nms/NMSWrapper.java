@@ -21,6 +21,7 @@
 package com.loohp.imageframe.nms;
 
 import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
+import com.loohp.imageframe.objectholders.FilledMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import net.kyori.adventure.key.Key;
 import org.bukkit.World;
@@ -70,6 +71,10 @@ public abstract class NMSWrapper {
     public abstract CombinedMapItemInfo getCombinedMapItemInfo(ItemStack itemStack);
 
     public abstract ItemStack withCombinedMapItemInfo(ItemStack itemStack, CombinedMapItemInfo combinedMapItemInfo);
+
+    public abstract FilledMapItemInfo getFilledMapItemInfo(ItemStack itemStack);
+
+    public abstract ItemStack withFilledMapItemInfo(ItemStack itemStack, FilledMapItemInfo filledMapItemInfo);
 
     public abstract ItemStack withInvisibleItemFrameMeta(ItemStack itemStack);
 

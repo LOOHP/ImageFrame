@@ -21,17 +21,14 @@
 package com.loohp.imageframe.objectholders;
 
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 
-public interface LazyMappedBufferedImage {
+public interface LazyBufferedImageSource {
 
-    LazyBufferedImageSource getSource();
+    BufferedImage loadImage() throws IOException;
 
-    boolean canSetSource(LazyBufferedImageSource source);
+    void saveImage(BufferedImage image) throws IOException;
 
-    void setSource(LazyBufferedImageSource source);
-
-    BufferedImage get();
-
-    BufferedImage getIfLoaded();
+    String getFileName();
 
 }

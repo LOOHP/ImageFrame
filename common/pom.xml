@@ -82,6 +82,10 @@
                                     <shadedPattern>com.loohp.imageframe.libs.com.loohp.platformscheduler</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>com.zaxxer.hikari</pattern>
+                                    <shadedPattern>com.loohp.imageframe.libs.com.zaxxer.hikari</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>org.simpleyaml</pattern>
                                     <shadedPattern>com.loohp.imageframe.libs.org.simpleyaml</shadedPattern>
                                 </relocation>
@@ -259,6 +263,12 @@
     </repositories>
 
     <dependencies>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>7.0.2</version>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>com.loohp</groupId>
             <artifactId>PlatformScheduler</artifactId>

@@ -33,11 +33,6 @@ import org.bukkit.map.MapView;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -127,6 +122,13 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
+    public boolean applyUpdate(JsonObject json) {
+        this.pausedAt = json.get("pausedAt").getAsInt();
+        this.tickOffset = json.get("tickOffset").getAsInt();
+        return super.applyUpdate(json);
+    }
+
+    @Override
     public boolean hasColorCached() {
         return cachedColors != null;
     }
@@ -154,7 +156,7 @@ public class URLAnimatedImageMap extends URLImageMap {
                     LazyMappedBufferedImage previousFile = previousImages.get(intPosition);
                     LazyMappedBufferedImage file;
                     if (previousFile == null || !MapUtils.areImagesEqual(subImage, previousFile.getIfLoaded())) {
-                        file = FileLazyMappedBufferedImage.fromImage(subImage);
+                        file = StandardLazyMappedBufferedImage.fromImage(subImage);
                     } else {
                         file = previousFile;
                     }
@@ -182,7 +184,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             return pausedAt;
         }
         int sequenceLength = getSequenceLength();
-        int currentPosition = manager.getCurrentAnimationTick() % sequenceLength - tickOffset;
+        int currentPosition = (int) (manager.getCurrentAnimationTick() % sequenceLength) - tickOffset;
         if (currentPosition < 0) {
             currentPosition = sequenceLength + currentPosition;
         }
@@ -209,7 +211,7 @@ public class URLAnimatedImageMap extends URLImageMap {
     @Override
     public void setCurrentPositionInSequence(int position) {
         int sequenceLength = getSequenceLength();
-        tickOffset = manager.getCurrentAnimationTick() % sequenceLength - position % sequenceLength;
+        tickOffset = (int) (manager.getCurrentAnimationTick() % sequenceLength) - position % sequenceLength;
     }
 
     @Override
@@ -312,8 +314,6 @@ public class URLAnimatedImageMap extends URLImageMap {
         if (imageIndex < 0) {
             throw new IllegalStateException("ImageMap with index < 0 cannot be saved");
         }
-        File folder = new File(manager.getDataFolder(), String.valueOf(imageIndex));
-        folder.mkdirs();
         JsonObject json = new JsonObject();
         json.addProperty("type", loader.getIdentifier().asString());
         json.addProperty("index", imageIndex);
@@ -341,12 +341,12 @@ public class URLAnimatedImageMap extends URLImageMap {
             JsonArray framesArray = new JsonArray();
             for (LazyMappedBufferedImage image : cachedImages[i]) {
                 int index = u++;
-                File file = new File(folder, index + ".png");
-                if (image.canSetFile(file)) {
-                    image.setFile(file);
+                LazyBufferedImageSource source = manager.getStorage().getSource(imageIndex, index + ".png");
+                if (image.canSetSource(source)) {
+                    image.setSource(source);
                     framesArray.add(index + ".png");
                 } else {
-                    framesArray.add(image.getFile().getName());
+                    framesArray.add(image.getSource().getFileName());
                 }
             }
             dataJson.add("images", framesArray);
@@ -367,10 +367,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             mapDataJson.add(dataJson);
         }
         json.add("mapdata", mapDataJson);
-        try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(new File(folder, "data.json").toPath()), StandardCharsets.UTF_8))) {
-            pw.println(GSON.toJson(json));
-            pw.flush();
-        }
+        manager.getStorage().saveImageMapData(imageIndex, json);
     }
 
     public static class URLAnimatedImageMapRenderer extends ImageMapRenderer {

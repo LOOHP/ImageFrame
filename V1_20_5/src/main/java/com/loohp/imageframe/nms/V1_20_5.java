@@ -22,6 +22,7 @@ package com.loohp.imageframe.nms;
 
 import com.google.common.collect.Collections2;
 import com.loohp.imageframe.objectholders.CombinedMapItemInfo;
+import com.loohp.imageframe.objectholders.FilledMapItemInfo;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.ReflectionUtils;
 import com.loohp.imageframe.utils.UUIDUtils;
@@ -293,6 +294,33 @@ public class V1_20_5 extends NMSWrapper {
             tag.a(CombinedMapItemInfo.PLACEMENT_YAW_KEY, placement.getYaw());
             tag.a(CombinedMapItemInfo.PLACEMENT_UUID_KEY, UUIDUtils.toIntArray(placement.getUniqueId()));
         }
+        nmsItemStack.b(DataComponentPatch.a().a(DataComponents.b, CustomData.a(tag)).a());
+        return CraftItemStack.asCraftMirror(nmsItemStack);
+    }
+
+    @Override
+    public FilledMapItemInfo getFilledMapItemInfo(ItemStack itemStack) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        CustomData customData = nmsItemStack.a(DataComponents.b);
+        if (customData == null) {
+            return null;
+        }
+        NBTTagCompound tag = customData.c();
+        if (!tag.e(FilledMapItemInfo.KEY)) {
+            return null;
+        }
+        int imageMapIndex = tag.h(FilledMapItemInfo.KEY);
+        int mapPartIndex = tag.h(FilledMapItemInfo.INDEX_KEY);
+        return new FilledMapItemInfo(imageMapIndex, mapPartIndex);
+    }
+
+    @Override
+    public ItemStack withFilledMapItemInfo(ItemStack itemStack, FilledMapItemInfo filledMapItemInfo) {
+        net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
+        CustomData customData = nmsItemStack.a(DataComponents.b, CustomData.a);
+        NBTTagCompound tag = customData.c();
+        tag.a(FilledMapItemInfo.KEY, filledMapItemInfo.getImageMapIndex());
+        tag.a(FilledMapItemInfo.INDEX_KEY, filledMapItemInfo.getMapPartIndex());
         nmsItemStack.b(DataComponentPatch.a().a(DataComponents.b, CustomData.a(tag)).a());
         return CraftItemStack.asCraftMirror(nmsItemStack);
     }

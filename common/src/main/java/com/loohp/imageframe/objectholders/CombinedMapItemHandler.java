@@ -24,6 +24,7 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.ItemFrameUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
+import com.loohp.imageframe.utils.SlotAccessor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -54,17 +55,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class CombinedMapItemHandler implements Listener, AutoCloseable {
 
-    public static boolean containsCombinedMaps(IntFunction<ItemStack> slotAccess, int size) {
+    public static boolean containsCombinedMaps(SlotAccessor slotAccess, int size) {
         return containsCombinedMaps(slotAccess, 0, size);
     }
 
-    public static boolean containsCombinedMaps(IntFunction<ItemStack> slotAccess, int begin, int size) {
+    public static boolean containsCombinedMaps(SlotAccessor slotAccess, int begin, int size) {
         for (int i = begin; i < size; i++) {
             ItemStack itemStack = slotAccess.apply(i);
             if (isCombinedMaps(itemStack)) {

@@ -18,20 +18,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.loohp.imageframe.objectholders;
+package com.loohp.imageframe.utils;
 
-import java.awt.image.BufferedImage;
+@FunctionalInterface
+public interface IntObjectBiConsumer<U> {
 
-public interface LazyMappedBufferedImage {
-
-    LazyBufferedImageSource getSource();
-
-    boolean canSetSource(LazyBufferedImageSource source);
-
-    void setSource(LazyBufferedImageSource source);
-
-    BufferedImage get();
-
-    BufferedImage getIfLoaded();
+    void accept(int t, U u);
 
 }

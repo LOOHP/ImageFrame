@@ -18,20 +18,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.loohp.imageframe.objectholders;
+package com.loohp.imageframe.storage;
 
-import java.awt.image.BufferedImage;
+import net.kyori.adventure.key.Key;
 
-public interface LazyMappedBufferedImage {
+import java.io.File;
+import java.util.Map;
 
-    LazyBufferedImageSource getSource();
+public interface ImageFrameStorageLoader<T extends ImageFrameStorage> {
 
-    boolean canSetSource(LazyBufferedImageSource source);
+    Key getIdentifier();
 
-    void setSource(LazyBufferedImageSource source);
-
-    BufferedImage get();
-
-    BufferedImage getIfLoaded();
+    T create(File dataFolder, Map<String, String> options);
 
 }

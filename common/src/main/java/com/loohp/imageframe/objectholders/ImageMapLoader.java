@@ -25,7 +25,6 @@ import com.loohp.imageframe.media.MediaFrame;
 import com.loohp.imageframe.media.MediaLoader;
 import net.kyori.adventure.key.Key;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -114,6 +113,6 @@ public abstract class ImageMapLoader<T extends ImageMap, C extends ImageMapCreat
 
     public abstract Future<T> create(C createInfo) throws Exception;
 
-    public abstract Future<T> load(ImageMapManager manager, File folder, JsonObject json) throws Exception;
+    public abstract Future<T> load(ImageMapManager manager, JsonObject json) throws Exception;
 
 }

@@ -18,20 +18,34 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.loohp.imageframe.objectholders;
+package com.loohp.imageframe.api.events;
 
-import java.awt.image.BufferedImage;
+import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.platformscheduler.Scheduler;
+import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
 
-public interface LazyMappedBufferedImage {
+public class ImageMapDeletedEvent extends Event {
 
-    LazyBufferedImageSource getSource();
+    private static final HandlerList HANDLERS = new HandlerList();
 
-    boolean canSetSource(LazyBufferedImageSource source);
+    public static HandlerList getHandlerList() {
+        return HANDLERS;
+    }
 
-    void setSource(LazyBufferedImageSource source);
+    private final ImageMap imageMap;
 
-    BufferedImage get();
+    public ImageMapDeletedEvent(ImageMap imageMap) {
+        super(!Scheduler.isPrimaryThread());
+        this.imageMap = imageMap;
+    }
 
-    BufferedImage getIfLoaded();
+    public ImageMap getImageMap() {
+        return imageMap;
+    }
+
+    public HandlerList getHandlers() {
+        return HANDLERS;
+    }
 
 }

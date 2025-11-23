@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe.objectholders;
 
+import com.google.gson.JsonObject;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
@@ -44,4 +45,11 @@ public abstract class URLImageMap extends ImageMap {
         this.url = url;
     }
 
+    @Override
+    public boolean applyUpdate(JsonObject json) {
+        String previousUrl = url;
+        this.url = json.get("url").getAsString();
+        boolean parentShouldUpdateColorCache = super.applyUpdate(json);
+        return parentShouldUpdateColorCache || !previousUrl.equals(url);
+    }
 }

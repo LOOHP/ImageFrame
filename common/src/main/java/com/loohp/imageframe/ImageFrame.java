@@ -44,14 +44,18 @@ import com.loohp.imageframe.objectholders.MapMarkerEditManager;
 import com.loohp.imageframe.objectholders.RateLimitedPacketSendingManager;
 import com.loohp.imageframe.objectholders.UnsetState;
 import com.loohp.imageframe.placeholderapi.Placeholders;
+import com.loohp.imageframe.storage.ImageFrameStorage;
+import com.loohp.imageframe.storage.ImageFrameStorageLoaders;
 import com.loohp.imageframe.updater.Updater;
 import com.loohp.imageframe.upload.ImageUploadManager;
 import com.loohp.imageframe.utils.ChatColorUtils;
+import com.loohp.imageframe.utils.KeyUtils;
 import com.loohp.imageframe.utils.MCVersion;
 import com.loohp.imageframe.utils.ModernEventsUtils;
 import com.loohp.platformscheduler.ScheduledTask;
 import com.loohp.platformscheduler.Scheduler;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -187,6 +191,10 @@ public class ImageFrame extends JavaPlugin {
     public static int invisibleFrameMaxConversionsPerSplash;
     public static boolean invisibleFrameGlowEmptyFrames;
 
+    public static Key storageType;
+    public static Map<String, String> storageOptions;
+
+    public static ImageFrameStorage imageFrameStorage;
     public static ImageMapManager imageMapManager;
     public static IFPlayerManager ifPlayerManager;
     public static ItemFrameSelectionManager itemFrameSelectionManager;
@@ -327,8 +335,10 @@ public class ImageFrame extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new Events.ModernEvents(), this);
         }
 
-        imageMapManager = new ImageMapManager(new File(getDataFolder(), "data"));
-        ifPlayerManager = new IFPlayerManager(new File(getDataFolder(), "players"));
+
+        imageFrameStorage = ImageFrameStorageLoaders.create(storageType, getDataFolder(), storageOptions);
+        imageMapManager = new ImageMapManager(imageFrameStorage);
+        ifPlayerManager = new IFPlayerManager(imageFrameStorage);
         itemFrameSelectionManager = new ItemFrameSelectionManager();
         mapMarkerEditManager = new MapMarkerEditManager();
         combinedMapItemHandler = new CombinedMapItemHandler();
@@ -506,6 +516,9 @@ public class ImageFrame extends JavaPlugin {
 
         invisibleFrameMaxConversionsPerSplash = config.getConfiguration().getInt("InvisibleFrame.MaxConversionsPerSplash");
         invisibleFrameGlowEmptyFrames = config.getConfiguration().getBoolean("InvisibleFrame.GlowEmptyFrames");
+
+        storageType = KeyUtils.imageFrameKey(config.getConfiguration().getString("Storage.Type"));
+        storageOptions = config.getConfiguration().getConfigurationSection("Storage.Options").getValues(true).entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
 
         if (updaterTask != null) {
             updaterTask.cancel();

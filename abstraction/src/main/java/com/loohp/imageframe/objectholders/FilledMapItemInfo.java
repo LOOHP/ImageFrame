@@ -20,18 +20,25 @@
 
 package com.loohp.imageframe.objectholders;
 
-import java.awt.image.BufferedImage;
+public class FilledMapItemInfo {
 
-public interface LazyMappedBufferedImage {
+    public static final String KEY = "ImageMap";
+    public static final String INDEX_KEY = "ImageMapPart";
 
-    LazyBufferedImageSource getSource();
+    private final int imageMapIndex;
+    private final int mapPartIndex;
 
-    boolean canSetSource(LazyBufferedImageSource source);
+    public FilledMapItemInfo(int imageMapIndex, int mapPartIndex) {
+        this.imageMapIndex = imageMapIndex;
+        this.mapPartIndex = mapPartIndex;
+    }
 
-    void setSource(LazyBufferedImageSource source);
+    public int getImageMapIndex() {
+        return imageMapIndex;
+    }
 
-    BufferedImage get();
-
-    BufferedImage getIfLoaded();
+    public int getMapPartIndex() {
+        return mapPartIndex;
+    }
 
 }

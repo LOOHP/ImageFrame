@@ -18,20 +18,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.loohp.imageframe.objectholders;
+package com.loohp.imageframe.utils;
 
-import java.awt.image.BufferedImage;
+import net.kyori.adventure.key.Key;
 
-public interface LazyMappedBufferedImage {
+public class KeyUtils {
 
-    LazyBufferedImageSource getSource();
-
-    boolean canSetSource(LazyBufferedImageSource source);
-
-    void setSource(LazyBufferedImageSource source);
-
-    BufferedImage get();
-
-    BufferedImage getIfLoaded();
+    @SuppressWarnings("PatternValidation")
+    public static Key imageFrameKey(String string) {
+        int index = string.indexOf(":");
+        String namespace = index >= 1 ? string.substring(0, index) : "imageframe";
+        String value = index >= 0 ? string.substring(index + 1) : string;
+        return Key.key(namespace, value);
+    }
 
 }

@@ -29,19 +29,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
-
-import static com.loohp.imageframe.objectholders.ImageMap.GSON;
 
 public class ImageMapLoaders {
 
@@ -101,16 +94,13 @@ public class ImageMapLoaders {
                 .orElse(null);
     }
 
-    public static Future<? extends ImageMap> load(ImageMapManager manager, File folder) throws Exception {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(new File(folder, "data.json").toPath()), StandardCharsets.UTF_8))) {
-            JsonObject json = GSON.fromJson(reader, JsonObject.class);
-            String type = json.get("type").getAsString();
-            ImageMapLoader<?, ?> loader = getLoader(type);
-            if (loader == null) {
-                throw new IllegalStateException("Unable to find ImageMapLoader " + type);
-            }
-            return loader.load(manager, folder, json);
+    public static Future<? extends ImageMap> load(ImageMapManager manager, JsonObject json) throws Exception {
+        String type = json.get("type").getAsString();
+        ImageMapLoader<?, ?> loader = getLoader(type);
+        if (loader == null) {
+            throw new IllegalStateException("Unable to find ImageMapLoader " + type);
         }
+        return loader.load(manager, json);
     }
 
     public static <T extends MediaLoader> T registerLoader(T loader, ImageMapLoader<?, ?>... imageMapLoaders) {

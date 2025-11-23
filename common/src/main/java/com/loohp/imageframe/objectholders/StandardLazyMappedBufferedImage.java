@@ -20,73 +20,71 @@
 
 package com.loohp.imageframe.objectholders;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 
-public class FileLazyMappedBufferedImage implements LazyMappedBufferedImage {
+public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage {
 
-    public static FileLazyMappedBufferedImage fromFile(File file) {
-        return new FileLazyMappedBufferedImage(file, null, null);
+    public static StandardLazyMappedBufferedImage fromSource(LazyBufferedImageSource source) {
+        return new StandardLazyMappedBufferedImage(source, null, null);
     }
 
-    public static FileLazyMappedBufferedImage fromImage(BufferedImage image) {
-        return new FileLazyMappedBufferedImage(null, image, null);
+    public static StandardLazyMappedBufferedImage fromImage(BufferedImage image) {
+        return new StandardLazyMappedBufferedImage(null, image, null);
     }
 
-    public static FileLazyMappedBufferedImage fromImageToFile(File file, BufferedImage image) throws IOException {
-        ImageIO.write(image, "png", file);
-        return new FileLazyMappedBufferedImage(file, null, new WeakReference<>(image));
+    public static StandardLazyMappedBufferedImage fromImageToFile(LazyBufferedImageSource source, BufferedImage image) throws IOException {
+        source.saveImage(image);
+        return new StandardLazyMappedBufferedImage(source, null, new WeakReference<>(image));
     }
 
-    private File file;
+    private LazyBufferedImageSource source;
     private BufferedImage strongReference;
     private WeakReference<BufferedImage> weakReference;
 
-    private FileLazyMappedBufferedImage(File file, BufferedImage strongReference, WeakReference<BufferedImage> weakReference) {
-        if (file == null && strongReference == null) {
-            throw new IllegalArgumentException("One of file and strongReference must not be null");
+    private StandardLazyMappedBufferedImage(LazyBufferedImageSource source, BufferedImage strongReference, WeakReference<BufferedImage> weakReference) {
+        if (source == null && strongReference == null) {
+            throw new IllegalArgumentException("One of source and strongReference must not be null");
         }
-        if (file != null && strongReference != null) {
-            throw new IllegalArgumentException("File and strongReference cannot both be not null");
+        if (source != null && strongReference != null) {
+            throw new IllegalArgumentException("Source and strongReference cannot both be not null");
         }
-        this.file = file;
+        this.source = source;
         this.strongReference = strongReference;
         this.weakReference = weakReference;
     }
 
     @Override
-    public File getFile() {
-        return file;
+    public LazyBufferedImageSource getSource() {
+        return source;
     }
 
     @Override
-    public boolean canSetFile(File file) {
-        if (this.file != null) {
-            return this.file.equals(file);
+    public boolean canSetSource(LazyBufferedImageSource source) {
+        if (this.source != null) {
+            return this.source.equals(source);
         }
-        return file != null;
+        return source != null;
     }
 
     @Override
-    public synchronized void setFile(File file) {
-        if (this.file != null) {
-            if (this.file.equals(file)) {
+    public synchronized void setSource(LazyBufferedImageSource source) {
+        if (this.source != null) {
+            if (this.source.equals(source)) {
                 return;
             }
-            throw new IllegalStateException("Cannot change file location");
+            throw new IllegalStateException("Cannot change source location");
         }
-        if (file == null) {
-            throw new IllegalArgumentException("Cannot set file to null");
+        if (source == null) {
+            throw new IllegalArgumentException("Cannot set source to null");
         }
         try {
-            ImageIO.write(strongReference, "png", file);
+            source.saveImage(strongReference);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        this.file = file;
+        this.source = source;
         this.weakReference = new WeakReference<>(strongReference);
         this.strongReference = null;
     }
@@ -101,7 +99,7 @@ public class FileLazyMappedBufferedImage implements LazyMappedBufferedImage {
             return image;
         }
         try {
-            image = ImageIO.read(file);
+            image = source.loadImage();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

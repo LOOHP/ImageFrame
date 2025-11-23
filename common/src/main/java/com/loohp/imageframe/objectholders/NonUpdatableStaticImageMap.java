@@ -31,11 +31,6 @@ import org.bukkit.map.MapView;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -140,8 +135,6 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         if (imageIndex < 0) {
             throw new IllegalStateException("ImageMap with index < 0 cannot be saved");
         }
-        File folder = new File(manager.getDataFolder(), String.valueOf(imageIndex));
-        folder.mkdirs();
         JsonObject json = new JsonObject();
         json.addProperty("type", loader.getIdentifier().asString());
         json.addProperty("index", imageIndex);
@@ -180,13 +173,10 @@ public class NonUpdatableStaticImageMap extends ImageMap {
             mapDataJson.add(dataJson);
         }
         json.add("mapdata", mapDataJson);
-        try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(new File(folder, "data.json").toPath()), StandardCharsets.UTF_8))) {
-            pw.println(GSON.toJson(json));
-            pw.flush();
-        }
         for (int i = 0; i < cachedImages.length; i++) {
-            cachedImages[i].setFile(new File(folder, i +".png"));
+            cachedImages[i].setSource(manager.getStorage().getSource(imageIndex, i + ".png"));
         }
+        manager.getStorage().saveImageMapData(imageIndex, json);
     }
 
     public static class NonUpdatableStaticImageMapRenderer extends ImageMapRenderer {

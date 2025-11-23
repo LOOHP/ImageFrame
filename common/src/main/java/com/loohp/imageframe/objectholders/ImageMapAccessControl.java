@@ -93,6 +93,11 @@ public class ImageMapAccessControl {
         }
     }
 
+    protected void reapply(Map<UUID, ImageMapAccessPermissionType> hasAccess) {
+        this.permissions.clear();
+        this.permissions.putAll(hasAccess);
+    }
+
     private void setPermission(UUID player, ImageMapAccessPermissionType permissionType, boolean save) throws Exception {
         if (player.equals(imageMap.getCreator())) {
             return;
