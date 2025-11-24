@@ -47,8 +47,10 @@ import org.bukkit.event.entity.LingeringPotionSplashEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
+import org.bukkit.event.inventory.PrepareGrindstoneEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.CraftingRecipe;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapelessRecipe;
@@ -170,6 +172,14 @@ public class InvisibleFrameManager implements Listener {
         } else {
             itemFrame.setGlowing(false);
             itemFrame.setVisible(false);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onGrindstone(PrepareGrindstoneEvent event) {
+        Inventory inventory = event.getInventory();
+        if (isInvisibleItemFrame(inventory.getItem(0)) || isInvisibleItemFrame(inventory.getItem(1))) {
+            event.setResult(null);
         }
     }
 
