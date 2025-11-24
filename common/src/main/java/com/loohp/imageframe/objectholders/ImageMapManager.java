@@ -25,6 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.api.events.ImageMapAddedEvent;
 import com.loohp.imageframe.api.events.ImageMapDeletedEvent;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.storage.ImageFrameStorage;
@@ -122,6 +123,7 @@ public class ImageMapManager implements AutoCloseable {
         }
         try {
             map.save();
+            Bukkit.getPluginManager().callEvent(new ImageMapAddedEvent(map));
         } catch (Throwable e) {
             maps.remove(originalImageIndex);
             for (MapView mapView : map.getMapViews()) {
