@@ -31,4 +31,6 @@ public interface LazyBufferedImageSource {
 
     String getFileName();
 
+    LazyBufferedImageSource withFileName(String fileName);
+
 }

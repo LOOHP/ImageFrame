@@ -47,6 +47,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -326,7 +327,9 @@ public class FileImageFrameStorage implements ImageFrameStorage {
             File folder = new File(storage.imageMapFolder, String.valueOf(imageIndex));
             folder.mkdirs();
             File file = new File(folder, fileName);
-            ImageIO.write(image, "png", file);
+            File tempFile = new File(folder, fileName + ".tmp");
+            ImageIO.write(image, "png", tempFile);
+            Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
 
         public int getImageIndex() {
@@ -336,6 +339,11 @@ public class FileImageFrameStorage implements ImageFrameStorage {
         @Override
         public String getFileName() {
             return fileName;
+        }
+
+        @Override
+        public FileLazyBufferedImageSource withFileName(String fileName) {
+            return new FileLazyBufferedImageSource(storage, imageIndex, fileName);
         }
 
         @Override

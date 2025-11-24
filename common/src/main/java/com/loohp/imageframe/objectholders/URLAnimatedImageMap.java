@@ -343,12 +343,20 @@ public class URLAnimatedImageMap extends URLImageMap {
             for (LazyMappedBufferedImage image : cachedImages[i]) {
                 int index = u++;
                 LazyBufferedImageSource source = storage.getSource(imageIndex, index + ".png");
-                if (saveAsCopy) {
-                    image.saveCopy(source);
-                } else if (image.canSetSource(source)) {
-                    image.setSource(source);
+                if (image.canSetSource(source)) {
+                    if (saveAsCopy) {
+                        image.saveCopy(source);
+                    } else {
+                        image.setSource(source);
+                    }
+                    framesArray.add(index + ".png");
+                } else {
+                    String fileName = image.getSource().getFileName();
+                    if (saveAsCopy) {
+                        image.saveCopy(source.withFileName(fileName));
+                    }
+                    framesArray.add(fileName);
                 }
-                framesArray.add(index + ".png");
             }
             dataJson.add("images", framesArray);
             JsonArray markerArray = new JsonArray();

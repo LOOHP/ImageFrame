@@ -800,6 +800,11 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
         }
 
         @Override
+        public MySqlLazyBufferedImageSource withFileName(String fileName) {
+            return new MySqlLazyBufferedImageSource(storage, imageIndex, fileName);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (o == null || getClass() != o.getClass()) return false;
             MySqlLazyBufferedImageSource that = (MySqlLazyBufferedImageSource) o;
