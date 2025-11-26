@@ -92,12 +92,13 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
         this.localDataFolder = localDataFolder;
         this.activePollInterval = activePollInterval;
 
+        this.localDataFolder.mkdirs();
         File localDataFile = new File(localDataFolder, "data.json");
         if (localDataFile.exists()) {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(localDataFile.toPath()), StandardCharsets.UTF_8))) {
                 JsonObject json = GSON.fromJson(reader, JsonObject.class);
                 this.instanceId = UUID.fromString(json.get("instanceId").getAsString());
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 throw new RuntimeException("Unable to read " + localDataFile.getAbsolutePath(), e);
             }
         } else {
@@ -107,7 +108,7 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
             try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(localDataFile.toPath()), StandardCharsets.UTF_8))) {
                 pw.println(GSON.toJson(json));
                 pw.flush();
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 throw new RuntimeException("Unable to save " + localDataFile.getAbsolutePath(), e);
             }
         }

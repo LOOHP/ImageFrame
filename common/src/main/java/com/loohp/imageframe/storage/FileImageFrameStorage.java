@@ -73,12 +73,13 @@ public class FileImageFrameStorage implements ImageFrameStorage {
         this.playerDataFolder = playerDataFolder;
         this.mapIndexCounter = new AtomicInteger(0);
 
+        this.imageMapFolder.mkdirs();
         File localDataFile = new File(imageMapFolder, "data.json");
         if (localDataFile.exists()) {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(localDataFile.toPath()), StandardCharsets.UTF_8))) {
                 JsonObject json = GSON.fromJson(reader, JsonObject.class);
                 this.instanceId = UUID.fromString(json.get("instanceId").getAsString());
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 throw new RuntimeException("Unable to read " + localDataFile.getAbsolutePath(), e);
             }
         } else {
@@ -88,7 +89,7 @@ public class FileImageFrameStorage implements ImageFrameStorage {
             try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(localDataFile.toPath()), StandardCharsets.UTF_8))) {
                 pw.println(GSON.toJson(json));
                 pw.flush();
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 throw new RuntimeException("Unable to save " + localDataFile.getAbsolutePath(), e);
             }
         }
