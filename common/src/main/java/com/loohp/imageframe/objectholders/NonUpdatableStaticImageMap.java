@@ -176,7 +176,7 @@ public class NonUpdatableStaticImageMap extends ImageMap {
         json.add("mapdata", mapDataJson);
         for (int i = 0; i < cachedImages.length; i++) {
             LazyMappedBufferedImage cachedImage = cachedImages[i];
-            LazyBufferedImageSource source = storage.getSource(imageIndex, i + ".png");
+            LazyDataSource source = storage.getSource(imageIndex, i + ".png");
             if (saveAsCopy) {
                 cachedImage.saveCopy(source);
             } else if (cachedImage.canSetSource(source)) {

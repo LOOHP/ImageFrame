@@ -28,7 +28,6 @@ import com.loohp.imageframe.utils.FutureUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.platformscheduler.Scheduler;
 import net.kyori.adventure.key.Key;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapRenderer;

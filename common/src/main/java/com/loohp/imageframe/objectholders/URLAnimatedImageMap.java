@@ -291,6 +291,24 @@ public class URLAnimatedImageMap extends URLImageMap {
     }
 
     @Override
+    public MapView getMapViewFromMapId(int mapId) {
+        MapView mapView = super.getMapViewFromMapId(mapId);
+        if (mapView != null) {
+            return mapView;
+        }
+        if (!fakeMapIdsSet.contains(mapId)) {
+            return null;
+        }
+        for (int i = 0; i < fakeMapIds.length; i++) {
+            int[] ids = fakeMapIds[i];
+            if (ids != null && Arrays.stream(ids).anyMatch(id -> id == mapId)) {
+                return mapViews.get(i);
+            }
+        }
+        return null;
+    }
+
+    @Override
     public int getSequenceLength() {
         return cachedImages[0].length;
     }
@@ -342,7 +360,7 @@ public class URLAnimatedImageMap extends URLImageMap {
             JsonArray framesArray = new JsonArray();
             for (LazyMappedBufferedImage image : cachedImages[i]) {
                 int index = u++;
-                LazyBufferedImageSource source = storage.getSource(imageIndex, index + ".png");
+                LazyDataSource source = storage.getSource(imageIndex, index + ".png");
                 if (image.canSetSource(source)) {
                     if (saveAsCopy) {
                         image.saveCopy(source);

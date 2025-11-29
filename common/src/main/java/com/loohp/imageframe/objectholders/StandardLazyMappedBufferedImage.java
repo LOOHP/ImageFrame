@@ -20,13 +20,24 @@
 
 package com.loohp.imageframe.objectholders;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 
 public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage {
 
-    public static StandardLazyMappedBufferedImage fromSource(LazyBufferedImageSource source) {
+    private static final LazyDataSource.Reader<BufferedImage> IMAGE_READER = in -> ImageIO.read(in);
+
+    protected static LazyDataSource.Reader<BufferedImage> imageReader() {
+        return IMAGE_READER;
+    }
+
+    protected static LazyDataSource.Writer imageWriter(BufferedImage image) {
+        return out -> ImageIO.write(image, "png", out);
+    }
+
+    public static StandardLazyMappedBufferedImage fromSource(LazyDataSource source) {
         return new StandardLazyMappedBufferedImage(source, null, null);
     }
 
@@ -34,16 +45,16 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
         return new StandardLazyMappedBufferedImage(null, image, null);
     }
 
-    public static StandardLazyMappedBufferedImage fromImageToFile(LazyBufferedImageSource source, BufferedImage image) throws IOException {
-        source.saveImage(image);
+    public static StandardLazyMappedBufferedImage fromImageToFile(LazyDataSource source, BufferedImage image) throws IOException {
+        source.save(imageWriter(image));
         return new StandardLazyMappedBufferedImage(source, null, new WeakReference<>(image));
     }
 
-    private LazyBufferedImageSource source;
+    private LazyDataSource source;
     private BufferedImage strongReference;
     private WeakReference<BufferedImage> weakReference;
 
-    private StandardLazyMappedBufferedImage(LazyBufferedImageSource source, BufferedImage strongReference, WeakReference<BufferedImage> weakReference) {
+    private StandardLazyMappedBufferedImage(LazyDataSource source, BufferedImage strongReference, WeakReference<BufferedImage> weakReference) {
         if (source == null && strongReference == null) {
             throw new IllegalArgumentException("One of source and strongReference must not be null");
         }
@@ -56,12 +67,12 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
     }
 
     @Override
-    public LazyBufferedImageSource getSource() {
+    public LazyDataSource getSource() {
         return source;
     }
 
     @Override
-    public boolean canSetSource(LazyBufferedImageSource source) {
+    public boolean canSetSource(LazyDataSource source) {
         if (this.source != null) {
             return this.source.equals(source);
         }
@@ -69,7 +80,7 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
     }
 
     @Override
-    public synchronized void setSource(LazyBufferedImageSource source) {
+    public synchronized void setSource(LazyDataSource source) {
         if (this.source != null) {
             if (this.source.equals(source)) {
                 return;
@@ -80,7 +91,7 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
             throw new IllegalArgumentException("Cannot set source to null");
         }
         try {
-            source.saveImage(strongReference);
+            source.save(imageWriter(strongReference));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -90,9 +101,9 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
     }
 
     @Override
-    public void saveCopy(LazyBufferedImageSource source) {
+    public void saveCopy(LazyDataSource source) {
         try {
-            source.saveImage(get());
+            source.save(imageWriter(get()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -108,7 +119,7 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
             return image;
         }
         try {
-            image = source.loadImage();
+            image = source.load(imageReader());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

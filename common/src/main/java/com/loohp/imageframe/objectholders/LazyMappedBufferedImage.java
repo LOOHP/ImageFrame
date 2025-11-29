@@ -24,13 +24,13 @@ import java.awt.image.BufferedImage;
 
 public interface LazyMappedBufferedImage {
 
-    LazyBufferedImageSource getSource();
+    LazyDataSource getSource();
 
-    boolean canSetSource(LazyBufferedImageSource source);
+    boolean canSetSource(LazyDataSource source);
 
-    void setSource(LazyBufferedImageSource source);
+    void setSource(LazyDataSource source);
 
-    void saveCopy(LazyBufferedImageSource source);
+    void saveCopy(LazyDataSource source);
 
     BufferedImage get();
 

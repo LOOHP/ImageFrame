@@ -174,6 +174,10 @@ public class ImageMapManager implements AutoCloseable {
         return maps.values().stream().map(each -> each.getCreator()).collect(Collectors.toSet());
     }
 
+    public ImageMap getFromFakeMapId(int fakeMapId) {
+        return maps.values().stream().filter(each -> each.requiresAnimationService() && each.getFakeMapIds().contains(fakeMapId)).findFirst().orElse(null);
+    }
+
     public boolean deleteMap(int imageIndex) {
         ImageMap imageMap = maps.remove(imageIndex);
         if (imageMap == null) {

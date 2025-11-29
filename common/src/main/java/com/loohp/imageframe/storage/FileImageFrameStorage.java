@@ -28,21 +28,21 @@ import com.loohp.imageframe.objectholders.IFPlayerManager;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapLoaders;
 import com.loohp.imageframe.objectholders.ImageMapManager;
-import com.loohp.imageframe.objectholders.LazyBufferedImageSource;
+import com.loohp.imageframe.objectholders.LazyDataSource;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.FileUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -114,8 +114,8 @@ public class FileImageFrameStorage implements ImageFrameStorage {
     }
 
     @Override
-    public LazyBufferedImageSource getSource(int imageIndex, String fileName) {
-        return new FileLazyBufferedImageSource(this, imageIndex, fileName);
+    public LazyDataSource getSource(int imageIndex, String fileName) {
+        return new FileLazyDataSource(this, imageIndex, fileName);
     }
 
     @Override
@@ -304,32 +304,36 @@ public class FileImageFrameStorage implements ImageFrameStorage {
         //do nothing
     }
 
-    public static class FileLazyBufferedImageSource implements LazyBufferedImageSource {
+    public static class FileLazyDataSource implements LazyDataSource {
 
         private final FileImageFrameStorage storage;
         private final int imageIndex;
         private final String fileName;
 
-        public FileLazyBufferedImageSource(FileImageFrameStorage storage, int imageIndex, String fileName) {
+        public FileLazyDataSource(FileImageFrameStorage storage, int imageIndex, String fileName) {
             this.storage = storage;
             this.imageIndex = imageIndex;
             this.fileName = fileName;
         }
 
         @Override
-        public BufferedImage loadImage() throws IOException {
+        public <T> T load(Reader<T> reader) throws IOException {
             File folder = new File(storage.imageMapFolder, String.valueOf(imageIndex));
             File file = new File(folder, fileName);
-            return ImageIO.read(file);
+            try (InputStream inputStream = Files.newInputStream(file.toPath())) {
+                return reader.read(inputStream);
+            }
         }
 
         @Override
-        public void saveImage(BufferedImage image) throws IOException {
+        public void save(Writer writer) throws IOException {
             File folder = new File(storage.imageMapFolder, String.valueOf(imageIndex));
             folder.mkdirs();
             File file = new File(folder, fileName);
             File tempFile = new File(folder, fileName + ".tmp");
-            ImageIO.write(image, "png", tempFile);
+            try (OutputStream outputStream = Files.newOutputStream(tempFile.toPath())) {
+                writer.write(outputStream);
+            }
             Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
 
@@ -343,14 +347,14 @@ public class FileImageFrameStorage implements ImageFrameStorage {
         }
 
         @Override
-        public FileLazyBufferedImageSource withFileName(String fileName) {
-            return new FileLazyBufferedImageSource(storage, imageIndex, fileName);
+        public FileLazyDataSource withFileName(String fileName) {
+            return new FileLazyDataSource(storage, imageIndex, fileName);
         }
 
         @Override
         public boolean equals(Object o) {
             if (o == null || getClass() != o.getClass()) return false;
-            FileLazyBufferedImageSource that = (FileLazyBufferedImageSource) o;
+            FileLazyDataSource that = (FileLazyDataSource) o;
             return imageIndex == that.imageIndex && Objects.equals(storage.imageMapFolder, that.storage.imageMapFolder) && Objects.equals(fileName, that.fileName);
         }
 

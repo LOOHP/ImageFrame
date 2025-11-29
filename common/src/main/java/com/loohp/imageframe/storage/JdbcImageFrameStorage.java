@@ -31,7 +31,7 @@ import com.loohp.imageframe.objectholders.IFPlayerManager;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapLoaders;
 import com.loohp.imageframe.objectholders.ImageMapManager;
-import com.loohp.imageframe.objectholders.LazyBufferedImageSource;
+import com.loohp.imageframe.objectholders.LazyDataSource;
 import com.loohp.imageframe.objectholders.MutablePair;
 import com.loohp.imageframe.utils.JsonUtils;
 import com.loohp.platformscheduler.ScheduledTask;
@@ -41,8 +41,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -221,8 +219,8 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
     }
 
     @Override
-    public LazyBufferedImageSource getSource(int imageIndex, String fileName) {
-        return new MySqlLazyBufferedImageSource(this, imageIndex, fileName);
+    public LazyDataSource getSource(int imageIndex, String fileName) {
+        return new MySqlLazyDataSource(this, imageIndex, fileName);
     }
 
     @Override
@@ -733,20 +731,20 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
         dataSource.close();
     }
 
-    public static class MySqlLazyBufferedImageSource implements LazyBufferedImageSource {
+    public static class MySqlLazyDataSource implements LazyDataSource {
 
         private final JdbcImageFrameStorage storage;
         private final int imageIndex;
         private final String fileName;
 
-        public MySqlLazyBufferedImageSource(JdbcImageFrameStorage storage, int imageIndex, String fileName) {
+        public MySqlLazyDataSource(JdbcImageFrameStorage storage, int imageIndex, String fileName) {
             this.storage = storage;
             this.imageIndex = imageIndex;
             this.fileName = fileName;
         }
 
         @Override
-        public BufferedImage loadImage() throws IOException {
+        public <T> T load(Reader<T> reader) throws IOException {
             String sql = "SELECT IMAGE FROM IMAGE_MAP_IMAGES WHERE IMAGE_INDEX = ? AND FILE_NAME = ?";
             try (
                 Connection connection = storage.getDataSource().getConnection();
@@ -762,9 +760,8 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
                     if (bytes == null || bytes.length == 0) {
                         return null;
                     }
-                    try (ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes)) {
-                        return ImageIO.read(inputStream);
-                    }
+                    ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+                    return reader.read(inputStream);
                 }
             } catch (SQLException e) {
                 throw new IOException("Unable to load image data for imageIndex=" + imageIndex + ", fileName=" + fileName, e);
@@ -772,10 +769,11 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
         }
 
         @Override
-        public void saveImage(BufferedImage image) throws IOException {
+        public void save(Writer writer) throws IOException {
             String sql = "INSERT INTO IMAGE_MAP_IMAGES (IMAGE_INDEX, FILE_NAME, IMAGE) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE IMAGE = VALUES(IMAGE)";
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                ImageIO.write(image, "png", outputStream);
+            try {
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                writer.write(outputStream);
                 byte[] bytes = outputStream.toByteArray();
                 try (
                     Connection connection = storage.getDataSource().getConnection();
@@ -801,14 +799,14 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
         }
 
         @Override
-        public MySqlLazyBufferedImageSource withFileName(String fileName) {
-            return new MySqlLazyBufferedImageSource(storage, imageIndex, fileName);
+        public MySqlLazyDataSource withFileName(String fileName) {
+            return new MySqlLazyDataSource(storage, imageIndex, fileName);
         }
 
         @Override
         public boolean equals(Object o) {
             if (o == null || getClass() != o.getClass()) return false;
-            MySqlLazyBufferedImageSource that = (MySqlLazyBufferedImageSource) o;
+            MySqlLazyDataSource that = (MySqlLazyDataSource) o;
             return imageIndex == that.imageIndex && Objects.equals(storage.dataSource, that.storage.dataSource) && Objects.equals(fileName, that.fileName);
         }
 

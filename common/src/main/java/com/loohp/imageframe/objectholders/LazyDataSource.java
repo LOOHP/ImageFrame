@@ -20,17 +20,28 @@
 
 package com.loohp.imageframe.objectholders;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-public interface LazyBufferedImageSource {
+public interface LazyDataSource {
 
-    BufferedImage loadImage() throws IOException;
+    <T> T load(Reader<T> reader) throws IOException;
 
-    void saveImage(BufferedImage image) throws IOException;
+    void save(Writer writer) throws IOException;
 
     String getFileName();
 
-    LazyBufferedImageSource withFileName(String fileName);
+    LazyDataSource withFileName(String fileName);
+
+    @FunctionalInterface
+    interface Reader<T> {
+        T read(InputStream inputStream) throws IOException;
+    }
+
+    @FunctionalInterface
+    interface Writer {
+        void write(OutputStream outputStream) throws IOException;
+    }
 
 }

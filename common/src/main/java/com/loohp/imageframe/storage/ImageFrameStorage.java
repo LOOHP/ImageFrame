@@ -24,7 +24,7 @@ import com.google.gson.JsonObject;
 import com.loohp.imageframe.objectholders.IFPlayerManager;
 import com.loohp.imageframe.objectholders.ImageMap;
 import com.loohp.imageframe.objectholders.ImageMapManager;
-import com.loohp.imageframe.objectholders.LazyBufferedImageSource;
+import com.loohp.imageframe.objectholders.LazyDataSource;
 import com.loohp.imageframe.objectholders.MutablePair;
 
 import java.io.IOException;
@@ -40,7 +40,7 @@ public interface ImageFrameStorage extends AutoCloseable {
 
     ImageFrameStorageLoader<?> getLoader();
 
-    LazyBufferedImageSource getSource(int imageIndex, String fileName);
+    LazyDataSource getSource(int imageIndex, String fileName);
 
     Set<Integer> getAllImageIndexes();
 
