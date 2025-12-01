@@ -1,7 +1,8 @@
 Settings:
   #Default language
   #Translations are crowdsourced from the community!
-  #To contribute your language, visit https://crowdin.com/project/imageframe!
+  #For supported languages, see https://loohpjames.com/imageframe/languages/
+  #To contribute your language, visit https://crowdin.com/project/imageframe/
   Language: "en_us"
   #Date format used where a time based variable is displayed
   DateFormat: "dd/MM/yyyy HH:mm:ss zzz"
