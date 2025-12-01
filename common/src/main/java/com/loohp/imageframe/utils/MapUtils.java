@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe.utils;
 
+import com.google.common.collect.Iterators;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.objectholders.CombinedMapItemHandler;
@@ -62,6 +63,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -301,7 +303,7 @@ public class MapUtils {
         int mapViewX = mapViewIndex % imageMap.getWidth();
         int mapViewY = mapViewIndex / imageMap.getWidth();
         IntPosition globalTarget = new IntPosition(localTarget.getX() + (mapViewX * MAP_WIDTH), localTarget.getY() + (mapViewY * MAP_WIDTH));
-        return new ImageMapHitTargetResult(itemFrame, imageMap, localTarget, globalTarget);
+        return new ImageMapHitTargetResult(itemFrame, imageMap, localTarget, globalTarget, hitPosition);
     }
 
     public static RayTraceResult rayTraceItemFrame(Location start, Vector direction, double maxDistance) {
@@ -473,8 +475,8 @@ public class MapUtils {
                 return false;
             }
             InventoryView inventoryView = player.getOpenInventory();
-            for (int i = 0; i < inventoryView.countSlots(); i++) {
-                ItemStack itemStack = inventoryView.getItem(i);
+            for (Iterator<ItemStack> itr = Iterators.concat(inventoryView.getTopInventory().iterator(), inventoryView.getBottomInventory().iterator()); itr.hasNext();) {
+                ItemStack itemStack = itr.next();
                 if (CombinedMapItemHandler.isCombinedMaps(itemStack)) {
                     CombinedMapItemInfo info = NMS.getInstance().getCombinedMapItemInfo(itemStack);
                     if (imageMap.getImageIndex() == info.getImageMapIndex()) {

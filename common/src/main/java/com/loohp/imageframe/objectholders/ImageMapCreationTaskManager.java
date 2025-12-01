@@ -46,11 +46,11 @@ public class ImageMapCreationTaskManager {
         this.taskInQueue = new ConcurrentLinkedQueue<>();
     }
 
-    public <T> ImageMapCreationTask<T> enqueue(UUID creator, String imageMapName, int imageMapWidth, int imageMapHeight, ThrowingSupplier<T> creationTask) throws EnqueueRejectedException {
+    public <T> ImageMapCreationTask<T> enqueue(UUID creator, String imageMapName, ThrowingSupplier<T> creationTask) throws EnqueueRejectedException {
         if (!creatorsInQueue.add(creator)) {
             throw new EnqueueRejectedException("Creator " + creator + " already in queue");
         }
-        return new ImageMapCreationTask<>(this, creator, creationTask, executor, imageMapName, imageMapWidth, imageMapHeight);
+        return new ImageMapCreationTask<>(this, creator, creationTask, executor, imageMapName);
     }
 
     public boolean isCreatorInQueue(UUID creator) {

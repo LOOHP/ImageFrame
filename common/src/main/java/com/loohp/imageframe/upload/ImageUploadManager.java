@@ -36,6 +36,7 @@ import org.apache.commons.fileupload.MultipartStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -97,8 +98,10 @@ public class ImageUploadManager implements AutoCloseable {
             } else {
                 this.server = null;
             }
+        } catch (BindException e) {
+            throw new RuntimeException("Unable to start ImageFrame upload server (Perhaps there is a network port clash?)", e);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Unable to start ImageFrame upload server", e);
         }
     }
 

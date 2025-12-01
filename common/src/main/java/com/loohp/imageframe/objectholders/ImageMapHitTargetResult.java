@@ -21,6 +21,7 @@
 package com.loohp.imageframe.objectholders;
 
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.util.Vector;
 
 public class ImageMapHitTargetResult {
 
@@ -28,12 +29,14 @@ public class ImageMapHitTargetResult {
     private final ImageMap imageMap;
     private final IntPosition localTargetPixel;
     private final IntPosition targetPixel;
+    private final Vector worldTargetPosition;
 
-    public ImageMapHitTargetResult(ItemFrame itemFrame, ImageMap imageMap, IntPosition localTargetPixel, IntPosition targetPixel) {
+    public ImageMapHitTargetResult(ItemFrame itemFrame, ImageMap imageMap, IntPosition localTargetPixel, IntPosition targetPixel, Vector worldTargetPosition) {
         this.itemFrame = itemFrame;
         this.imageMap = imageMap;
         this.localTargetPixel = localTargetPixel;
         this.targetPixel = targetPixel;
+        this.worldTargetPosition = worldTargetPosition;
     }
 
     public ItemFrame getItemFrame() {
@@ -52,4 +55,7 @@ public class ImageMapHitTargetResult {
         return targetPixel;
     }
 
+    public Vector getWorldTargetPosition() {
+        return worldTargetPosition;
+    }
 }

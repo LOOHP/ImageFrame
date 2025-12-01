@@ -28,12 +28,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
-public class IFPlayerPreference<T> {
+public class IFPlayerPreference<T extends PreferenceState> {
 
     private static final Map<String, IFPlayerPreference<?>> VALUES = new ConcurrentHashMap<>();
 
-    public static final IFPlayerPreference<BooleanState> VIEW_ANIMATED_MAPS = register(new IFPlayerPreference<>("VIEW_ANIMATED_MAPS", "viewAnimatedMaps", BooleanState.class, BooleanState.STRING_VALUES_MAP, i -> BooleanState.UNSET, v -> v.getJsonValue(), j -> BooleanState.fromJsonValue(j), s -> StringDeserializerResult.accepted(BooleanState.fromString(s))));
+    public static final IFPlayerPreference<BooleanState> VIEW_ANIMATED_MAPS = register(new IFPlayerPreference<>("VIEW_ANIMATED_MAPS", "viewAnimatedMaps", BooleanState.class, () -> BooleanState.STRING_VALUES_MAP, i -> BooleanState.UNSET, v -> v.getJsonValue(), j -> BooleanState.fromJsonValue(j), s -> StringDeserializerResult.accepted(BooleanState.fromString(s))));
+    public static final IFPlayerPreference<LanguageState> LANGUAGE = register(new IFPlayerPreference<>("LANGUAGE", "language", LanguageState.class, LanguageState.VALUES_MAP_SUPPLIER, i -> LanguageState.UNSET, v -> v.getJsonValue(), j -> LanguageState.fromJsonValue(j), s -> StringDeserializerResult.accepted(LanguageState.fromString(s))));
 
     public static <T extends IFPlayerPreference<?>> T register(T preference) {
         VALUES.put(preference.name(), preference);
@@ -51,17 +53,17 @@ public class IFPlayerPreference<T> {
     private final String name;
     private final String jsonName;
     private final Class<T> type;
-    private final Map<String, T> suggestedValues;
+    private final Supplier<Map<String, T>> suggestedValues;
     private final Function<IFPlayer, T> defaultValue;
     private final Function<T, JsonElement> serializer;
     private final Function<JsonElement, T> deserializer;
     private final Function<String, StringDeserializerResult<T>> stringDeserializer;
 
-    IFPlayerPreference(String name, String jsonName, Class<T> type, Map<String, T> suggestedValues, Function<IFPlayer, T> defaultValue, Function<T, JsonElement> serializer, Function<JsonElement, T> deserializer, Function<String, StringDeserializerResult<T>> stringDeserializer) {
+    IFPlayerPreference(String name, String jsonName, Class<T> type, Supplier<Map<String, T>> suggestedValues, Function<IFPlayer, T> defaultValue, Function<T, JsonElement> serializer, Function<JsonElement, T> deserializer, Function<String, StringDeserializerResult<T>> stringDeserializer) {
         this.name = name;
         this.jsonName = jsonName;
         this.type = type;
-        this.suggestedValues = Collections.unmodifiableMap(suggestedValues);
+        this.suggestedValues = suggestedValues;
         this.defaultValue = defaultValue;
         this.serializer = serializer;
         this.deserializer = deserializer;
@@ -81,7 +83,7 @@ public class IFPlayerPreference<T> {
     }
 
     public Map<String, T> getSuggestedValues() {
-        return suggestedValues;
+        return suggestedValues.get();
     }
 
     public Function<T, JsonElement> getSerializer() {
@@ -89,7 +91,7 @@ public class IFPlayerPreference<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public <E> Function<E, JsonElement> getSerializer(Class<E> type) {
+    public <E extends PreferenceState> Function<E, JsonElement> getSerializer(Class<E> type) {
         return (Function<E, JsonElement>) serializer;
     }
 
@@ -98,7 +100,7 @@ public class IFPlayerPreference<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public <E> Function<JsonElement, E> getDeserializer(Class<E> type) {
+    public <E extends PreferenceState> Function<JsonElement, E> getDeserializer(Class<E> type) {
         return (Function<JsonElement, E>) deserializer;
     }
 
@@ -107,7 +109,7 @@ public class IFPlayerPreference<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public <E> Function<String, StringDeserializerResult<E>> getStringDeserializer(Class<E> type) {
+    public <E extends PreferenceState> Function<String, StringDeserializerResult<E>> getStringDeserializer(Class<E> type) {
         return (Function<String, StringDeserializerResult<E>>) (Function<String, ?>) stringDeserializer;
     }
 
@@ -116,7 +118,7 @@ public class IFPlayerPreference<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public <E> E getDefaultValue(IFPlayer ifPlayer, Class<E> type) {
+    public <E extends PreferenceState> E getDefaultValue(IFPlayer ifPlayer, Class<E> type) {
         return (E) defaultValue.apply(ifPlayer);
     }
 
@@ -138,16 +140,16 @@ public class IFPlayerPreference<T> {
         return Objects.hash(name);
     }
 
-    public static class StringDeserializerResult<T> {
+    public static class StringDeserializerResult<T extends PreferenceState> {
 
         public static StringDeserializerResult<?> REJECTED_INSTANCE = new StringDeserializerResult<>(false, null);
 
         @SuppressWarnings("unchecked")
-        public static <T> StringDeserializerResult<T> rejected() {
+        public static <T extends PreferenceState> StringDeserializerResult<T> rejected() {
             return (StringDeserializerResult<T>) REJECTED_INSTANCE;
         }
 
-        public static <T> StringDeserializerResult<T> accepted(T result) {
+        public static <T extends PreferenceState> StringDeserializerResult<T> accepted(T result) {
             return new StringDeserializerResult<>(true, result);
         }
 

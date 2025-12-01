@@ -22,9 +22,15 @@ package com.loohp.imageframe.utils;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.platformscheduler.Scheduler;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.chat.ComponentSerializer;
 import org.bukkit.Chunk;
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 public class CommandSenderUtils {
 
@@ -34,6 +40,25 @@ public class CommandSenderUtils {
             Scheduler.executeOrScheduleSync(ImageFrame.plugin, () -> sender.sendMessage(message), chunk);
         } else {
             sender.sendMessage(message);
+        }
+    }
+
+    public static void sendMessage(CommandSender sender, Component message) {
+        sendMessage(sender, null, message);
+    }
+
+    @SuppressWarnings("deprecation")
+    public static void sendMessage(CommandSender sender, ChatMessageType position, Component message) {
+        String language = sender instanceof Player ? PlayerUtils.getPlayerLanguage((Player) sender) : ImageFrame.language;
+        message = ImageFrame.languageManager.resolve(message, language);
+        BaseComponent[] spigotComponent = ComponentSerializer.parse(GsonComponentSerializer.gson().serialize(message));
+        if (sender instanceof BlockCommandSender) {
+            Chunk chunk = ((BlockCommandSender) sender).getBlock().getChunk();
+            Scheduler.executeOrScheduleSync(ImageFrame.plugin, () -> sender.spigot().sendMessage(spigotComponent), chunk);
+        } else if (position != null && sender instanceof Player) {
+            ((Player) sender).spigot().sendMessage(position, spigotComponent);
+        } else {
+            sender.spigot().sendMessage(spigotComponent);
         }
     }
 

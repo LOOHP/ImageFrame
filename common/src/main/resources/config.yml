@@ -1,94 +1,10 @@
-Messages:
-  Reloaded: "&eImageFrame has been reloaded!"
-  Resync: "&aPerforming resync! See console for details."
-  StorageMigration: "&aPerforming storage migration! See console for details."
-  ImageMapProcessing: "&eImageMap is being processed, please wait!"
-  #Leave this empty ("") to disable action bar message
-  ImageMapProcessingActionBar: "&eImageMap &a{Name} &eis being processed{Dots}"
-  #Leave this empty ("") to disable action bar message
-  ImageMapQueuedActionBar: "&7ImageMap &a{Name} &eis currently queued ({Position} Remaining)"
-  ImageMapCreated: "&aImageMap has been created!"
-  ImageMapRefreshed: "&aImageMap has been refreshed!"
-  ImageMapDeleted: "&eImageMap had been deleted!"
-  ImageMapRenamed: "&aImageMap had been renamed!"
-  ImageMapTogglePaused: "&aToggled ImageMap playback pause!"
-  ImageMapPlaybackJumpTo: "&aJumped to position at {Seconds} seconds!"
-  ImageMapPlayerPurge: "&ePurged {Amount} ImageMaps owned by {CreatorName} ({CreatorUUID}) - [{ImageMapNames}]"
-  SetCreator: "&aImageMap creator of id {ImageID} set to {CreatorName} ({CreatorUUID})"
-  InvalidOverlayMap: "&cOverlay only works on Vanilla Minecraft maps and without duplicates in selection!"
-  ImageMapAlreadyQueued: "&cYou already have another ImageMap queued and processing, please wait!"
-  UnableToLoadMap: "&cImageMap cannot be loaded, there is a problem while reading the image. Contact server administrators to check the server console for more info."
-  UnableToChangeImageType: "&cChanging the image type is currently not supported. Please create a new image map instead."
-  UnknownError: "&cAn unknown error had occurred."
-  ImageOverMaxFileSize: "&cImageMap cannot be loaded as it is over the max file size allowed. ({Size} bytes)"
-  NotAnImageMap: "&cThat is not an ImageMap"
-  UploadLink: "&aOpen {URL} on your browser to upload an image, it is valid for 5 minutes."
-  UploadExpired: "&cImage upload link had expired, please create a new one."
-  URLImageMapInfo:
-    - "&bImageID: {ImageID}"
-    - "&aName: {Name}"
-    - "&eMap Size: {Width} x {Height}"
-    - "&6Dithering: {DitheringType}"
-    - "&dCreator: {CreatorName} ({CreatorUUID})"
-    - "&fAccess: {Access}"
-    - "&aTime Created: {TimeCreated}"
-    - "&bMarkers: {Markers}"
-    - "&eURL: {URL}"
-  NoPermission: "&cYou do not have permission to do that!"
-  NoConsole: "&cThis command can only be ran by players!"
-  PlayerNotFound: "&cThis player cannot be found!"
-  InvalidUsage: "&cInvalid Usage!"
-  NotEnoughMaps: "&cYou do not have {Amount} maps!"
-  Oversize: "&cThat is too big! Max size for a map is {MaxSize}"
-  URLRestricted: "&cThat URL is restricted and cannot be used to create image maps."
-  PlayerCreationLimitReached: "&cYou can only create {Limit} maps at once! Delete some to create new ones"
-  DuplicateMapName: "&cYou've already created an image map with that name!"
-  MapLookup: "&bList of image maps by {CreatorName} ({CreatorUUID}):"
-  ItemFrameOccupied: "&cFailed to place or remove some maps on selected ItemFrame, they are either destroyed, replaced, occupied or protected."
-  NotEnoughSpace: "&cUnable to place Combined ImageMap as there is not enough room."
-  InvalidImageMap: "&cThis image map had likely already been deleted."
-  GivenInvisibleFrame: "&aGiven {Amount} invisible item frames to {Player}."
-  AccessPermission:
-    Updated: "&aUpdated access for {PlayerName} ({PlayerUUID}), they now have {Permission} permission."
-    Types:
-      NONE: "NONE"
-      GET: "GET"
-      MARKER: "MARKER"
-      EDIT: "EDIT"
-      EDIT_CLONE: "EDIT WITH CLONE"
-      ALL: "ALL"
-  Selection:
-    Begin: "&bRight click an Item Frame to select corner 1 and 2"
-    Clear: "&eLeaving selection mode"
-    Corner1: "&aSelected Item Frame corner 1"
-    Corner2: "&aSelected Item Frame corner 2"
-    Invalid: "&cInvalid selection!"
-    Oversize: "&cOversize selection! Max size for a map is {MaxSize}"
-    Success: "&aSelected {Width} x {Height} Item Frames! &eIf any of them are removed/replaced, you will need to select them again."
-    NoSelection: "&cYou don't have a valid selection yet."
-    IncorrectSize: "&cYour selection's size does not match, {Width} x {Height} required."
-  Markers:
-    AddBegin: '&aRight click on an Item Frame containing the map "{Name}" to place marker! &bRun "/imageframe marker cancel" to cancel placement'
-    AddConfirm: "&aMarker placed!"
-    Remove: "&eMarker removed!"
-    Clear: "&eMarkers cleared!"
-    Cancel: "&eMarker placement cancelled!"
-    DuplicateName: "&cThere is already a marker with that name!"
-    NotAMarker: "&cThat is not a valid marker"
-    NotRenderOnFrameWarning: "&eWarning: This marker type does not render on Item Frames!"
-    LimitReached: "&cYou can only create {Limit} markers on one map!"
+Settings:
+  #Default language
+  #Translations are crowdsourced from the community!
+  #To contribute your language, visit https://crowdin.com/project/imageframe!
+  Language: "en_us"
   #Date format used where a time based variable is displayed
   DateFormat: "dd/MM/yyyy HH:mm:ss zzz"
-  Preferences:
-    Keys:
-      VIEW_ANIMATED_MAPS: "View Animated Maps"
-    Values:
-      "TRUE": "&aEnabled"
-      "FALSE": "&cDisabled"
-      UNSET: "&7Unset"
-    UpdateMessage: "&ePlayer Preference {Preference}&e has been updated to {Value}&e!"
-
-Settings:
   MapItemFormat: "&f{Name} &7({X}, {Y})"
   #Whether empty maps are required to create image maps when not in creative
   RequireEmptyMaps: true
@@ -128,14 +44,6 @@ Settings:
     moderator: 20
   #Max amount of markers on an individual map
   MapMarkerLimit: 20
-  CombinedMapItem:
-    Name: "&bImageMap &f- &f{Name} &7({Width} x {Height})"
-    Lore:
-      - "&aRight Click on Item Frames of size {Width} x {Height} to place ImageMap"
-      - ""
-      - "&7ImageID: {ImageID}"
-      - "&7Creator: {CreatorName} ({CreatorUUID})"
-      - "&7Time Created: {TimeCreated}"
   #How many map packets can be sent to a player in 1/20 of a second
   #You can turn this down if you are facing network issues
   #However maps might take longer to show to a player
@@ -160,6 +68,7 @@ Settings:
   #Set this to true if you have corrupted 0 size map data in the world folder (not the ImageFrame plugin folder)
   #Set this to false if your system's file IO is slow
   TryDeleteBlankMapFiles: false
+  CombinedByDefault: false
 
 #ImageFrame's convenient upload system where you can upload directly through an embedded web server
 UploadService:

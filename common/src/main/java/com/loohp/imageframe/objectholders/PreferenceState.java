@@ -21,11 +21,14 @@
 package com.loohp.imageframe.objectholders;
 
 import com.google.gson.JsonElement;
+import net.kyori.adventure.text.format.TextColor;
 
 public interface PreferenceState {
 
     String name();
 
     JsonElement getJsonValue();
+
+    TextColor getDisplayColor();
 
 }

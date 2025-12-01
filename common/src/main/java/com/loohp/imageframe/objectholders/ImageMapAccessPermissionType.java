@@ -22,20 +22,22 @@ package com.loohp.imageframe.objectholders;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class ImageMapAccessPermissionType {
+public class ImageMapAccessPermissionType implements Comparable<ImageMapAccessPermissionType> {
 
-    public static final ImageMapAccessPermissionType GET = new ImageMapAccessPermissionType("GET");
-    public static final ImageMapAccessPermissionType ADJUST_PLAYBACK = new ImageMapAccessPermissionType("ADJUST_PLAYBACK", GET);
-    public static final ImageMapAccessPermissionType MARKER = new ImageMapAccessPermissionType("MARKER", GET);
-    public static final ImageMapAccessPermissionType EDIT = new ImageMapAccessPermissionType("EDIT", MARKER);
-    public static final ImageMapAccessPermissionType EDIT_CLONE = new ImageMapAccessPermissionType("EDIT_CLONE", EDIT);
-    public static final ImageMapAccessPermissionType ALL = new ImageMapAccessPermissionType("ALL", EDIT_CLONE);
+    private static final Map<String, ImageMapAccessPermissionType> TYPES = new ConcurrentHashMap<>();
+
+    public static final ImageMapAccessPermissionType GET = register(new ImageMapAccessPermissionType("GET"));
+    public static final ImageMapAccessPermissionType ADJUST_PLAYBACK = register(new ImageMapAccessPermissionType("ADJUST_PLAYBACK", GET));
+    public static final ImageMapAccessPermissionType MARKER = register(new ImageMapAccessPermissionType("MARKER", GET));
+    public static final ImageMapAccessPermissionType EDIT = register(new ImageMapAccessPermissionType("EDIT", MARKER));
+    public static final ImageMapAccessPermissionType EDIT_CLONE = register(new ImageMapAccessPermissionType("EDIT_CLONE", EDIT));
+    public static final ImageMapAccessPermissionType ALL = register(new ImageMapAccessPermissionType("ALL", EDIT_CLONE));
 
     /**
      * Special case type: All registered ImageMapAccessPermissionTypes inherits this
@@ -47,19 +49,9 @@ public class ImageMapAccessPermissionType {
         }
     };
 
-    private static final Map<String, ImageMapAccessPermissionType> TYPES = new HashMap<>();
-
-    static {
-        register(GET);
-        register(ADJUST_PLAYBACK);
-        register(MARKER);
-        register(EDIT);
-        register(EDIT_CLONE);
-        register(ALL);
-    }
-
-    public static void register(ImageMapAccessPermissionType type) {
+    public static ImageMapAccessPermissionType register(ImageMapAccessPermissionType type) {
         TYPES.put(type.name(), type);
+        return type;
     }
 
     public static ImageMapAccessPermissionType valueOf(String name) {
@@ -112,5 +104,32 @@ public class ImageMapAccessPermissionType {
     @Override
     public int hashCode() {
         return Objects.hash(name, inheritance);
+    }
+
+    private int calculateDepth() {
+        if (this == BASE) {
+            return 0;
+        }
+        return 1 + inheritance.stream().mapToInt(ImageMapAccessPermissionType::calculateDepth).max().orElse(0);
+    }
+
+    @Override
+    public int compareTo(ImageMapAccessPermissionType o) {
+        if (this == BASE && o == BASE) {
+            return 0;
+        }
+        if (this == BASE) {
+            return -1;
+        }
+        if (o == BASE) {
+            return 1;
+        }
+        int depthThis = this.calculateDepth();
+        int depthOther = o.calculateDepth();
+        int diff = Integer.compare(depthThis, depthOther);
+        if (diff != 0) {
+            return diff;
+        }
+        return this.name.compareTo(o.name);
     }
 }

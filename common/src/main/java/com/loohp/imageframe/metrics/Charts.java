@@ -22,33 +22,37 @@ package com.loohp.imageframe.metrics;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.imageframe.utils.PlayerUtils;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.map.MapCursor;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+@SuppressWarnings("Convert2Lambda")
 public class Charts {
 
     public static void setup(Metrics metrics) {
 
         metrics.addCustomChart(new Metrics.SingleLineChart("total_images_created", new Callable<Integer>() {
             @Override
-            public Integer call() throws Exception {
+            public Integer call() {
                 return ImageFrame.imageMapManager.getMaps().size();
             }
         }));
 
         metrics.addCustomChart(new Metrics.SingleLineChart("total_maps_created", new Callable<Integer>() {
             @Override
-            public Integer call() throws Exception {
+            public Integer call() {
                 return ImageFrame.imageMapManager.getMaps().stream().mapToInt(each -> each.getMapViews().size()).sum();
             }
         }));
 
         metrics.addCustomChart(new Metrics.AdvancedPie("images_created_by_type_id", new Callable<Map<String, Integer>>() {
             @Override
-            public Map<String, Integer> call() throws Exception {
+            public Map<String, Integer> call() {
                 Map<String, Integer> valueMap = new HashMap<>();
                 for (ImageMap imageMap : ImageFrame.imageMapManager.getMaps()) {
                     String type = imageMap.getType().asString();
@@ -60,7 +64,7 @@ public class Charts {
 
         metrics.addCustomChart(new Metrics.AdvancedPie("images_created_by_type", new Callable<Map<String, Integer>>() {
             @Override
-            public Map<String, Integer> call() throws Exception {
+            public Map<String, Integer> call() {
                 Map<String, Integer> valueMap = new HashMap<>();
                 for (ImageMap imageMap : ImageFrame.imageMapManager.getMaps()) {
                     String type = imageMap.getLegacyType();
@@ -74,14 +78,14 @@ public class Charts {
 
         metrics.addCustomChart(new Metrics.SingleLineChart("total_markers_created", new Callable<Integer>() {
             @Override
-            public Integer call() throws Exception {
+            public Integer call() {
                 return ImageFrame.imageMapManager.getMaps().stream().flatMap(each -> each.getMapMarkers().stream()).mapToInt(each -> each.size()).sum();
             }
         }));
 
         metrics.addCustomChart(new Metrics.AdvancedPie("markers_created_by_type", new Callable<Map<String, Integer>>() {
             @Override
-            public Map<String, Integer> call() throws Exception {
+            public Map<String, Integer> call() {
                 Map<String, Integer> valueMap = new HashMap<>();
                 for (ImageMap imageMap : ImageFrame.imageMapManager.getMaps()) {
                     for (Map<String, MapCursor> map : imageMap.getMapMarkers()) {
@@ -97,7 +101,7 @@ public class Charts {
 
         metrics.addCustomChart(new Metrics.SingleLineChart("item_frames_made_invisible_in_last_interval", new Callable<Integer>() {
             @Override
-            public Integer call() throws Exception {
+            public Integer call() {
                 long value = ImageFrame.invisibleFrameManager.getItemFramesMadeInvisible().getAndSet(0);
                 return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
             }
@@ -105,7 +109,7 @@ public class Charts {
 
         metrics.addCustomChart(new Metrics.SingleLineChart("invisible_item_frames_placed_in_last_interval", new Callable<Integer>() {
             @Override
-            public Integer call() throws Exception {
+            public Integer call() {
                 long value = ImageFrame.invisibleFrameManager.getInvisibleItemFramesPlaced().getAndSet(0);
                 return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
             }
@@ -113,7 +117,7 @@ public class Charts {
 
         metrics.addCustomChart(new Metrics.SingleLineChart("embedded_service_image_uploaded_in_last_interval", new Callable<Integer>() {
             @Override
-            public Integer call() throws Exception {
+            public Integer call() {
                 long value = ImageFrame.imageUploadManager.getImagesUploadedCounter().getAndSet(0);
                 return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
             }
@@ -121,18 +125,36 @@ public class Charts {
 
         metrics.addCustomChart(new Metrics.SimplePie("storage_type", new Callable<String>() {
             @Override
-            public String call() throws Exception {
+            public String call() {
                 return ImageFrame.imageFrameStorage.getLoader().getIdentifier().asString();
             }
         }));
 
         metrics.addCustomChart(new Metrics.SingleLineChart("players_with_imageframe_client", new Callable<Integer>() {
             @Override
-            public Integer call() throws Exception {
+            public Integer call() {
                 return ImageFrame.customClientNetworkManager.getPlayers().size();
             }
         }));
 
+        metrics.addCustomChart(new Metrics.SimplePie("imageframe_language_by_server", new Callable<String>() {
+            @Override
+            public String call() {
+                return ImageFrame.language;
+            }
+        }));
+        
+        metrics.addCustomChart(new Metrics.AdvancedPie("imageframe_language_by_players", new Callable<Map<String, Integer>>() {
+            @Override
+            public Map<String, Integer> call() {
+                Map<String, Integer> valueMap = new HashMap<>();
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    String language = PlayerUtils.getPlayerLanguage(player);
+                    valueMap.merge(language, 1, Integer::sum);
+                }
+                return valueMap;
+            }
+        }));
     }
 
 }

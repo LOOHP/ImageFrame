@@ -20,33 +20,27 @@
 
 package com.loohp.imageframe.utils;
 
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
+import net.kyori.adventure.text.TranslatableComponent;
 
-public class ChatColorUtils {
+import java.util.ArrayList;
+import java.util.List;
 
-    public static String translateAlternateColorCodes(char code, String text) {
-        if (text == null) {
-            return null;
-        }
+public class ComponentUtils {
 
-        if (text.length() < 2) {
-            return text;
-        }
-
-        for (int i = 0; i < text.length() - 1; i++) {
-            if (text.charAt(i) == code) {
-                if (text.charAt(i + 1) == 'x' && text.length() > (i + 14)) {
-                    String section = text.substring(i, i + 14);
-                    String translated = section.replace(code, '\u00a7');
-                    text = text.replace(section, translated);
-                } else if (ChatColor.getByChar(text.charAt(i + 1)) != null) {
-                    text = text.substring(0, i) + "\u00a7" + text.substring(i + 1);
-                }
+    public static TranslatableComponent translatable(String key, Object... arguments) {
+        List<Component> args = new ArrayList<>(arguments.length);
+        for (Object obj : arguments) {
+            if (obj instanceof Component) {
+                args.add((Component) obj);
+            } else if (obj instanceof ComponentLike) {
+                args.add(((ComponentLike) obj).asComponent());
+            } else {
+                args.add(Component.text(obj.toString()));
             }
         }
-
-        return text;
+        return Component.translatable(key).arguments(args);
     }
 
 }
-

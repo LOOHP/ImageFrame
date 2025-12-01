@@ -20,19 +20,28 @@
 
 package com.loohp.imageframe.objectholders;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
+import com.loohp.imageframe.utils.ComponentUtils;
+import net.kyori.adventure.text.TranslatableComponent;
 
-public interface UnsetState extends PreferenceState {
+public class ComponentTemplate {
 
-    JsonElement UNSET_JSON = new JsonPrimitive("unset");
-
-    static boolean isUnset(JsonElement jsonElement) {
-        return jsonElement.isJsonNull() || UNSET_JSON.getAsString().equals(jsonElement.getAsString());
+    public static ComponentTemplate template(String key, Object... arguments) {
+        return new ComponentTemplate(key, arguments);
     }
 
-    default boolean isUnset() {
-        return UNSET_JSON.getAsString().equals(getJsonValue().getAsString());
+    private final String key;
+    private final Object[] arguments;
+
+    private ComponentTemplate(String key, Object... arguments) {
+        this.key = key;
+        this.arguments = arguments;
+    }
+
+    public TranslatableComponent build(Object... extraArguments) {
+        Object[] args = new Object[arguments.length + extraArguments.length];
+        System.arraycopy(arguments, 0, args, 0, arguments.length);
+        System.arraycopy(extraArguments, 0, args, arguments.length, extraArguments.length);
+        return ComponentUtils.translatable(key, args);
     }
 
 }

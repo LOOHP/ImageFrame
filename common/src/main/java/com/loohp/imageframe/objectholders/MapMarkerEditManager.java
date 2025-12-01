@@ -22,9 +22,14 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
+import com.loohp.imageframe.language.TranslationKey;
+import com.loohp.imageframe.utils.CommandSenderUtils;
+import com.loohp.imageframe.utils.ComponentUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.platformscheduler.ScheduledTask;
 import com.loohp.platformscheduler.Scheduler;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -211,14 +216,14 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             try {
                 Map<String, MapCursor> markers = imageMap.getMapMarkers(mapView);
                 if (!player.hasPermission("imageframe.marker.unlimited") && markers.size() >= ImageFrame.mapMarkerLimit) {
-                    player.sendMessage(ImageFrame.messageMarkersLimitReached.replace("{Limit}", ImageFrame.mapMarkerLimit + ""));
+                    CommandSenderUtils.sendMessage(player, ComponentUtils.translatable(TranslationKey.MARKERS_LIMIT_REACHED, ImageFrame.mapMarkerLimit).color(NamedTextColor.RED));
                 } else {
                     MapCursor mapCursor = editData.getMapCursor();
                     markers.put(editData.getName(), mapCursor);
                     Bukkit.getPluginManager().callEvent(new ImageMapUpdatedEvent(imageMap));
                     imageMap.send(imageMap.getViewers());
                     imageMap.save();
-                    player.sendMessage(ImageFrame.messageMarkersAddConfirm);
+                    CommandSenderUtils.sendMessage(player, Component.translatable(TranslationKey.MARKERS_ADD_CONFIRM).color(NamedTextColor.GREEN));
                 }
             } catch (Exception e) {
                 e.printStackTrace();

@@ -20,12 +20,16 @@
 
 package com.loohp.imageframe.objectholders;
 
+import com.google.common.base.Strings;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.language.TranslationKey;
+import com.loohp.imageframe.utils.CommandSenderUtils;
 import com.loohp.imageframe.utils.ThrowingSupplier;
 import com.loohp.platformscheduler.ScheduledTask;
 import com.loohp.platformscheduler.Scheduler;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
 import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -44,8 +48,8 @@ public class ImageMapCreationTask<T> extends CompletableFuture<T> implements Run
     private final ThrowingSupplier<T> creationTask;
 
     private final ScheduledTask monitorTask;
-    private final String queuingMessageTemplate;
-    private final String processingMessageTemplate;
+    private final ComponentTemplate queuingMessageTemplate;
+    private final ComponentTemplate processingMessageTemplate;
 
     private final AtomicBoolean queuing;
     private final AtomicInteger tick;
@@ -53,7 +57,7 @@ public class ImageMapCreationTask<T> extends CompletableFuture<T> implements Run
 
     private final Future<?> submission;
 
-    public ImageMapCreationTask(ImageMapCreationTaskManager manager, UUID creator, ThrowingSupplier<T> creationTask, ExecutorService executor, String imageMapName, int imageMapWidth, int imageMapHeight) {
+    public ImageMapCreationTask(ImageMapCreationTaskManager manager, UUID creator, ThrowingSupplier<T> creationTask, ExecutorService executor, String imageMapName) {
         this.manager = manager;
         this.creationTaskId = UUID.randomUUID();
         this.creator = creator;
@@ -61,14 +65,8 @@ public class ImageMapCreationTask<T> extends CompletableFuture<T> implements Run
 
         this.manager.getTaskInQueue().add(this);
 
-        this.queuingMessageTemplate = ImageFrame.messageImageMapQueuedActionBar
-                .replace("{Name}", imageMapName)
-                .replace("{Width}", imageMapWidth + "")
-                .replace("{Height}", imageMapHeight + "");
-        this.processingMessageTemplate = ImageFrame.messageImageMapProcessingActionBar
-                .replace("{Name}", imageMapName)
-                .replace("{Width}", imageMapWidth + "")
-                .replace("{Height}", imageMapHeight + "");
+        this.queuingMessageTemplate = ComponentTemplate.template(TranslationKey.IMAGE_MAP_QUEUED_ACTION_BAR, imageMapName);
+        this.processingMessageTemplate = ComponentTemplate.template(TranslationKey.IMAGE_MAP_PROCESSING_ACTION_BAR, imageMapName);
         this.monitorTask = Scheduler.runTaskTimerAsynchronously(ImageFrame.plugin, new MonitorTask(), 0, 10);
 
         this.tick = new AtomicInteger(0);
@@ -114,13 +112,13 @@ public class ImageMapCreationTask<T> extends CompletableFuture<T> implements Run
     }
 
     @SuppressWarnings("deprecation")
-    public void complete(String message) {
+    public void complete(Component message) {
         if (!isCompleted()) {
             monitorTask.cancel();
             manager.getCreatorsInQueue().remove(creator);
             Player player = Bukkit.getPlayer(creator);
             if (player != null) {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
+                CommandSenderUtils.sendMessage(player, ChatMessageType.ACTION_BAR, message);
             }
         }
     }
@@ -145,20 +143,16 @@ public class ImageMapCreationTask<T> extends CompletableFuture<T> implements Run
             });
             Player player = Bukkit.getPlayer(creator);
             if (player != null) {
-                String message;
+                TranslatableComponent message;
                 if (queuing.get()) {
                     int position = getPositionInQueue() + 1;
-                    message = queuingMessageTemplate.replace("{Position}", String.valueOf(position));
+                    message = queuingMessageTemplate.build(position);
                 } else {
                     int dots = tick.getAndIncrement() % 4;
-                    StringBuilder dotString = new StringBuilder();
-                    for (int i = 0; i < dots; i++) {
-                        dotString.append(".");
-                    }
-                    message = processingMessageTemplate.replace("{Dots}", dotString.toString());
+                    message = processingMessageTemplate.build(Strings.repeat(".", dots));
                 }
-                if (!message.isEmpty()) {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
+                if (!message.key().isEmpty()) {
+                    CommandSenderUtils.sendMessage(player, ChatMessageType.ACTION_BAR, message);
                 }
             }
         }

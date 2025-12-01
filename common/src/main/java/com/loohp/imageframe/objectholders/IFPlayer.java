@@ -44,7 +44,7 @@ public class IFPlayer {
 
     public static IFPlayer load(IFPlayerManager manager, JsonObject json) {
         UUID uuid = UUID.fromString(json.get("uuid").getAsString());
-        Map<IFPlayerPreference<?>, Object> preferences = new HashMap<>();
+        Map<IFPlayerPreference<?>, PreferenceState> preferences = new HashMap<>();
         JsonObject preferenceJson = json.get("preferences").getAsJsonObject();
         for (IFPlayerPreference<?> preference : IFPlayerPreference.values()) {
             JsonElement element = preferenceJson.get(preference.getJsonName());
@@ -58,16 +58,16 @@ public class IFPlayer {
     private final IFPlayerManager manager;
 
     private final UUID uuid;
-    private final Map<IFPlayerPreference<?>, Object> preferences;
+    private final Map<IFPlayerPreference<?>, PreferenceState> preferences;
 
-    private IFPlayer(IFPlayerManager manager, UUID uuid, Map<IFPlayerPreference<?>, ?> preferences) {
+    private IFPlayer(IFPlayerManager manager, UUID uuid, Map<IFPlayerPreference<?>, PreferenceState> preferences) {
         this.manager = manager;
         this.uuid = uuid;
         this.preferences = new ConcurrentHashMap<>(preferences);
     }
 
     public void applyUpdate(JsonObject json) {
-        Map<IFPlayerPreference<?>, Object> preferences = new HashMap<>();
+        Map<IFPlayerPreference<?>, PreferenceState> preferences = new HashMap<>();
         JsonObject preferenceJson = json.get("preferences").getAsJsonObject();
         for (IFPlayerPreference<?> preference : IFPlayerPreference.values()) {
             JsonElement element = preferenceJson.get(preference.getJsonName());
@@ -91,16 +91,16 @@ public class IFPlayer {
         return uuid;
     }
 
-    public Object getPreference(IFPlayerPreference<?> preference) {
+    public PreferenceState getPreference(IFPlayerPreference<?> preference) {
         return preferences.computeIfAbsent(preference, k -> preference.getDefaultValue(this));
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getPreference(IFPlayerPreference<?> preference, Class<T> type) {
+    public <T extends PreferenceState> T getPreference(IFPlayerPreference<?> preference, Class<T> type) {
         return (T) preferences.computeIfAbsent(preference, k -> preference.getDefaultValue(this, type));
     }
 
-    public void setPreference(IFPlayerPreference<?> preference, Object value) {
+    public void setPreference(IFPlayerPreference<?> preference, PreferenceState value) {
         preferences.put(preference, value);
         saveInternal();
     }
@@ -123,9 +123,9 @@ public class IFPlayer {
         JsonObject json = new JsonObject();
         json.addProperty("uuid", uuid.toString());
         JsonObject preferenceJson = new JsonObject();
-        for (Map.Entry<IFPlayerPreference<?>, Object> entry : preferences.entrySet()) {
+        for (Map.Entry<IFPlayerPreference<?>, PreferenceState> entry : preferences.entrySet()) {
             IFPlayerPreference<?> preference = entry.getKey();
-            preferenceJson.add(preference.getJsonName(), preference.getSerializer(Object.class).apply(entry.getValue()));
+            preferenceJson.add(preference.getJsonName(), preference.getSerializer(PreferenceState.class).apply(entry.getValue()));
         }
         json.add("preferences", preferenceJson);
         storage.savePlayerData(uuid, json);

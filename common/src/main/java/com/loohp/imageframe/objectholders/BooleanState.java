@@ -22,6 +22,8 @@ package com.loohp.imageframe.objectholders;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,16 +34,21 @@ import java.util.stream.Collectors;
 
 public enum BooleanState implements UnsetState, PreferenceState {
 
-    TRUE(new JsonPrimitive(true)),
-    FALSE(new JsonPrimitive(false)),
-    UNSET(new JsonPrimitive("unset"));
+    TRUE(new JsonPrimitive(true), true, NamedTextColor.GREEN),
+    FALSE(new JsonPrimitive(false), false, NamedTextColor.RED),
+    UNSET(UNSET_JSON, null, NamedTextColor.GRAY);
 
     public static final Map<String, BooleanState> STRING_VALUES_MAP = Collections.unmodifiableMap(Arrays.stream(values()).collect(Collectors.toMap(e -> e.toString(), e -> e, (x, y) -> y, LinkedHashMap::new)));
+    public static final Map<Boolean, BooleanState> BOOLEAN_VALUES_MAP = Collections.unmodifiableMap(Arrays.stream(values()).collect(Collectors.toMap(e -> e.booleanValue, e -> e, (x, y) -> y, LinkedHashMap::new)));
 
     private final JsonElement jsonValue;
+    private final Boolean booleanValue;
+    private final TextColor displayColor;
 
-    BooleanState(JsonElement jsonValue) {
+    BooleanState(JsonElement jsonValue, Boolean booleanValue, TextColor displayColor) {
         this.jsonValue = jsonValue;
+        this.booleanValue = booleanValue;
+        this.displayColor = displayColor;
     }
 
     @Override
@@ -59,48 +66,29 @@ public enum BooleanState implements UnsetState, PreferenceState {
         return jsonValue;
     }
 
+    @Override
+    public TextColor getDisplayColor() {
+        return displayColor;
+    }
+
     public Boolean getRawValue() {
-        switch (this) {
-            case TRUE:
-                return Boolean.TRUE;
-            case FALSE:
-                return Boolean.FALSE;
-            case UNSET:
-                return null;
-        }
-        return null;
+        return booleanValue;
     }
 
     public boolean getRawValue(boolean unsetIsTrue) {
-        switch (this) {
-            case TRUE:
-                return Boolean.TRUE;
-            case FALSE:
-                return Boolean.FALSE;
-            case UNSET:
-                return unsetIsTrue;
-        }
-        return unsetIsTrue;
+        return booleanValue == null ? unsetIsTrue : booleanValue;
     }
 
     public boolean getCalculatedValue(BooleanSupplier unsetValueFunction) {
-        switch (this) {
-            case TRUE:
-                return true;
-            case FALSE:
-                return false;
-            case UNSET:
-                return unsetValueFunction.getAsBoolean();
-        }
-        return unsetValueFunction.getAsBoolean();
+        return booleanValue == null ? unsetValueFunction.getAsBoolean() : booleanValue;
     }
 
     public static BooleanState fromBoolean(boolean value) {
-        return value ? TRUE : FALSE;
+        return fromBoolean((Boolean) value);
     }
 
     public static BooleanState fromBoolean(Boolean value) {
-        return value == null ? UNSET : fromBoolean(value.booleanValue());
+        return BOOLEAN_VALUES_MAP.getOrDefault(value, UNSET);
     }
 
     public static BooleanState fromString(String value) {
@@ -112,6 +100,8 @@ public enum BooleanState implements UnsetState, PreferenceState {
             JsonPrimitive jsonPrimitive = jsonValue.getAsJsonPrimitive();
             if (jsonPrimitive.isBoolean()) {
                 return fromBoolean(jsonPrimitive.getAsBoolean());
+            } else if (jsonPrimitive.isNumber()) {
+                return fromBoolean(jsonPrimitive.getAsNumber().intValue() != 0);
             } else if (jsonPrimitive.isString()) {
                 return fromString(jsonPrimitive.getAsString());
             }

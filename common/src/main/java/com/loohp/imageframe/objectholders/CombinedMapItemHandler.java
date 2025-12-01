@@ -21,10 +21,16 @@
 package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.language.TranslationKey;
 import com.loohp.imageframe.nms.NMS;
+import com.loohp.imageframe.utils.CommandSenderUtils;
+import com.loohp.imageframe.utils.ComponentUtils;
 import com.loohp.imageframe.utils.ItemFrameUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.imageframe.utils.SlotAccessor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -57,6 +63,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CombinedMapItemHandler implements Listener, AutoCloseable {
 
@@ -97,24 +104,22 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
     public ItemStack getCombinedMap(ImageMap imageMap) {
         ItemStack itemStack = new ItemStack(Material.PAPER);
         ItemMeta meta = itemStack.getItemMeta();
-        meta.setDisplayName(ImageFrame.combinedMapItemNameFormat
-                .replace("{ImageID}", imageMap.getImageIndex() + "")
-                .replace("{Name}", imageMap.getName())
-                .replace("{Width}", imageMap.getWidth() + "")
-                .replace("{Height}", imageMap.getHeight() + "")
-                .replace("{DitheringType}", imageMap.getDitheringType().getName())
-                .replace("{CreatorName}", imageMap.getCreatorName())
-                .replace("{CreatorUUID}", imageMap.getCreator().toString())
-                .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime()))));
-        meta.setLore(ImageFrame.combinedMapItemLoreFormat.stream().map(each -> each
-                .replace("{ImageID}", imageMap.getImageIndex() + "")
-                .replace("{Name}", imageMap.getName())
-                .replace("{Width}", imageMap.getWidth() + "")
-                .replace("{Height}", imageMap.getHeight() + "")
-                .replace("{DitheringType}", imageMap.getDitheringType().getName())
-                .replace("{CreatorName}", imageMap.getCreatorName())
-                .replace("{CreatorUUID}", imageMap.getCreator().toString())
-                .replace("{TimeCreated}", ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime())))).collect(Collectors.toList()));
+
+        Component name = ComponentUtils.translatable(
+                TranslationKey.COMBINED_ITEM_NAME,
+                Component.text(imageMap.getName()).color(NamedTextColor.YELLOW),
+                Component.text(imageMap.getWidth()).color(NamedTextColor.WHITE),
+                Component.text(imageMap.getHeight()).color(NamedTextColor.WHITE)
+        ).color(NamedTextColor.AQUA);
+        meta.setDisplayName(LegacyComponentSerializer.legacySection().serialize(ImageFrame.languageManager.resolve(name, ImageFrame.language)));
+
+        Component lore1 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_1, imageMap.getWidth(), imageMap.getHeight()).color(NamedTextColor.GREEN);
+        Component lore2 = Component.translatable(TranslationKey.COMBINED_ITEM_LORE_2).color(NamedTextColor.GRAY);
+        Component lore3 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_3, imageMap.getImageIndex()).color(NamedTextColor.GRAY);
+        Component lore4 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_4, imageMap.getCreatorName(), imageMap.getCreator()).color(NamedTextColor.GRAY);
+        Component lore5 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_5, ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime()))).color(NamedTextColor.GRAY);
+        meta.setLore(Stream.of(lore1, lore2, lore3, lore4, lore5).map(c -> LegacyComponentSerializer.legacySection().serialize(ImageFrame.languageManager.resolve(c, ImageFrame.language))).collect(Collectors.toList()));
+
         itemStack.setItemMeta(meta);
         return NMS.getInstance().withCombinedMapItemInfo(itemStack, new CombinedMapItemInfo(imageMap.getImageIndex()));
     }
@@ -237,7 +242,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
             int id = mapItemInfo.getImageMapIndex();
             ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(id);
             if (imageMap == null) {
-                player.sendMessage(ImageFrame.messageInvalidImageMap);
+                CommandSenderUtils.sendMessage(player, Component.translatable(TranslationKey.INVALID_IMAGE_MAP).color(NamedTextColor.RED));
                 event.setCancelled(true);
                 return;
             }
@@ -245,7 +250,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
             ItemFrameSelectionManager.SelectedItemFrameResult selection = findItemFrames(itemFrame, yaw, imageMap.getWidth(), imageMap.getHeight(), item -> item == null || item.getType().equals(Material.AIR));
             if (selection == null) {
                 event.setCancelled(true);
-                player.sendMessage(ImageFrame.messageNotEnoughSpace);
+                CommandSenderUtils.sendMessage(player, Component.translatable(TranslationKey.NOT_ENOUGH_SPACE).color(NamedTextColor.RED));
                 return;
             }
             List<ItemFrame> selectedFrames = selection.getItemFrames();
@@ -253,7 +258,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                 ItemStack item = frame.getItem();
                 if ((item != null && !item.getType().equals(Material.AIR)) || !PlayerUtils.isInteractionAllowed(player, frame)) {
                     event.setCancelled(true);
-                    player.sendMessage(ImageFrame.messageItemFrameOccupied);
+                    CommandSenderUtils.sendMessage(player, Component.translatable(TranslationKey.ITEM_FRAME_OCCUPIED).color(NamedTextColor.RED));
                     return;
                 }
             }
@@ -334,7 +339,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                 itemFrames.forEach(each -> each.setItem(null, false));
                 itemFrame.setItem(getCombinedMap(imageMap), false);
             } else {
-                player.sendMessage(ImageFrame.messageItemFrameOccupied);
+                CommandSenderUtils.sendMessage(player, Component.translatable(TranslationKey.ITEM_FRAME_OCCUPIED).color(NamedTextColor.RED));
             }
         } finally {
             entityDamageChecking.remove(player);

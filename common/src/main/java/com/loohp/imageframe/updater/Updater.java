@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe.updater;
 
+import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import com.loohp.platformscheduler.Scheduler;
@@ -34,7 +35,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.json.simple.JSONObject;
 
 public class Updater implements Listener {
 
@@ -77,10 +77,10 @@ public class Updater implements Listener {
     public static UpdaterResponse checkUpdate() {
         try {
             String localPluginVersion = ImageFrame.plugin.getDescription().getVersion();
-            JSONObject response = (JSONObject) HTTPRequestUtils.getJSONResponse("https://api.loohpjames.com/spigot/data").get(PLUGIN_NAME);
-            String spigotPluginVersion = (String) ((JSONObject) response.get("latestversion")).get("release");
-            String devBuildVersion = (String) ((JSONObject) response.get("latestversion")).get("devbuild");
-            int spigotPluginId = (int) (long) ((JSONObject) response.get("spigotmc")).get("pluginid");
+            JsonObject response = HTTPRequestUtils.getJsonResponse("https://api.loohpjames.com/spigot/data").get(PLUGIN_NAME).getAsJsonObject();
+            String spigotPluginVersion = response.get("latestversion").getAsJsonObject().get("release").getAsString();
+            String devBuildVersion = response.get("latestversion").getAsJsonObject().get("devbuild").getAsString();
+            int spigotPluginId = response.get("spigotmc").getAsJsonObject().get("pluginid").getAsInt();
             int posOfThirdDot = localPluginVersion.indexOf(".", localPluginVersion.indexOf(".", localPluginVersion.indexOf(".") + 1) + 1);
             Version currentDevBuild = new Version(localPluginVersion);
             Version currentRelease = new Version(localPluginVersion.substring(0, posOfThirdDot >= 0 ? posOfThirdDot : localPluginVersion.length()));

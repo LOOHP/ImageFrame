@@ -27,6 +27,7 @@ import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.objectholders.IFPlayer;
 import com.loohp.imageframe.objectholders.IFPlayerPreference;
 import com.loohp.imageframe.objectholders.ImageMap;
+import com.loohp.imageframe.objectholders.PreferenceState;
 import com.loohp.imageframe.utils.ArrayUtils;
 import com.loohp.imageframe.utils.ImageMapUtils;
 import com.loohp.imageframe.utils.StringUtils;
@@ -165,7 +166,7 @@ public class Placeholders extends PlaceholderExpansion {
             if (preference == null) {
                 return null;
             }
-            JsonElement jsonElement = preference.getSerializer(Object.class).apply(ifPlayer.getPreference(preference));
+            JsonElement jsonElement = preference.getSerializer(PreferenceState.class).apply(ifPlayer.getPreference(preference));
             if (jsonElement.isJsonPrimitive()) {
                 return jsonElement.getAsString();
             }

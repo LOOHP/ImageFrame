@@ -21,11 +21,11 @@
 package com.loohp.imageframe.utils;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -58,7 +58,7 @@ public class JarUtils {
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
-        ZipInputStream zis = new ZipInputStream(new FileInputStream(fullPath));
+        ZipInputStream zis = new ZipInputStream(Files.newInputStream(fullPath.toPath()));
 
         ZipEntry entry;
         while ((entry = zis.getNextEntry()) != null) {

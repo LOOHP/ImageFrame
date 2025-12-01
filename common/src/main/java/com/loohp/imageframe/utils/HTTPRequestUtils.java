@@ -20,9 +20,9 @@
 
 package com.loohp.imageframe.utils;
 
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -33,29 +33,22 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.stream.Collectors;
+import java.nio.charset.StandardCharsets;
 
 public class HTTPRequestUtils {
 
-    public static JSONObject getJSONResponse(String link) {
-        try {
-            URL url = new URL(link);
-            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-            connection.setUseCaches(false);
-            connection.setDefaultUseCaches(false);
-            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
-            connection.addRequestProperty("Pragma", "no-cache");
-            if (connection.getResponseCode() == HttpsURLConnection.HTTP_OK) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                    String reply = reader.lines().collect(Collectors.joining());
-                    return (JSONObject) new JSONParser().parse(reply);
-                }
-            } else {
-                return null;
-            }
-        } catch (IOException | ParseException e) {
-            return null;
+    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
+
+    public static JsonObject getJsonResponse(String link) throws IOException {
+        URL url = new URL(link);
+        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        connection.setUseCaches(false);
+        connection.setDefaultUseCaches(false);
+        connection.addRequestProperty("User-Agent", "Mozilla/5.0");
+        connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
+        connection.addRequestProperty("Pragma", "no-cache");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+            return GSON.fromJson(reader, JsonObject.class);
         }
     }
 

@@ -21,9 +21,14 @@
 package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.language.TranslationKey;
+import com.loohp.imageframe.utils.CommandSenderUtils;
+import com.loohp.imageframe.utils.ComponentUtils;
 import com.loohp.imageframe.utils.ItemFrameUtils;
 import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.platformscheduler.Scheduler;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Rotation;
 import org.bukkit.World;
@@ -136,20 +141,20 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
         ItemFrame selection = activeFirstCorners.remove(player);
         if (selection == null) {
             activeFirstCorners.put(player, (ItemFrame) entity);
-            player.sendMessage(ImageFrame.messageSelectionCorner1);
+            CommandSenderUtils.sendMessage(player, Component.translatable(TranslationKey.SELECTION_CORNER1).color(NamedTextColor.GREEN));
         } else {
-            player.sendMessage(ImageFrame.messageSelectionCorner2);
+            CommandSenderUtils.sendMessage(player, Component.translatable(TranslationKey.SELECTION_CORNER2).color(NamedTextColor.GREEN));
             inSelectionMode.remove(player);
             cancelOffhand.add(player);
             Scheduler.runTaskLater(ImageFrame.plugin, () -> cancelOffhand.remove(player), 1, player);
             SelectedItemFrameResult result = getSelectedItemFrames(player.getLocation().getYaw(), selection, (ItemFrame) entity);
             if (result == null) {
-                player.sendMessage(ImageFrame.messageSelectionInvalid);
+                CommandSenderUtils.sendMessage(player, Component.translatable(TranslationKey.SELECTION_INVALID).color(NamedTextColor.RED));
             } else if (result.isOverSize()) {
-                player.sendMessage(ImageFrame.messageSelectionOversize.replace("{MaxSize}", ImageFrame.mapMaxSize + ""));
+                CommandSenderUtils.sendMessage(player, ComponentUtils.translatable(TranslationKey.OVERSIZE, ImageFrame.mapMaxSize).color(NamedTextColor.RED));
             } else {
                 confirmedSelection.put(player, result);
-                player.sendMessage(ImageFrame.messageSelectionSuccess.replace("{Width}", result.getWidth() + "").replace("{Height}", result.getHeight() + ""));
+                CommandSenderUtils.sendMessage(player, ComponentUtils.translatable(TranslationKey.SELECTION_SUCCESS, result.getWidth(), result.getHeight()).color(NamedTextColor.GREEN));
             }
         }
     }
@@ -167,17 +172,17 @@ public class ItemFrameSelectionManager implements Listener, AutoCloseable {
                     .orElse(null);
         }).filter(p -> p != null).findFirst().orElse(null);
         if (pair == null) {
-            sender.sendMessage(ImageFrame.messageSelectionInvalid);
+            CommandSenderUtils.sendMessage(sender, Component.translatable(TranslationKey.SELECTION_INVALID).color(NamedTextColor.RED));
             return false;
         }
         SelectedItemFrameResult result = getSelectedItemFrames(yaw, pair.getFirst(), pair.getSecond());
         if (result == null) {
-            sender.sendMessage(ImageFrame.messageSelectionInvalid);
+            CommandSenderUtils.sendMessage(sender, Component.translatable(TranslationKey.SELECTION_INVALID).color(NamedTextColor.RED));
         } else if (result.isOverSize()) {
-            sender.sendMessage(ImageFrame.messageSelectionOversize.replace("{MaxSize}", ImageFrame.mapMaxSize + ""));
+            CommandSenderUtils.sendMessage(sender, ComponentUtils.translatable(TranslationKey.SELECTION_OVERSIZE, ImageFrame.mapMaxSize).color(NamedTextColor.RED));
         } else {
             confirmedSelection.put(sender, result);
-            sender.sendMessage(ImageFrame.messageSelectionSuccess.replace("{Width}", result.getWidth() + "").replace("{Height}", result.getHeight() + ""));
+            CommandSenderUtils.sendMessage(sender, ComponentUtils.translatable(TranslationKey.SELECTION_SUCCESS, result.getWidth(), result.getHeight()).color(NamedTextColor.GREEN));
             return true;
         }
         return false;
