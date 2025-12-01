@@ -90,7 +90,12 @@ public class LanguageManager {
                 languageHashes = new JsonObject();
             }
 
-            JsonObject json = HTTPRequestUtils.getJsonResponse(LANGUAGE_META_URL);
+            JsonObject json;
+            try {
+                json = HTTPRequestUtils.getJsonResponse(LANGUAGE_META_URL);
+            } catch (Exception e) {
+                throw new IOException("Unable to fetch language meta from \"api.loohpjames.com\". This could be an internet issue or \"api.loohpjames.com\" is down. If the plugin functions correctly after this, this error can be ignored.", e);
+            }
             for (JsonElement element : json.get("languages").getAsJsonArray()) {
                 JsonObject languageObj = element.getAsJsonObject();
                 String language = languageObj.get("language").getAsString();
@@ -119,7 +124,7 @@ public class LanguageManager {
             } catch (IOException e) {
                 new IOException("Unable to save language hashes to " + languageHashFile.getAbsolutePath(), e).printStackTrace();
             }
-        } catch (IOException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
