@@ -1,4 +1,4 @@
-[![Build Status](https://ci.loohpjames.com/job/ImageFrame/badge/icon)](https://ci.loohpjames.com/job/ImageFrame/)
+[![Build Status](https://ci.loohpjames.com/job/ImageFrame/badge/icon)](https://ci.loohpjames.com/job/ImageFrame/) [![Crowdin](https://badges.crowdin.net/imageframe/localized.svg)](https://crowdin.com/project/imageframe)
 # ImageFrame
 
 https://www.spigotmc.org/resources/106031/<br>
