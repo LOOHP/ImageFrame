@@ -8,6 +8,9 @@
 # IntelliJ
 out/
 
+# vscode
+.vscode
+
 # Compiled class file
 *.class
 
