@@ -104,7 +104,7 @@ public abstract class ImageMapLoader<T extends ImageMap, C extends ImageMapCreat
                 exceptions.add(new IOException("Unable to read or download media with MediaLoader " + mediaLoader.getIdentifier(), e));
             }
         }
-        IOException e = new IOException("Unable to read or download media with ImageMapLoader " + getIdentifier().asString() + ", does this url directly links to the gif? (" + url + ")");
+        IOException e = new IOException("Unable to read or download media with ImageMapLoader " + getIdentifier().asString() + ", does this url directly links to the image? (" + url + ")");
         for (IOException ex : exceptions) {
             e.addSuppressed(ex);
         }

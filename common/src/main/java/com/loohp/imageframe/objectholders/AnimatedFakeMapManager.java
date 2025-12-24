@@ -83,7 +83,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         }
         for (World world : Bukkit.getWorlds()) {
             for (Entity entity : world.getEntities()) {
-                handleEntity(entity);
+                Scheduler.executeOrScheduleSync(ImageFrame.plugin, () -> handleEntity(entity), entity);
             }
         }
         for (Player player : Bukkit.getOnlinePlayers()) {

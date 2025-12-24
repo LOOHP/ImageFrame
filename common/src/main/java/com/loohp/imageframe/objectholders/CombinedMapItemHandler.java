@@ -114,7 +114,7 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
         meta.setDisplayName(LegacyComponentSerializer.legacySection().serialize(ImageFrame.languageManager.resolve(name, ImageFrame.language)));
 
         Component lore1 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_1, imageMap.getWidth(), imageMap.getHeight()).color(NamedTextColor.GREEN);
-        Component lore2 = Component.translatable(TranslationKey.COMBINED_ITEM_LORE_2).color(NamedTextColor.GRAY);
+        Component lore2 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_2).color(NamedTextColor.GRAY);
         Component lore3 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_3, imageMap.getImageIndex()).color(NamedTextColor.GRAY);
         Component lore4 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_4, imageMap.getCreatorName(), imageMap.getCreator()).color(NamedTextColor.GRAY);
         Component lore5 = ComponentUtils.translatable(TranslationKey.COMBINED_ITEM_LORE_5, ImageFrame.dateFormat.format(new Date(imageMap.getCreationTime()))).color(NamedTextColor.GRAY);

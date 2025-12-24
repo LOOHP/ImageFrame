@@ -42,6 +42,7 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
@@ -266,7 +267,11 @@ public class MapUtils {
     }
 
     public static ImageMapHitTargetResult rayTraceTargetImageMap(Player player, double maxDistance) {
-        Location location = player.getEyeLocation();
+        return rayTraceTargetImageMap((LivingEntity) player, maxDistance);
+    }
+
+    public static ImageMapHitTargetResult rayTraceTargetImageMap(LivingEntity livingEntity, double maxDistance) {
+        Location location = livingEntity.getEyeLocation();
         return rayTraceTargetImageMap(location, location.getDirection(), maxDistance);
     }
 
@@ -297,7 +302,7 @@ public class MapUtils {
         if (imageMap == null || !imageMap.isValid()) {
             return null;
         }
-        IntPosition target = MapUtils.getTargetPixelOnItemFrame(itemFrame.getLocation().toVector(), itemFrame.getFacing().getDirection(), hitPosition, itemFrame.getRotation());
+        IntPosition target = getTargetPixelOnItemFrame(itemFrame.getLocation().toVector(), itemFrame.getFacing().getDirection(), hitPosition, itemFrame.getRotation());
         IntPosition localTarget = new IntPosition((target.getX() + MAP_WIDTH) / 2, (target.getY() + MAP_WIDTH) / 2);
         int mapViewIndex = imageMap.getMapViews().indexOf(mapView);
         int mapViewX = mapViewIndex % imageMap.getWidth();

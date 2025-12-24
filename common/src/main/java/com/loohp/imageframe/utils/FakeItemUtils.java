@@ -30,8 +30,8 @@ import java.util.List;
 
 public class FakeItemUtils {
 
-    public static void sendFakeItemChange(Player player, List<ItemFrameUpdateData> updateData) {
-        List<Object> packets = new ArrayList<>(updateData.size());
+    public static void sendFakeItemChange(Player player, Iterable<ItemFrameUpdateData> updateData) {
+        List<Object> packets = new ArrayList<>();
         for (ItemFrameUpdateData itemFrameUpdateData : updateData) {
             packets.add(NMS.getInstance().createItemFrameItemChangePacket(itemFrameUpdateData.getEntityId(), itemFrameUpdateData.getItemStack()));
         }
