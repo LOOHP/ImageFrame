@@ -31,6 +31,7 @@ import com.loohp.platformscheduler.Scheduler;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import com.twelvemonkeys.net.MIMEUtil;
 import org.apache.commons.fileupload.MultipartStream;
 
 import java.io.File;
@@ -54,7 +55,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class ImageUploadManager implements AutoCloseable {
 
-    public static final int EXPIRATION = 300000;
+    public static final long EXPIRATION = TimeUnit.MINUTES.toMillis(5);
 
     private final HttpServer server;
     private final File webRootDir;
@@ -63,9 +64,25 @@ public class ImageUploadManager implements AutoCloseable {
     private final AtomicLong imagesUploadedCounter;
 
     public ImageUploadManager(boolean enabled, String host, int port) {
+        this.webRootDir = new File(ImageFrame.plugin.getDataFolder(), "upload/web");
+        this.uploadDir = new File(ImageFrame.plugin.getDataFolder(), "upload/images");
+        this.imagesUploadedCounter = new AtomicLong(0);
+
+        Cache<UUID, PendingUpload> cache = CacheBuilder.newBuilder()
+                .expireAfterAccess(EXPIRATION, TimeUnit.MILLISECONDS)
+                .removalListener((RemovalNotification<UUID, PendingUpload> notification) -> {
+                    if (notification.wasEvicted()) {
+                        PendingUpload pendingUpload = notification.getValue();
+                        if (pendingUpload != null) {
+                            pendingUpload.getFuture().completeExceptionally(new LinkTimeoutException());
+                        }
+                    }
+                })
+                .build();
+        this.pendingUploads = cache.asMap();
+
+        HttpServer server = null;
         try {
-            this.webRootDir = new File(ImageFrame.plugin.getDataFolder(), "upload/web");
-            this.uploadDir = new File(ImageFrame.plugin.getDataFolder(), "upload/images");
             FileUtils.removeFolderRecursively(uploadDir);
             if (!uploadDir.exists()) {
                 uploadDir.mkdirs();
@@ -74,35 +91,21 @@ public class ImageUploadManager implements AutoCloseable {
                 webRootDir.mkdirs();
             }
             JarUtils.copyFolderFromJar("upload/web", ImageFrame.plugin.getDataFolder(), JarUtils.CopyOption.COPY_IF_NOT_EXIST);
-            Cache<UUID, PendingUpload> cache = CacheBuilder.newBuilder()
-                    .expireAfterAccess(EXPIRATION, TimeUnit.MILLISECONDS)
-                    .removalListener((RemovalNotification<UUID, PendingUpload> notification) -> {
-                        if (notification.wasEvicted()) {
-                            PendingUpload pendingUpload = notification.getValue();
-                            if (pendingUpload != null) {
-                                pendingUpload.getFuture().completeExceptionally(new LinkTimeoutException());
-                            }
-                        }
-                    })
-                    .build();
-            this.pendingUploads = cache.asMap();
-            this.imagesUploadedCounter = new AtomicLong(0);
             if (enabled) {
                 System.setProperty("sun.net.httpserver.maxReqTime", "30");
                 System.setProperty("sun.net.httpserver.maxRspTime", "30");
-                this.server = HttpServer.create(new InetSocketAddress(host, port), 8);
-                this.server.createContext("/", new FileHandler());
-                this.server.createContext("/upload", new UploadHandler());
-                this.server.setExecutor(Executors.newFixedThreadPool(8));
-                this.server.start();
-            } else {
-                this.server = null;
+                server = HttpServer.create(new InetSocketAddress(host, port), 8);
+                server.createContext("/", new FileHandler());
+                server.createContext("/upload", new UploadHandler());
+                server.setExecutor(Executors.newFixedThreadPool(8));
+                server.start();
             }
         } catch (BindException e) {
-            throw new RuntimeException("Unable to start ImageFrame upload server (Perhaps there is a network port clash?)", e);
+            new RuntimeException("Unable to start ImageFrame upload server (Perhaps port + " + port + " is already used by another program?)", e).printStackTrace();
         } catch (IOException e) {
-            throw new RuntimeException("Unable to start ImageFrame upload server", e);
+            new RuntimeException("Unable to start ImageFrame upload server", e).printStackTrace();
         }
+        this.server = server;
     }
 
     public PendingUpload newPendingUpload(UUID user) {
@@ -110,7 +113,7 @@ public class ImageUploadManager implements AutoCloseable {
         if (existing != null) {
             existing.getFuture().completeExceptionally(new LinkTimeoutException());
         }
-        PendingUpload pendingUpload = PendingUpload.create();
+        PendingUpload pendingUpload = PendingUpload.create(EXPIRATION);
         pendingUploads.put(user, pendingUpload);
         return pendingUpload;
     }
@@ -128,7 +131,7 @@ public class ImageUploadManager implements AutoCloseable {
         }
     }
 
-    public boolean isEnabled() {
+    public boolean isOperational() {
         return server != null;
     }
 
@@ -151,17 +154,29 @@ public class ImageUploadManager implements AutoCloseable {
                     webRootDir.mkdirs();
                 }
                 File file = resolvePath(webRootDir.toPath().toAbsolutePath(), Paths.get("." + exchange.getRequestURI().getPath())).toFile();
+                File targetFile;
                 byte[] bytes;
                 if (file.exists()) {
                     if (file.isDirectory()) {
-                        bytes = Files.readAllBytes(new File(file, "index.html").toPath());
+                        targetFile = new File(file, "index.html");
+                        bytes = Files.readAllBytes(targetFile.toPath());
                     } else {
+                        targetFile = file;
                         bytes = Files.readAllBytes(file.toPath());
                     }
                 } else {
+                    targetFile = new File(webRootDir, "index.html");
                     bytes = Files.readAllBytes(new File(webRootDir, "index.html").toPath());
                 }
-                exchange.getResponseHeaders().set("Content-Type", "text/html");
+                String targetFileName = targetFile.getName();
+                String mimeType;
+                if (targetFileName.contains(".")) {
+                    String targetFileExtension = targetFileName.substring(targetFileName.lastIndexOf(".") + 1);
+                    mimeType = MIMEUtil.getMIMEType(targetFileExtension);
+                } else {
+                    mimeType = null;
+                }
+                exchange.getResponseHeaders().set("Content-Type", mimeType == null ? "text/plain" : mimeType);
                 exchange.sendResponseHeaders(200, bytes.length);
                 exchange.getResponseBody().write(bytes);
                 exchange.getResponseBody().close();

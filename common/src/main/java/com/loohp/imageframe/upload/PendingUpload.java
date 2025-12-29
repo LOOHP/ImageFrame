@@ -31,8 +31,8 @@ import java.util.concurrent.TimeoutException;
 
 public class PendingUpload {
 
-    public static PendingUpload create() {
-        return new PendingUpload(UUID.randomUUID(), System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5), new CompletableFuture<>());
+    public static PendingUpload create(long timeToLive) {
+        return new PendingUpload(UUID.randomUUID(), System.currentTimeMillis() + timeToLive, new CompletableFuture<>());
     }
 
     private final UUID id;

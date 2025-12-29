@@ -240,10 +240,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     String url = "Pending...";
                                     try {
                                         url = args[2];
-                                        if (ImageFrame.uploadServiceEnabled && url.equalsIgnoreCase("upload")) {
+                                        if (ImageFrame.imageUploadManager.isOperational() && url.equalsIgnoreCase("upload")) {
                                             UUID user = isConsole ? ImageMap.CONSOLE_CREATOR : player.getUniqueId();
                                             PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user)).color(NamedTextColor.YELLOW)).color(NamedTextColor.GREEN)), 2);
+                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                             url = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                         }
                                         if (HTTPRequestUtils.getContentSize(url) > ImageFrame.maxImageFileSize) {
@@ -394,10 +395,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         ImageMapCreationTask<ImageMap> creationTask = null;
                                         try {
                                             String url = args[2];
-                                            if (ImageFrame.uploadServiceEnabled && url.equalsIgnoreCase("upload")) {
+                                            if (ImageFrame.imageUploadManager.isOperational() && url.equalsIgnoreCase("upload")) {
                                                 UUID user = player.getUniqueId();
                                                 PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                                Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user)).color(NamedTextColor.YELLOW)).color(NamedTextColor.GREEN)), 2);
+                                                String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                                Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                                 url = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                             }
                                             if (!ImageFrame.isURLAllowed(url)) {
@@ -841,10 +843,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (url != null) {
                                             urlImageMap.setUrl(url);
                                         }
-                                        if (ImageFrame.uploadServiceEnabled && urlImageMap.getUrl().equalsIgnoreCase("upload")) {
+                                        if (ImageFrame.imageUploadManager.isOperational() && urlImageMap.getUrl().equalsIgnoreCase("upload")) {
                                             UUID user = !(sender instanceof Player) ? ImageMap.CONSOLE_CREATOR : ((Player) sender).getUniqueId();
                                             PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user)).color(NamedTextColor.YELLOW)).color(NamedTextColor.GREEN)), 2);
+                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                            Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                             String newUrl = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                             if (HTTPRequestUtils.getContentSize(newUrl) > ImageFrame.maxImageFileSize) {
                                                 sendMessage(sender, translatable(IMAGE_OVER_MAX_FILE_SIZE, ImageFrame.maxImageFileSize).color(NamedTextColor.RED));
@@ -1710,7 +1713,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.refresh")) {
                     if ("refresh".equalsIgnoreCase(args[0])) {
                         tab.add("[url]");
-                        if (ImageFrame.uploadServiceEnabled && "upload".startsWith(args[1].toLowerCase())) {
+                        if (ImageFrame.imageUploadManager.isOperational() && "upload".startsWith(args[1].toLowerCase())) {
                             tab.add("upload");
                         }
                         tab.addAll(ImageMapUtils.getImageMapNameSuggestions(sender, args[1]));
@@ -1839,7 +1842,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.create")) {
                     if ("create".equalsIgnoreCase(args[0])) {
                         tab.add("<url>");
-                        if (ImageFrame.uploadServiceEnabled && "upload".startsWith(args[2].toLowerCase())) {
+                        if (ImageFrame.imageUploadManager.isOperational() && "upload".startsWith(args[2].toLowerCase())) {
                             tab.add("upload");
                         }
                     }
@@ -1847,7 +1850,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("imageframe.overlay")) {
                     if ("overlay".equalsIgnoreCase(args[0])) {
                         tab.add("<url>");
-                        if (ImageFrame.uploadServiceEnabled && "upload".startsWith(args[2].toLowerCase())) {
+                        if (ImageFrame.imageUploadManager.isOperational() && "upload".startsWith(args[2].toLowerCase())) {
                             tab.add("upload");
                         }
                     }
@@ -1872,7 +1875,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         ImageMap imageMap = ImageMapUtils.getFromPlayerPrefixedName(sender, args[1]);
                         if (imageMap != null) {
                             tab.add("[url]");
-                            if (ImageFrame.uploadServiceEnabled && "upload".startsWith(args[2].toLowerCase())) {
+                            if (ImageFrame.imageUploadManager.isOperational() && "upload".startsWith(args[2].toLowerCase())) {
                                 tab.add("upload");
                             }
                             for (String ditheringType : DitheringType.values().keySet()) {
