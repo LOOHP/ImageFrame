@@ -294,6 +294,9 @@ public class MapUtils {
             return null;
         }
         MapMeta mapMeta = (MapMeta) itemMeta;
+        if (!mapMeta.hasMapView()) {
+            return null;
+        }
         MapView mapView = mapMeta.getMapView();
         if (mapView == null) {
             return null;

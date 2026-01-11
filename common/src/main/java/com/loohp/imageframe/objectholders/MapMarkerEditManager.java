@@ -121,6 +121,9 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
                 continue;
             }
             MapMeta mapMeta = (MapMeta) itemMeta;
+            if (!mapMeta.hasMapView()) {
+                continue;
+            }
             MapView mapView = mapMeta.getMapView();
             if (mapView == null) {
                 continue;
@@ -202,6 +205,9 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             return;
         }
         MapMeta mapMeta = (MapMeta) itemMeta;
+        if (!mapMeta.hasMapView()) {
+            return;
+        }
         MapView mapView = mapMeta.getMapView();
         if (mapView == null) {
             return;

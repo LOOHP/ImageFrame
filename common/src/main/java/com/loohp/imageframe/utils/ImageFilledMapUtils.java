@@ -57,7 +57,7 @@ public class ImageFilledMapUtils {
             return null;
         }
         MapMeta mapMeta = (MapMeta) itemMeta;
-        MapView mapView = mapMeta.getMapView();
+        MapView mapView = mapMeta.hasMapView() ? mapMeta.getMapView() : null;
         FilledMapItemInfo info = NMS.getInstance().getFilledMapItemInfo(itemStack);
         if (info == null) {
             if (mapView != null) {
