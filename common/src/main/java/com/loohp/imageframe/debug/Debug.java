@@ -21,12 +21,19 @@
 package com.loohp.imageframe.debug;
 
 import com.loohp.imageframe.ImageFrame;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 public class Debug implements Listener {
+
+    public static void debug(String message) {
+        if (ImageFrame.debugLogging) {
+            Bukkit.getConsoleSender().sendMessage("[LOTTERYSIX|DEBUG] " + message);
+        }
+    }
 
     @EventHandler
     public void onJoinPluginActive(PlayerJoinEvent event) {

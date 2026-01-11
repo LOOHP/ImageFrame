@@ -90,6 +90,8 @@ public class ImageFrame extends JavaPlugin {
     public static boolean viaHook = false;
     public static boolean viaDisableSmoothAnimationForLegacyPlayers = false;
 
+    public static boolean debugLogging;
+
     public static boolean updaterEnabled;
     public static ScheduledTask updaterTask = null;
 
@@ -383,6 +385,8 @@ public class ImageFrame extends JavaPlugin {
 
         storageType = KeyUtils.imageFrameKey(config.getConfiguration().getString("Storage.Type"));
         storageOptions = config.getConfiguration().getConfigurationSection("Storage.Options").getValues(true).entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
+
+        debugLogging = config.getConfiguration().getBoolean("DebugLogging");
 
         if (updaterTask != null) {
             updaterTask.cancel();

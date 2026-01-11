@@ -25,6 +25,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.loohp.imageframe.ImageFrame;
+import com.loohp.imageframe.debug.Debug;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
@@ -92,6 +93,7 @@ public class LanguageManager {
 
             JsonObject json;
             try {
+                Debug.debug("Downloading language meta...");
                 json = HTTPRequestUtils.getJsonResponse(LANGUAGE_META_URL);
             } catch (Exception e) {
                 throw new IOException("Unable to fetch language meta from \"api.loohpjames.com\". This could be an internet issue or \"api.loohpjames.com\" is down. If the plugin functions correctly after this, this error can be ignored.", e);
@@ -104,6 +106,7 @@ public class LanguageManager {
 
                 String existingHash = languageHashes.has(language) ? languageHashes.get(language).getAsString() : null;
                 if (!hash.equalsIgnoreCase(existingHash)) {
+                    Debug.debug("Downloading language " + language + "...");
                     try (
                         BufferedReader reader = new BufferedReader(new InputStreamReader(HTTPRequestUtils.getInputStream(url), StandardCharsets.UTF_8));
                         PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(new File(languageFolder, language + ".json").toPath()), StandardCharsets.UTF_8));
