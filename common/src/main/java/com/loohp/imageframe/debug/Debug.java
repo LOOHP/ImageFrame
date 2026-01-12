@@ -31,7 +31,7 @@ public class Debug implements Listener {
 
     public static void debug(String message) {
         if (ImageFrame.debugLogging) {
-            Bukkit.getConsoleSender().sendMessage("[LOTTERYSIX|DEBUG] " + message);
+            Bukkit.getConsoleSender().sendMessage("[IMAGEFRAME|DEBUG] " + message);
         }
     }
 

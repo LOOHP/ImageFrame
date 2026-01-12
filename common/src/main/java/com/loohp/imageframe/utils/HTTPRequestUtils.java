@@ -47,6 +47,8 @@ public class HTTPRequestUtils {
         connection.addRequestProperty("User-Agent", "Mozilla/5.0");
         connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
         connection.addRequestProperty("Pragma", "no-cache");
+        connection.setConnectTimeout(30000);
+        connection.setReadTimeout(30000);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
             return GSON.fromJson(reader, JsonObject.class);
         }
@@ -59,6 +61,8 @@ public class HTTPRequestUtils {
         connection.addRequestProperty("User-Agent", "Mozilla/5.0");
         connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
         connection.addRequestProperty("Pragma", "no-cache");
+        connection.setConnectTimeout(30000);
+        connection.setReadTimeout(30000);
         return connection.getInputStream();
     }
 
@@ -82,6 +86,8 @@ public class HTTPRequestUtils {
             connection.addRequestProperty("User-Agent", "Mozilla/5.0");
             connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
             connection.addRequestProperty("Pragma", "no-cache");
+            connection.setConnectTimeout(30000);
+            connection.setReadTimeout(30000);
             if (connection instanceof HttpURLConnection) {
                 ((HttpURLConnection) connection).setRequestMethod("HEAD");
             }
@@ -99,6 +105,8 @@ public class HTTPRequestUtils {
             connection.addRequestProperty("User-Agent", "Mozilla/5.0");
             connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
             connection.addRequestProperty("Pragma", "no-cache");
+            connection.setConnectTimeout(30000);
+            connection.setReadTimeout(30000);
             if (connection instanceof HttpURLConnection) {
                 ((HttpURLConnection) connection).setRequestMethod("HEAD");
             }
