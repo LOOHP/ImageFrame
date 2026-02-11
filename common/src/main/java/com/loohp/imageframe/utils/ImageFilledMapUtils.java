@@ -57,7 +57,7 @@ public class ImageFilledMapUtils {
             return null;
         }
         MapMeta mapMeta = (MapMeta) itemMeta;
-        MapView mapView = mapMeta.hasMapView() ? mapMeta.getMapView() : null;
+        MapView mapView = getMapViewSafely(mapMeta);
         FilledMapItemInfo info = NMS.getInstance().getFilledMapItemInfo(itemStack);
         if (info == null) {
             if (mapView != null) {
@@ -72,13 +72,34 @@ public class ImageFilledMapUtils {
             }
         } else {
             ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(info.getImageMapIndex());
-            MapView correctMapView = imageMap.getMapViews().get(info.getMapPartIndex());
+            if (imageMap == null || !imageMap.isValid()) {
+                return null;
+            }
+            int mapPartIndex = info.getMapPartIndex();
+            if (mapPartIndex < 0 || mapPartIndex >= imageMap.getMapViews().size()) {
+                return null;
+            }
+            MapView correctMapView = imageMap.getMapViews().get(mapPartIndex);
+            if (correctMapView == null) {
+                return null;
+            }
             if (mapView == null || correctMapView.getId() != mapView.getId()) {
                 mapMeta.setMapView(correctMapView);
                 itemStack.setItemMeta(mapMeta);
             }
         }
         return null;
+    }
+
+    private static MapView getMapViewSafely(MapMeta mapMeta) {
+        try {
+            if (!mapMeta.hasMapView()) {
+                return null;
+            }
+            return mapMeta.getMapView();
+        } catch (IllegalStateException ignored) {
+            return null;
+        }
     }
 
 }

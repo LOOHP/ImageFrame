@@ -227,13 +227,22 @@ public class MapUtils {
             return null;
         }
         MapMeta mapMeta = (MapMeta) meta;
-        if (!mapMeta.hasMapView()) {
+        MapView mapView;
+        try {
+            if (!mapMeta.hasMapView()) {
+                return null;
+            }
+            mapView = mapMeta.getMapView();
+        } catch (IllegalStateException ignored) {
+            return null;
+        }
+        if (mapView == null) {
             return null;
         }
         if (mapMeta.hasMapId()) {
             tryDeleteBlankDataFile(getMainWorld(), mapMeta.getMapId());
         }
-        return mapMeta.getMapView();
+        return mapView;
     }
 
     public static MapView getPlayerMapView(Player player) {
@@ -286,18 +295,7 @@ public class MapUtils {
         }
         Vector hitPosition = rayTraceResult.getHitPosition();
         ItemStack itemStack = itemFrame.getItem();
-        if (itemStack == null || itemStack.getType().equals(Material.AIR) || !itemStack.hasItemMeta()) {
-            return null;
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (!(itemMeta instanceof MapMeta)) {
-            return null;
-        }
-        MapMeta mapMeta = (MapMeta) itemMeta;
-        if (!mapMeta.hasMapView()) {
-            return null;
-        }
-        MapView mapView = mapMeta.getMapView();
+        MapView mapView = getItemMapView(itemStack);
         if (mapView == null) {
             return null;
         }
