@@ -82,6 +82,17 @@ UploadService:
   # http://example.com/image_frame/
   # By default we listen on localhost, port 80.
   BaseURI: "http://localhost/"
+  # The maximum size of an image (in bytes) to have in memory before overflowing into the disk.
+  # This usually does not need to be changed unless if you have:
+  # - Large pictures being uploaded commonly
+  # - REALLY slow file io
+  # - Enormously large memory
+  # Defaults to 1MB (as in, images larger than 1MB will be temporarily saved to disk while images less than 1MB will be saved to memory).
+  MaxCacheSize: 1048576
+  # The maximum amount of pixels allowed in the image's width.
+  MaxImageWidth: 8192
+  # The maximum amount of pixels allowed in the image's height.
+  MaxImageHeight: 8192
 
 #ImageFrame's complimentary mod where you can see images in its native resolution in full color
 ImageFrameClient:

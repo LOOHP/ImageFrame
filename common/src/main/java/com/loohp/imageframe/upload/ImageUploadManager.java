@@ -84,14 +84,13 @@ public class ImageUploadManager implements AutoCloseable {
             0x0D, 0x0A, 0x1A, 0x0A
     };
 
-    private static final int MAX_WIDTH = 8192;
-    private static final int MAX_HEIGHT = 8192;
-    private static final long MAX_PIXELS = 8192L * 8192L;
-
     public static final long EXPIRATION = TimeUnit.MINUTES.toMillis(5);
 
     private final URI uri;
     private final String pathPrefix;
+    private final long maxCacheSize;
+    private final int maxWidth;
+    private final int maxHeight;
 
     private final File webRootDir;
     private final File uploadDir;
@@ -103,9 +102,12 @@ public class ImageUploadManager implements AutoCloseable {
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
 
-    public ImageUploadManager(boolean enabled, URI uri) {
+    public ImageUploadManager(boolean enabled, URI uri, long maxCacheSize, int maxImageWidth, int maxImageHeight) {
         this.uri = uri;
         this.pathPrefix = normalizePrefix(uri.getPath());
+        this.maxCacheSize = maxCacheSize;
+        this.maxWidth = maxImageWidth;
+        this.maxHeight = maxImageHeight;
 
         this.webRootDir = new File(ImageFrame.plugin.getDataFolder(), "upload/web");
         this.uploadDir = new File(ImageFrame.plugin.getDataFolder(), "upload/images");
@@ -190,7 +192,6 @@ public class ImageUploadManager implements AutoCloseable {
 
             QueryStringDecoder decoder = new QueryStringDecoder(request.uri(), StandardCharsets.UTF_8);
             String rawPath = decoder.path();
-
             if (rawPath == null || rawPath.isEmpty()) {
                 rawPath = "/";
             }
@@ -241,7 +242,6 @@ public class ImageUploadManager implements AutoCloseable {
             // - No null bytes
             // - Prefix stripped
             // - Dot segments removed
-
             if (request.method() == HttpMethod.GET || request.method() == HttpMethod.HEAD) {
                 handleStatic(ctx, request, normalizedPath);
                 return;
@@ -348,8 +348,8 @@ public class ImageUploadManager implements AutoCloseable {
             return;
         }
 
-        // Saves files smaller than 16KB in memory, writes bigger files to disk.
-        DefaultHttpDataFactory factory = new DefaultHttpDataFactory(DefaultHttpDataFactory.MINSIZE);
+        // Saves files smaller than 1MB (configurable) in memory, writes bigger files to disk.
+        DefaultHttpDataFactory factory = new DefaultHttpDataFactory(maxCacheSize);
         HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(factory, request);
         File tempFile = null;
 
@@ -396,8 +396,8 @@ public class ImageUploadManager implements AutoCloseable {
                 int height = decoded.getHeight();
 
                 // Enforce reasonable image dimension limits
-                if (width <= 0 || height <= 0 || width > MAX_WIDTH || height > MAX_HEIGHT
-                        || ((long) width * height) > MAX_PIXELS) {
+                if (width <= 0 || height <= 0 || width > maxWidth || height > maxHeight
+                        || ((long) width * height) > ((long) maxWidth * maxHeight)) {
 
                     send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Image dimensions exceed limits\"}");
                     return;

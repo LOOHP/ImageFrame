@@ -129,6 +129,9 @@ public class ImageFrame extends JavaPlugin {
 
     public static boolean uploadServiceEnabled;
     public static URI uploadServiceBaseURI;
+    public static long uploadServiceMaxCacheSize;
+    public static int uploadServiceMaxImageWidth;
+    public static int uploadServiceMaxImageHeight;
 
     public static boolean imageFrameClientEnabled;
 
@@ -280,7 +283,7 @@ public class ImageFrame extends JavaPlugin {
         rateLimitedPacketSendingManager = new RateLimitedPacketSendingManager();
         invisibleFrameManager = new InvisibleFrameManager();
         imageMapCreationTaskManager = new ImageMapCreationTaskManager(ImageFrame.parallelProcessingLimit);
-        imageUploadManager = new ImageUploadManager(uploadServiceEnabled, uploadServiceBaseURI);
+        imageUploadManager = new ImageUploadManager(uploadServiceEnabled, uploadServiceBaseURI, uploadServiceMaxCacheSize, uploadServiceMaxImageWidth, uploadServiceMaxImageHeight);
         customClientNetworkManager = new CustomClientNetworkManager(imageFrameClientEnabled);
 
         if (isPluginEnabled("PlaceholderAPI")) {
@@ -375,6 +378,9 @@ public class ImageFrame extends JavaPlugin {
 
         uploadServiceEnabled = config.getConfiguration().getBoolean("UploadService.Enabled");
         uploadServiceBaseURI = URI.create(config.getConfiguration().getString("UploadService.BaseURI"));
+        uploadServiceMaxCacheSize = config.getConfiguration().getLong("UploadService.MaxCacheSize");
+        uploadServiceMaxImageWidth = config.getConfiguration().getInt("UploadService.MaxImageWidth");
+        uploadServiceMaxImageHeight = config.getConfiguration().getInt("UploadService.MaxImageHeight");
 
         imageFrameClientEnabled = config.getConfiguration().getBoolean("ImageFrameClient.Enabled");
 
