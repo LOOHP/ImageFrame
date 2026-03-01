@@ -20,8 +20,12 @@
 
 package com.loohp.imageframe.upload;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,6 +35,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import javax.imageio.ImageIO;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -73,6 +79,15 @@ import io.netty.handler.stream.ChunkedNioFile;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
 public class ImageUploadManager implements AutoCloseable {
+    private static final byte[] PNG_SIGNATURE = new byte[] {
+            (byte) 0x89, 0x50, 0x4E, 0x47,
+            0x0D, 0x0A, 0x1A, 0x0A
+    };
+
+    private static final int MAX_WIDTH = 8192;
+    private static final int MAX_HEIGHT = 8192;
+    private static final long MAX_PIXELS = 8192L * 8192L;
+
     public static final long EXPIRATION = TimeUnit.MINUTES.toMillis(5);
 
     private final URI uri;
@@ -169,54 +184,143 @@ public class ImageUploadManager implements AutoCloseable {
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
             if (!request.decoderResult().isSuccess()) {
-                send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\": \"Bad request\"");
+                send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Bad request\"}");
                 return;
             }
 
-            QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
-            String uriPath = decoder.path();
+            QueryStringDecoder decoder = new QueryStringDecoder(request.uri(), StandardCharsets.UTF_8);
+            String rawPath = decoder.path();
 
+            if (rawPath == null || rawPath.isEmpty()) {
+                rawPath = "/";
+            }
+
+            // Reject null byte attacks
+            if (rawPath.indexOf('\0') >= 0) {
+                send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Invalid path\"}");
+                return;
+            }
+
+            // Reject Windows-style separators to prevent bypass tricks
+            if (rawPath.contains("\\")) {
+                send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Invalid path\"}");
+                return;
+            }
+
+            // Normalize dot segments safely using URI
+            String normalizedPath;
+            try {
+                normalizedPath = new URI(null, null, rawPath, null).normalize().getPath();
+            } catch (Exception e) {
+                send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Invalid URI\"}");
+                return;
+            }
+
+            if (normalizedPath == null || normalizedPath.isEmpty()) {
+                normalizedPath = "/";
+            }
+
+            // Apply prefix restriction
             if (!pathPrefix.isEmpty()) {
-                if (!uriPath.startsWith(pathPrefix)) {
-                    send(ctx, HttpResponseStatus.NOT_FOUND, "{\"error\": \"Not found\"");
+
+                if (!normalizedPath.startsWith(pathPrefix)) {
+                    send(ctx, HttpResponseStatus.NOT_FOUND, "{\"error\":\"Not found\"}");
                     return;
                 }
 
-                uriPath = uriPath.substring(pathPrefix.length());
-                if (uriPath.isEmpty()) {
-                    uriPath = "/";
+                normalizedPath = normalizedPath.substring(pathPrefix.length());
+
+                if (normalizedPath.isEmpty()) {
+                    normalizedPath = "/";
                 }
             }
 
-            if (request.method() == HttpMethod.GET) {
-                handleStatic(ctx, uriPath);
-            } else if (request.method() == HttpMethod.POST && uriPath.equals("/upload")) {
-                handleUpload(ctx, request, decoder);
-            } else {
-                send(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED, "\"error\": \"Method not allowed\"");
+            // At this point:
+            // - Path is normalized
+            // - No backslashes
+            // - No null bytes
+            // - Prefix stripped
+            // - Dot segments removed
+
+            if (request.method() == HttpMethod.GET || request.method() == HttpMethod.HEAD) {
+                handleStatic(ctx, request, normalizedPath);
+                return;
             }
+
+            if (request.method() == HttpMethod.POST && "/upload".equals(normalizedPath)) {
+                handleUpload(ctx, request, decoder);
+                return;
+            }
+
+            send(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED, "{\"error\":\"Method not allowed\"}");
         }
     }
 
-    private void handleStatic(ChannelHandlerContext ctx, String path) throws IOException {
-        Path base = webRootDir.toPath().toAbsolutePath();
-        Path resolved = base.resolve("." + path).normalize();
-
-        if (!resolved.startsWith(base) || !Files.exists(resolved)) {
-            resolved = base.resolve("index.html");
+    private void handleStatic(ChannelHandlerContext ctx, FullHttpRequest request, String normalizedPath)
+            throws IOException {
+        HttpMethod method = request.method();
+        if (method != HttpMethod.GET && method != HttpMethod.HEAD) {
+            send(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED, "{\"error\":\"Method not allowed\"}");
+            return;
         }
 
-        File file = resolved.toFile();
+        // Resolve base directory canonically
+        Path basePath = webRootDir.getCanonicalFile().toPath();
+        if (normalizedPath == null || normalizedPath.isEmpty()) {
+            normalizedPath = "/";
+        }
+
+        // Canonical check prevents traversal and symlink escape attacks
+        Path resolved = basePath.resolve("." + normalizedPath).normalize();
+        Path canonical;
+        try {
+            canonical = resolved.toFile().getCanonicalFile().toPath();
+        } catch (IOException e) {
+            send(ctx, HttpResponseStatus.NOT_FOUND, "{\"error\":\"Not found\"}");
+            return;
+        }
+
+        if (!canonical.startsWith(basePath)) {
+            send(ctx, HttpResponseStatus.FORBIDDEN, "{\"error\":\"Forbidden\"}");
+            return;
+        }
+
+        if (Files.isDirectory(canonical)) {
+            canonical = canonical.resolve("index.html");
+        }
+
+        if (!Files.exists(canonical) || !Files.isRegularFile(canonical)) {
+            canonical = basePath.resolve("index.html").toFile().getCanonicalFile().toPath();
+            if (!canonical.startsWith(basePath) || !Files.exists(canonical)) {
+                send(ctx, HttpResponseStatus.NOT_FOUND, "{\"error\":\"Not found\"}");
+                return;
+            }
+        }
+
+        File file = canonical.toFile();
         long fileLength = file.length();
+        String contentType = Files.probeContentType(canonical);
+        if (contentType == null) {
+            contentType = "application/octet-stream";
+        }
 
         HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, fileLength);
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html");
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
+
+        // Security Headers
+        response.headers().set("X-Content-Type-Options", "nosniff");
+        response.headers().set("X-Frame-Options", "DENY");
+        response.headers().set("Referrer-Policy", "no-referrer");
+
+        // Since this is upload UI, safest default is no-store
+        response.headers().set("Cache-Control", "no-store");
 
         ctx.write(response);
+        if (method == HttpMethod.GET) {
+            ctx.write(new ChunkedNioFile(file));
+        }
 
-        // Use ChunkedNioFile for better NIO integration
-        ctx.write(new ChunkedNioFile(file));
         ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(ChannelFutureListener.CLOSE);
     }
 
@@ -224,17 +328,30 @@ public class ImageUploadManager implements AutoCloseable {
             throws Exception {
 
         Map<String, List<String>> params = decoder.parameters();
-
         String user = getParam(params, "user");
         String id = getParam(params, "id");
 
         PendingUpload pending = findPendingUpload(user, id);
         if (pending == null) {
-            send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\": \"Invalid upload token\"");
+            send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Invalid upload token\"}");
             return;
         }
 
-        HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), request);
+        UUID userUUID;
+        UUID idUUID;
+
+        try {
+            userUUID = UUID.fromString(user);
+            idUUID = UUID.fromString(id);
+        } catch (Exception e) {
+            send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Invalid UUID format\"}");
+            return;
+        }
+
+        // Saves files smaller than 16KB in memory, writes bigger files to disk.
+        DefaultHttpDataFactory factory = new DefaultHttpDataFactory(DefaultHttpDataFactory.MINSIZE);
+        HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(factory, request);
+        File tempFile = null;
 
         try {
             for (InterfaceHttpData data : postDecoder.getBodyHttpDatas()) {
@@ -247,25 +364,108 @@ public class ImageUploadManager implements AutoCloseable {
                     continue;
                 }
 
-                byte[] fileData = new byte[(int) upload.length()];
-                upload.getByteBuf().readBytes(fileData);
+                // Enforce field name
+                if (!"image".equals(upload.getName())) {
+                    continue;
+                }
 
-                File outputFile = new File(uploadDir, id + ".png");
-                Files.write(outputFile.toPath(), fileData);
+                tempFile = upload.getFile();
+                if (tempFile == null || !tempFile.exists()) {
+                    send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Upload failed\"}");
+                    return;
+                }
+
+                // Validate PNG signature
+                if (!hasValidPngSignature(tempFile)) {
+                    send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Invalid PNG signature\"}");
+                    return;
+                }
+
+                // Start re-encoding image to prevent attacks
+                BufferedImage decoded;
+                try (InputStream in = Files.newInputStream(tempFile.toPath())) {
+                    decoded = ImageIO.read(in);
+                }
+
+                if (decoded == null) {
+                    send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Invalid PNG format\"}");
+                    return;
+                }
+
+                int width = decoded.getWidth();
+                int height = decoded.getHeight();
+
+                // Enforce reasonable image dimension limits
+                if (width <= 0 || height <= 0 || width > MAX_WIDTH || height > MAX_HEIGHT
+                        || ((long) width * height) > MAX_PIXELS) {
+
+                    send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Image dimensions exceed limits\"}");
+                    return;
+                }
+
+                // Normalize to safe ARGB
+                BufferedImage normalized = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g = normalized.createGraphics();
+                g.drawImage(decoded, 0, 0, null);
+                g.dispose();
+
+                // Atomic single-use token removal
+                if (!pendingUploads.remove(userUUID, pending)) {
+                    send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Token already used\"}");
+                    return;
+                }
+
+                // Write clean PNG (re-encode strips malicious chunks)
+                File outputFile = new File(uploadDir, idUUID + ".png");
+                try (OutputStream out = Files.newOutputStream(outputFile.toPath())) {
+                    if (!ImageIO.write(normalized, "png", out)) {
+                        send(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR, "{\"error\":\"Failed to encode PNG\"}");
+                        return;
+                    }
+                }
 
                 imagesUploadedCounter.incrementAndGet();
-
-                pendingUploads.remove(UUID.fromString(user));
                 pending.getFuture().complete(outputFile);
 
                 Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, outputFile::delete, EXPIRATION / 50);
-                send(ctx, HttpResponseStatus.OK, "{\"message\": \"File uploaded successfully\"}");
+                send(ctx, HttpResponseStatus.OK, "{\"message\":\"File uploaded successfully\"}");
                 return;
             }
 
-            send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\": \"Missing image field\"");
+            send(ctx, HttpResponseStatus.BAD_REQUEST, "{\"error\":\"Missing image field\"}");
         } finally {
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    Files.deleteIfExists(tempFile.toPath());
+                } catch (IOException ignored) {
+                }
+            }
+
             postDecoder.destroy();
+            factory.cleanAllHttpData();
+        }
+    }
+
+    private boolean hasValidPngSignature(File file) {
+        if (file.length() < PNG_SIGNATURE.length) {
+            return false;
+        }
+
+        try (InputStream in = Files.newInputStream(file.toPath())) {
+            byte[] header = new byte[PNG_SIGNATURE.length];
+            if (in.read(header) != PNG_SIGNATURE.length) {
+                return false;
+            }
+
+            for (int i = 0; i < PNG_SIGNATURE.length; i++) {
+                if (header[i] != PNG_SIGNATURE[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (IOException e) {
+            return false;
         }
     }
 
