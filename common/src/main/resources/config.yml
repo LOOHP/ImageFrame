@@ -75,16 +75,13 @@ Settings:
 UploadService:
   #Changing this value requires a restart
   Enabled: true
-  #This is only used for displaying to the end user
-  DisplayURL: "http://change.this.to.your.server.ip.in.the.config"
-  WebServer:
-    #Address in which the webserver binds to, defaults to 0.0.0.0
-    #Use 127.0.0.1 to limit to local access
-    #Changing this value requires a restart
-    Host: "0.0.0.0"
-    #Port in which the webserver is hosted, make sure it is not blocked by your firewall
-    #Changing this value requires a restart
-    Port: 8517
+  # This is the base URL the plugin uses. Below are some common examples:
+  # http://localhost/
+  # http://127.0.0.1:8080/
+  # http://example.com/
+  # http://example.com/image_frame/
+  # By default we listen on localhost, port 80.
+  BaseURI: "http://localhost/"
 
 #ImageFrame's complimentary mod where you can see images in its native resolution in full color
 ImageFrameClient:
