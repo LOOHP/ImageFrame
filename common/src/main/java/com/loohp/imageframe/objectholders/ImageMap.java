@@ -30,6 +30,7 @@ import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.imageframe.utils.StringUtils;
 import com.loohp.platformscheduler.Scheduler;
+import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -403,29 +404,42 @@ public abstract class ImageMap {
     }
 
     public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiPredicate<ItemFrame, ItemStack> prePlaceCheck, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat) {
-        fillItemFrames(itemFrames, rotation, prePlaceCheck, unableToPlaceAction, mapNameFormat, itemStack -> itemStack);
+        fillItemFrames(itemFrames, rotation, prePlaceCheck, unableToPlaceAction, mapNameFormat, itemStack -> itemStack, null);
     }
 
-    public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiPredicate<ItemFrame, ItemStack> prePlaceCheck, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction) {
+    public void fillItemFrames(List<ItemFrame> itemFrames, Rotation rotation, BiPredicate<ItemFrame, ItemStack> prePlaceCheck, BiConsumer<ItemFrame, ItemStack> unableToPlaceAction, String mapNameFormat, Function<ItemStack, ItemStack> postCreationFunction, Runnable onComplete) {
         if (itemFrames.size() != mapViews.size()) {
             throw new IllegalArgumentException("itemFrames size does not equal to mapView size");
         }
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
         List<ItemStack> items = getMaps(mapNameFormat, postCreationFunction);
         Iterator<ItemFrame> itr0 = itemFrames.iterator();
         Iterator<ItemStack> itr1 = items.iterator();
         while (itr0.hasNext() && itr1.hasNext()) {
             ItemFrame frame = itr0.next();
             ItemStack item = itr1.next();
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            futures.add(future);
             Scheduler.runTask(ImageFrame.plugin, () -> {
-                if (frame.isValid()) {
-                    if (prePlaceCheck.test(frame, item)) {
-                        frame.setItem(item, false);
-                        frame.setRotation(rotation);
-                        return;
+                try {
+                    if (frame.isValid()) {
+                        if (prePlaceCheck.test(frame, item)) {
+                            frame.setItem(item, false);
+                            frame.setRotation(rotation);
+                            return;
+                        }
                     }
+                    unableToPlaceAction.accept(frame, item);
+                } finally {
+                    future.complete(null);
                 }
-                unableToPlaceAction.accept(frame, item);
             }, frame);
+        }
+        if (onComplete != null) {
+            Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+                Scheduler.runTask(ImageFrame.plugin, onComplete);
+            });
         }
     }
 

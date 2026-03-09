@@ -94,10 +94,12 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
 
     private final Set<Player> entityInteractionChecking;
     private final Set<Player> entityDamageChecking;
+    private final Set<ItemFrame> itemFrameProcessing;
 
     public CombinedMapItemHandler() {
         this.entityInteractionChecking = new HashSet<>();
         this.entityDamageChecking = new HashSet<>();
+        this.itemFrameProcessing = new HashSet<>();
         Bukkit.getPluginManager().registerEvents(this, ImageFrame.plugin);
     }
 
@@ -262,11 +264,12 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
                     return;
                 }
             }
+            itemFrameProcessing.addAll(selectedFrames);
             UUID uuid = UUID.randomUUID();
             imageMap.fillItemFrames(selectedFrames, selection.getRotation(), (frame, item) -> true, (frame, item) -> {}, ImageFrame.mapItemFormat, item -> {
                 CombinedMapItemInfo newInfo = new CombinedMapItemInfo(imageMap.getImageIndex(), new CombinedMapItemInfo.PlacementInfo(yaw, uuid));
                 return NMS.getInstance().withCombinedMapItemInfo(item, newInfo);
-            });
+            }, () -> selectedFrames.forEach(f -> itemFrameProcessing.remove(f)));
         } finally {
             entityInteractionChecking.remove(player);
         }
@@ -279,6 +282,10 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
             return;
         }
         ItemFrame itemFrame = (ItemFrame) entity;
+        if (itemFrameProcessing.contains(itemFrame)) {
+            event.setCancelled(true);
+            return;
+        }
         Player player = null;
         if (event instanceof EntityDamageByEntityEvent) {
             EntityDamageByEntityEvent entityDamageByEntityEvent = (EntityDamageByEntityEvent) event;
@@ -297,6 +304,10 @@ public class CombinedMapItemHandler implements Listener, AutoCloseable {
             return;
         }
         ItemFrame itemFrame = (ItemFrame) entity;
+        if (itemFrameProcessing.contains(itemFrame)) {
+            event.setCancelled(true);
+            return;
+        }
         handleItemFrameBreak(null, itemFrame);
     }
 
