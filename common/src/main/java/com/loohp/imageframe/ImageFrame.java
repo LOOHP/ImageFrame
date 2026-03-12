@@ -20,6 +20,27 @@
 
 package com.loohp.imageframe;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
+import javax.imageio.spi.IIORegistry;
+
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
+
 import com.loohp.imageframe.config.Config;
 import com.loohp.imageframe.debug.Debug;
 import com.loohp.imageframe.invisibleframe.InvisibleFrameManager;
@@ -56,25 +77,8 @@ import com.loohp.imageframe.utils.ModernEventsUtils;
 import com.loohp.platformscheduler.ScheduledTask;
 import com.loohp.platformscheduler.Scheduler;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
-import net.kyori.adventure.key.Key;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import javax.imageio.ImageIO;
-import javax.imageio.spi.IIORegistry;
-import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import net.kyori.adventure.key.Key;
 
 public class ImageFrame extends JavaPlugin {
 
@@ -124,9 +128,10 @@ public class ImageFrame extends JavaPlugin {
     public static boolean combinedByDefault;
 
     public static boolean uploadServiceEnabled;
-    public static String uploadServiceDisplayURL;
-    public static String uploadServiceServerAddress;
-    public static int uploadServiceServerPort;
+    public static URI uploadServiceBaseURI;
+    public static long uploadServiceMaxCacheSize;
+    public static int uploadServiceMaxImageWidth;
+    public static int uploadServiceMaxImageHeight;
 
     public static boolean imageFrameClientEnabled;
 
@@ -151,12 +156,10 @@ public class ImageFrame extends JavaPlugin {
     public static CustomClientNetworkManager customClientNetworkManager;
 
     public static boolean isURLAllowed(String link) {
-        if (!restrictImageUrlEnabled) {
+        if (!restrictImageUrlEnabled || "upload".equals(link) || imageUploadManager.wasUploaded(link)) {
             return true;
         }
-        if ("upload".equals(link) || imageUploadManager.wasUploaded(link)) {
-            return true;
-        }
+
         try {
             URL url = new URL(link);
             return restrictImageUrls.stream().anyMatch(whitelisted -> {
@@ -280,7 +283,7 @@ public class ImageFrame extends JavaPlugin {
         rateLimitedPacketSendingManager = new RateLimitedPacketSendingManager();
         invisibleFrameManager = new InvisibleFrameManager();
         imageMapCreationTaskManager = new ImageMapCreationTaskManager(ImageFrame.parallelProcessingLimit);
-        imageUploadManager = new ImageUploadManager(uploadServiceEnabled, uploadServiceServerAddress, uploadServiceServerPort);
+        imageUploadManager = new ImageUploadManager(uploadServiceEnabled, uploadServiceBaseURI, uploadServiceMaxCacheSize, uploadServiceMaxImageWidth, uploadServiceMaxImageHeight);
         customClientNetworkManager = new CustomClientNetworkManager(imageFrameClientEnabled);
 
         if (isPluginEnabled("PlaceholderAPI")) {
@@ -374,9 +377,10 @@ public class ImageFrame extends JavaPlugin {
         combinedByDefault = config.getConfiguration().getBoolean("Settings.CombinedByDefault");
 
         uploadServiceEnabled = config.getConfiguration().getBoolean("UploadService.Enabled");
-        uploadServiceDisplayURL = config.getConfiguration().getString("UploadService.DisplayURL");
-        uploadServiceServerAddress = config.getConfiguration().getString("UploadService.WebServer.Host");
-        uploadServiceServerPort = config.getConfiguration().getInt("UploadService.WebServer.Port");
+        uploadServiceBaseURI = URI.create(config.getConfiguration().getString("UploadService.BaseURI"));
+        uploadServiceMaxCacheSize = config.getConfiguration().getLong("UploadService.MaxCacheSize");
+        uploadServiceMaxImageWidth = config.getConfiguration().getInt("UploadService.MaxImageWidth");
+        uploadServiceMaxImageHeight = config.getConfiguration().getInt("UploadService.MaxImageHeight");
 
         imageFrameClientEnabled = config.getConfiguration().getBoolean("ImageFrameClient.Enabled");
 

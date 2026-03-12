@@ -20,14 +20,15 @@
 
 package com.loohp.imageframe.upload;
 
-import org.bukkit.Bukkit;
-
 import java.io.File;
+import java.net.URI;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import org.bukkit.Bukkit;
 
 public class PendingUpload {
 
@@ -65,12 +66,44 @@ public class PendingUpload {
         }
     }
 
-    public String getUrl(String domain, UUID user) {
+    /**
+     * Get the upload URL for this pending upload
+     *
+     * @param baseUri The base URI of the upload server (e.g.,
+     *                http://localhost:8080/images)
+     * @param user    The user UUID
+     * @return The complete URL with query parameters
+     */
+    public String getUrl(URI baseUri, UUID user) {
+        String name = Bukkit.getOfflinePlayer(user).getName();
+        StringBuilder query = new StringBuilder();
+        query.append("user=").append(user)
+                .append("&id=").append(id)
+                .append("&expire=").append(expire);
+
+        if (name != null) {
+            query.append("&name=").append(name);
+        }
+
+        // Ensure base path ends with /upload
+        String basePath = baseUri.toString();
+        if (!basePath.endsWith("/")) {
+            basePath += "/";
+        }
+
+        return basePath + "upload?" + query.toString();
+    }
+
+    /**
+     * Legacy method for backward compatibility
+     */
+    @Deprecated
+    public String getUrl(String webAddress, UUID user) {
         String name = Bukkit.getOfflinePlayer(user).getName();
         if (name == null) {
-            return domain + "?user=" + user + "&id=" + id + "&expire=" + expire;
+            return webAddress + "?user=" + user + "&id=" + id + "&expire=" + expire;
         } else {
-            return domain + "?user=" + user + "&id=" + id + "&expire=" + expire + "&name=" + name;
+            return webAddress + "?user=" + user + "&id=" + id + "&expire=" + expire + "&name=" + name;
         }
     }
 }
