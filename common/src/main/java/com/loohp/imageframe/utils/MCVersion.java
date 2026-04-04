@@ -28,6 +28,8 @@ import java.util.regex.Pattern;
 
 public enum MCVersion {
 
+    V26_1_1("26.1.1", 39),
+    V26_1("26.1", 38),
     V1_21_11("1.21.11", "1_21_R7", 37),
     V1_21_10("1.21.10", "1_21_R6", 36),
     V1_21_9("1.21.9", "1_21_R6", 35),
@@ -96,7 +98,7 @@ public enum MCVersion {
 
     public static MCVersion fromPackageName(String packageName) {
         for (MCVersion version : SUPPORTED_VALUES) {
-            if (packageName.contains(version.getPackageName())) {
+            if (version.hasPackageName() && packageName.contains(version.getPackageName())) {
                 return version;
             }
         }
@@ -122,6 +124,10 @@ public enum MCVersion {
         this.shortNum = shortNum;
     }
 
+    MCVersion(String name, int shortNum) {
+        this(name, null, shortNum);
+    }
+
     @Override
     public String toString() {
         return name;
@@ -133,6 +139,10 @@ public enum MCVersion {
 
     public String getPackageName() {
         return packageName;
+    }
+
+    public boolean hasPackageName() {
+        return packageName != null;
     }
 
     public int getNumber() {
