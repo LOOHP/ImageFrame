@@ -310,7 +310,7 @@ public class V26_1 extends NMSWrapper {
             tag.putFloat(CombinedMapItemInfo.PLACEMENT_YAW_KEY, placement.getYaw());
             tag.putIntArray(CombinedMapItemInfo.PLACEMENT_UUID_KEY, UUIDUtils.toIntArray(placement.getUniqueId()));
         }
-        nmsItemStack.restorePatch(DataComponentPatch.builder().set(DataComponents.CUSTOM_DATA, CustomData.of(tag)).build());
+        nmsItemStack.applyComponents(DataComponentPatch.builder().set(DataComponents.CUSTOM_DATA, CustomData.of(tag)).build());
         return CraftItemStack.asCraftMirror(nmsItemStack);
     }
 
@@ -337,7 +337,7 @@ public class V26_1 extends NMSWrapper {
         CompoundTag tag = customData.copyTag();
         tag.putInt(FilledMapItemInfo.KEY, filledMapItemInfo.getImageMapIndex());
         tag.putInt(FilledMapItemInfo.INDEX_KEY, filledMapItemInfo.getMapPartIndex());
-        nmsItemStack.restorePatch(DataComponentPatch.builder().set(DataComponents.CUSTOM_DATA, CustomData.of(tag)).build());
+        nmsItemStack.applyComponents(DataComponentPatch.builder().set(DataComponents.CUSTOM_DATA, CustomData.of(tag)).build());
         return CraftItemStack.asCraftMirror(nmsItemStack);
     }
 
@@ -350,7 +350,7 @@ public class V26_1 extends NMSWrapper {
         ItemLore itemLore = nmsItemStack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
         List<net.minecraft.network.chat.Component> loreLines = new ArrayList<>(itemLore.lines());
         loreLines.add(0, net.minecraft.network.chat.Component.translatable("effect.minecraft.invisibility").withStyle(net.minecraft.network.chat.Style.EMPTY.withColor(ChatFormatting.GRAY).withItalic(false)));
-        nmsItemStack.restorePatch(DataComponentPatch.builder().set(DataComponents.LORE, new ItemLore(loreLines)).build());
+        nmsItemStack.applyComponents(DataComponentPatch.builder().set(DataComponents.LORE, new ItemLore(loreLines)).build());
         ItemStack modified = CraftItemStack.asCraftMirror(nmsItemStack);
         ItemMeta itemMeta = modified.getItemMeta();
         if (itemMeta == null) {
