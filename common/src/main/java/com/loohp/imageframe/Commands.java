@@ -20,6 +20,100 @@
 
 package com.loohp.imageframe;
 
+import static com.loohp.imageframe.language.TranslationKey.ACCESS_TYPE;
+import static com.loohp.imageframe.language.TranslationKey.ACCESS_UPDATED;
+import static com.loohp.imageframe.language.TranslationKey.DUPLICATE_MAP_NAME;
+import static com.loohp.imageframe.language.TranslationKey.GIVEN_INVISIBLE_FRAME;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_ALREADY_QUEUED;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_CREATED;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_DELETED;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_PLAYBACK_JUMP_TO;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_PLAYER_PURGE;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_PROCESSING;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_REFRESHED;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_RENAMED;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_MAP_TOGGLE_PAUSED;
+import static com.loohp.imageframe.language.TranslationKey.IMAGE_OVER_MAX_FILE_SIZE;
+import static com.loohp.imageframe.language.TranslationKey.INVALID_OVERLAY_MAP;
+import static com.loohp.imageframe.language.TranslationKey.INVALID_USAGE;
+import static com.loohp.imageframe.language.TranslationKey.ITEM_FRAME_OCCUPIED;
+import static com.loohp.imageframe.language.TranslationKey.MAP_LOOKUP;
+import static com.loohp.imageframe.language.TranslationKey.MARKERS_ADD_BEGIN;
+import static com.loohp.imageframe.language.TranslationKey.MARKERS_CANCEL;
+import static com.loohp.imageframe.language.TranslationKey.MARKERS_CLEAR;
+import static com.loohp.imageframe.language.TranslationKey.MARKERS_DUPLICATE_NAME;
+import static com.loohp.imageframe.language.TranslationKey.MARKERS_NOT_A_MARKER;
+import static com.loohp.imageframe.language.TranslationKey.MARKERS_NOT_RENDER_WARNING;
+import static com.loohp.imageframe.language.TranslationKey.MARKERS_REMOVE;
+import static com.loohp.imageframe.language.TranslationKey.NOT_AN_IMAGE_MAP;
+import static com.loohp.imageframe.language.TranslationKey.NOT_ENOUGH_MAPS;
+import static com.loohp.imageframe.language.TranslationKey.NO_CONSOLE;
+import static com.loohp.imageframe.language.TranslationKey.NO_PERMISSION;
+import static com.loohp.imageframe.language.TranslationKey.OVERSIZE;
+import static com.loohp.imageframe.language.TranslationKey.PLAYER_CREATION_LIMIT_REACHED;
+import static com.loohp.imageframe.language.TranslationKey.PLAYER_NOT_FOUND;
+import static com.loohp.imageframe.language.TranslationKey.PREFERENCES_TYPE;
+import static com.loohp.imageframe.language.TranslationKey.PREFERENCES_UPDATE;
+import static com.loohp.imageframe.language.TranslationKey.PREFERENCES_VALUE;
+import static com.loohp.imageframe.language.TranslationKey.RELOADED;
+import static com.loohp.imageframe.language.TranslationKey.RESYNC;
+import static com.loohp.imageframe.language.TranslationKey.SELECTION_BEGIN;
+import static com.loohp.imageframe.language.TranslationKey.SELECTION_CLEAR;
+import static com.loohp.imageframe.language.TranslationKey.SELECTION_INCORRECT_SIZE;
+import static com.loohp.imageframe.language.TranslationKey.SELECTION_INVALID;
+import static com.loohp.imageframe.language.TranslationKey.SELECTION_NO_SELECTION;
+import static com.loohp.imageframe.language.TranslationKey.SET_CREATOR;
+import static com.loohp.imageframe.language.TranslationKey.STORAGE_MIGRATION;
+import static com.loohp.imageframe.language.TranslationKey.UNABLE_TO_CHANGE_IMAGE_TYPE;
+import static com.loohp.imageframe.language.TranslationKey.UNABLE_TO_LOAD_MAP;
+import static com.loohp.imageframe.language.TranslationKey.UNKNOWN_ERROR;
+import static com.loohp.imageframe.language.TranslationKey.UPLOAD_EXPIRED;
+import static com.loohp.imageframe.language.TranslationKey.UPLOAD_LINK;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_1;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_2;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_3;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_4;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_5;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_6;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_7;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_8;
+import static com.loohp.imageframe.language.TranslationKey.URL_IMAGE_MAP_INFO_9;
+import static com.loohp.imageframe.language.TranslationKey.URL_RESTRICTED;
+import static com.loohp.imageframe.utils.CommandSenderUtils.sendMessage;
+import static com.loohp.imageframe.utils.ComponentUtils.translatable;
+import static net.kyori.adventure.text.Component.text;
+
+import java.io.IOException;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.PrimitiveIterator;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.World;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.map.MapCursor;
+import org.bukkit.map.MapView;
+
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
 import com.loohp.imageframe.migration.ExternalPluginMigration;
 import com.loohp.imageframe.migration.PluginMigrationRegistry;
@@ -58,45 +152,11 @@ import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.MathUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.platformscheduler.Scheduler;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.World;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.map.MapCursor;
-import org.bukkit.map.MapView;
-
-import java.io.IOException;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.PrimitiveIterator;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
-
-import static com.loohp.imageframe.language.TranslationKey.*;
-import static com.loohp.imageframe.utils.CommandSenderUtils.sendMessage;
-import static com.loohp.imageframe.utils.ComponentUtils.translatable;
-import static net.kyori.adventure.text.Component.text;
 
 public class Commands implements CommandExecutor, TabCompleter {
 
@@ -243,7 +303,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (ImageFrame.imageUploadManager.isOperational() && url.equalsIgnoreCase("upload")) {
                                             UUID user = isConsole ? ImageMap.CONSOLE_CREATOR : player.getUniqueId();
                                             PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceBaseURI, user);
                                             Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                             url = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                         }
@@ -398,7 +458,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (ImageFrame.imageUploadManager.isOperational() && url.equalsIgnoreCase("upload")) {
                                                 UUID user = player.getUniqueId();
                                                 PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                                String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                                String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceBaseURI, user);
                                                 Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                                 url = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                             }
@@ -846,7 +906,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (ImageFrame.imageUploadManager.isOperational() && urlImageMap.getUrl().equalsIgnoreCase("upload")) {
                                             UUID user = !(sender instanceof Player) ? ImageMap.CONSOLE_CREATOR : ((Player) sender).getUniqueId();
                                             PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceBaseURI, user);
                                             Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                             String newUrl = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                             if (HTTPRequestUtils.getContentSize(newUrl) > ImageFrame.maxImageFileSize) {
