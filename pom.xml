@@ -63,6 +63,7 @@
         <module>V1_21_11</module>
         <module>V26_1</module>
         <module>V26_1_1</module>
+        <module>V26_1_2</module>
         <module>common</module>
     </modules>
 </project>
