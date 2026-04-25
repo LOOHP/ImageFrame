@@ -20,6 +20,7 @@
 
 package com.loohp.imageframe.language;
 
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -149,6 +150,10 @@ public class LanguageManager {
                 this.translations.put(language, translations);
             }
         }
+    }
+
+    public Set<String> getTranslationKeys(String language) {
+        return Sets.union(translations.getOrDefault(language, Collections.emptyMap()).keySet(), translations.get(ImageFrame.language).keySet());
     }
 
     public String getTranslation(String key, String language) {

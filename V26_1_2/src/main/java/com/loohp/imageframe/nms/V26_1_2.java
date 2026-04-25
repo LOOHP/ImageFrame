@@ -159,7 +159,6 @@ public class V26_1_2 extends NMSWrapper {
         return decorationTypeHolder.value().showOnItemFrame();
     }
 
-    @SuppressWarnings("resource")
     @Override
     public int getNextAvailableMapId(World world) {
         try {
@@ -177,7 +176,7 @@ public class V26_1_2 extends NMSWrapper {
         }
     }
 
-    @SuppressWarnings({"deprecation", "resource", "DataFlowIssue"})
+    @SuppressWarnings({"deprecation", "DataFlowIssue"})
     @Override
     public MapView getMapOrCreateMissing(World world, int id) {
         try {

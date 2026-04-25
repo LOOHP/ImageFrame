@@ -20,28 +20,39 @@
 
 package com.loohp.imageframe.upload;
 
-import org.bukkit.Bukkit;
-
 import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class PendingUpload {
 
-    public static PendingUpload create(long timeToLive) {
-        return new PendingUpload(UUID.randomUUID(), System.currentTimeMillis() + timeToLive, new CompletableFuture<>());
+    public static PendingUpload create(UUID creator, String language, String player, String imageMap, int width, int height, long timeToLive) {
+        return new PendingUpload(UUID.randomUUID(), creator, System.currentTimeMillis() + timeToLive, language, player, imageMap, width, height, new CompletableFuture<>());
     }
 
     private final UUID id;
+    private final UUID creator;
     private final long expire;
+    private final String language;
+    private final String player;
+    private final String imageMap;
+    private final int width;
+    private final int height;
     private final CompletableFuture<File> future;
 
-    private PendingUpload(UUID id, long expire, CompletableFuture<File> future) {
+    private PendingUpload(UUID id, UUID creator, long expire, String language, String player, String imageMap, int width, int height, CompletableFuture<File> future) {
         this.id = id;
+        this.creator = creator;
         this.expire = expire;
+        this.language = language;
+        this.player = player;
+        this.imageMap = imageMap;
+        this.width = width;
+        this.height = height;
         this.future = future;
     }
 
@@ -49,28 +60,55 @@ public class PendingUpload {
         return id;
     }
 
+    public UUID getCreator() {
+        return creator;
+    }
+
     public long getExpire() {
         return expire;
     }
 
-    protected CompletableFuture<File> getFuture() {
+    public String getLanguage() {
+        return language;
+    }
+
+    public String getPlayer() {
+        return player;
+    }
+
+    public String getImageMap() {
+        return imageMap;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    protected void invalidateExpired() {
+        future.completeExceptionally(new PendingUploadExpiredException());
+    }
+
+    protected void complete(File file) {
+        future.complete(file);
+    }
+
+    public Future<File> getFile() {
         return future;
     }
 
-    public File getFileBlocking() throws InterruptedException, ImageUploadManager.LinkTimeoutException {
+    public File getFileBlocking() throws InterruptedException, PendingUploadExpiredException {
         try {
             return future.get(expire - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException | ExecutionException e) {
-            throw new ImageUploadManager.LinkTimeoutException();
+            throw new PendingUploadExpiredException(e);
         }
     }
 
-    public String getUrl(String domain, UUID user) {
-        String name = Bukkit.getOfflinePlayer(user).getName();
-        if (name == null) {
-            return domain + "?user=" + user + "&id=" + id + "&expire=" + expire;
-        } else {
-            return domain + "?user=" + user + "&id=" + id + "&expire=" + expire + "&name=" + name;
-        }
+    public String getUrl(String domain) {
+        return domain + "?id=" + id;
     }
 }

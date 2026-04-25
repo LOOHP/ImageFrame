@@ -76,6 +76,9 @@ public class PlayerUtils {
 
     @SuppressWarnings("deprecation")
     public static String getPlayerLanguage(Player player) {
+        if (player == null) {
+            return ImageFrame.language;
+        }
         return ImageFrame.ifPlayerManager.getIFPlayer(player.getUniqueId()).getPreference(IFPlayerPreference.LANGUAGE, LanguageState.class).getCalculatedValue(() -> {
             String playerLanguage = player.getLocale();
             if (!playerLanguage.isEmpty()) {

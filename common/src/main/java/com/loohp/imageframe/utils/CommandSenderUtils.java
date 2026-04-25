@@ -49,7 +49,7 @@ public class CommandSenderUtils {
 
     @SuppressWarnings("deprecation")
     public static void sendMessage(CommandSender sender, ChatMessageType position, Component message) {
-        String language = sender instanceof Player ? PlayerUtils.getPlayerLanguage((Player) sender) : ImageFrame.language;
+        String language = PlayerUtils.getPlayerLanguage(sender instanceof Player ? (Player) sender : null);
         message = ImageFrame.languageManager.resolve(message, language);
         BaseComponent[] spigotComponent = ComponentSerializer.parse(GsonComponentSerializer.gson().serialize(message));
         if (sender instanceof BlockCommandSender) {

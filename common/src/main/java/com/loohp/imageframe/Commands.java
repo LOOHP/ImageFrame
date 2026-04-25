@@ -47,7 +47,7 @@ import com.loohp.imageframe.storage.ImageFrameStorageLoader;
 import com.loohp.imageframe.storage.ImageFrameStorageLoaders;
 import com.loohp.imageframe.storage.StorageMigrator;
 import com.loohp.imageframe.updater.Updater;
-import com.loohp.imageframe.upload.ImageUploadManager;
+import com.loohp.imageframe.upload.PendingUploadExpiredException;
 import com.loohp.imageframe.upload.PendingUpload;
 import com.loohp.imageframe.utils.ChatColorUtils;
 import com.loohp.imageframe.utils.HTTPRequestUtils;
@@ -58,6 +58,22 @@ import com.loohp.imageframe.utils.MapUtils;
 import com.loohp.imageframe.utils.MathUtils;
 import com.loohp.imageframe.utils.PlayerUtils;
 import com.loohp.platformscheduler.Scheduler;
+import java.io.IOException;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.PrimitiveIterator;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -75,23 +91,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
-
-import java.io.IOException;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.PrimitiveIterator;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
 import static com.loohp.imageframe.language.TranslationKey.*;
 import static com.loohp.imageframe.utils.CommandSenderUtils.sendMessage;
@@ -242,8 +241,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         url = args[2];
                                         if (ImageFrame.imageUploadManager.isOperational() && url.equalsIgnoreCase("upload")) {
                                             UUID user = isConsole ? ImageMap.CONSOLE_CREATOR : player.getUniqueId();
-                                            PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                            String playerName = isConsole ? ImageMap.CONSOLE_CREATOR_NAME : player.getName();
+                                            PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user, playerName, name, width, height);
+                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL);
                                             Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                             url = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                         }
@@ -292,7 +292,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         sendMessage(sender, translatable(IMAGE_MAP_CREATED).color(NamedTextColor.GREEN));
                                         creationTask.complete(translatable(IMAGE_MAP_CREATED).color(NamedTextColor.GREEN));
-                                    } catch (ImageUploadManager.LinkTimeoutException e) {
+                                    } catch (PendingUploadExpiredException e) {
                                         sendMessage(sender, translatable(UPLOAD_EXPIRED).color(NamedTextColor.RED));
                                         if (takenMaps > 0 && !isConsole) {
                                             PlayerUtils.giveItem(player, new ItemStack(Material.MAP, takenMaps));
@@ -396,9 +396,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         try {
                                             String url = args[2];
                                             if (ImageFrame.imageUploadManager.isOperational() && url.equalsIgnoreCase("upload")) {
-                                                UUID user = player.getUniqueId();
-                                                PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                                String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                                PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(player.getUniqueId(), player.getName(), name, width, height);
+                                                String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL);
                                                 Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                                 url = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                             }
@@ -419,7 +418,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             ImageFrame.imageMapManager.addMap(imageMap);
                                             sendMessage(sender, translatable(IMAGE_MAP_CREATED).color(NamedTextColor.GREEN));
                                             creationTask.complete(translatable(IMAGE_MAP_CREATED).color(NamedTextColor.GREEN));
-                                        } catch (ImageUploadManager.LinkTimeoutException e) {
+                                        } catch (PendingUploadExpiredException e) {
                                             sendMessage(sender, translatable(UPLOAD_EXPIRED).color(NamedTextColor.RED));
                                         } catch (ImageMapCreationTaskManager.EnqueueRejectedException e) {
                                             sendMessage(sender, translatable(IMAGE_MAP_ALREADY_QUEUED).color(NamedTextColor.RED));
@@ -844,9 +843,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             urlImageMap.setUrl(url);
                                         }
                                         if (ImageFrame.imageUploadManager.isOperational() && urlImageMap.getUrl().equalsIgnoreCase("upload")) {
-                                            UUID user = !(sender instanceof Player) ? ImageMap.CONSOLE_CREATOR : ((Player) sender).getUniqueId();
-                                            PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(user);
-                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL, user);
+                                            PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(urlImageMap.getCreator(), urlImageMap.getCreatorName(), urlImageMap.getName(), urlImageMap.getWidth(), urlImageMap.getHeight());
+                                            String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL);
                                             Scheduler.runTaskLaterAsynchronously(ImageFrame.plugin, () -> sendMessage(sender, translatable(UPLOAD_LINK, Component.text(uploadUrl).color(NamedTextColor.YELLOW).clickEvent(ClickEvent.openUrl(uploadUrl))).color(NamedTextColor.GREEN)), 2);
                                             String newUrl = pendingUpload.getFileBlocking().toURI().toURL().toString();
                                             if (HTTPRequestUtils.getContentSize(newUrl) > ImageFrame.maxImageFileSize) {
@@ -876,7 +874,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     imageMap.update();
                                     sendMessage(sender, translatable(IMAGE_MAP_REFRESHED).color(NamedTextColor.GREEN));
                                 }
-                            } catch (ImageUploadManager.LinkTimeoutException e) {
+                            } catch (PendingUploadExpiredException e) {
                                 sendMessage(sender, translatable(UPLOAD_EXPIRED).color(NamedTextColor.RED));
                             } catch (Exception e) {
                                 sendMessage(sender, translatable(UNABLE_TO_LOAD_MAP).color(NamedTextColor.RED));
