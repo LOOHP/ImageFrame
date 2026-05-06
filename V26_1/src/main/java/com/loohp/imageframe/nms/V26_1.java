@@ -164,7 +164,7 @@ public class V26_1 extends NMSWrapper {
         try {
             persistentIdCountsLastMapIdField.setAccessible(true);
             ServerLevel worldServer = ((CraftWorld) world).getHandle();
-            MapIndex mapIndex = worldServer.getServer().getDataStorage().get(MapIndex.TYPE);
+            MapIndex mapIndex = worldServer.getServer().getDataStorage().computeIfAbsent(MapIndex.TYPE);
             if (persistentIdCountsLastMapIdField.getType().equals(AtomicInteger.class)) {
                 AtomicInteger atomicInteger = (AtomicInteger) persistentIdCountsLastMapIdField.get(mapIndex);
                 return atomicInteger.get() + 1;
@@ -176,7 +176,7 @@ public class V26_1 extends NMSWrapper {
         }
     }
 
-    @SuppressWarnings({"deprecation", "DataFlowIssue"})
+    @SuppressWarnings("deprecation")
     @Override
     public MapView getMapOrCreateMissing(World world, int id) {
         try {
@@ -191,7 +191,7 @@ public class V26_1 extends NMSWrapper {
             MapItemSavedData mapItemSavedData = MapItemSavedData.createFresh(spawnLocation.getX(), spawnLocation.getZ(), (byte) 3, false, false, dimension);
             MapId mapId = new MapId(id);
             worldServer.setMapData(mapId, mapItemSavedData);
-            MapIndex mapIndex = worldServer.getServer().getDataStorage().get(MapIndex.TYPE);
+            MapIndex mapIndex = worldServer.getServer().getDataStorage().computeIfAbsent(MapIndex.TYPE);
             if (persistentIdCountsLastMapIdField.getType().equals(AtomicInteger.class)) {
                 AtomicInteger atomicInteger = (AtomicInteger) persistentIdCountsLastMapIdField.get(mapIndex);
                 atomicInteger.getAndUpdate(lastMapId -> Math.max(lastMapId, id));
