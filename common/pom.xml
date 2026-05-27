@@ -26,7 +26,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>2026.1.2.0</version>
+    <version>2026.1.2.1</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -104,6 +104,10 @@
                                 <relocation>
                                     <pattern>org.apache.commons</pattern>
                                     <shadedPattern>com.loohp.imageframe.libs.org.apache.commons</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.jsoup</pattern>
+                                    <shadedPattern>com.loohp.imageframe.libs.org.jsoup</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
@@ -345,6 +349,12 @@
             <groupId>com.twelvemonkeys.imageio</groupId>
             <artifactId>imageio-webp</artifactId>
             <version>3.10.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.22.2</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

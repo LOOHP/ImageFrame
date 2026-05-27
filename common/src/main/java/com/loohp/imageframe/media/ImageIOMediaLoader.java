@@ -21,7 +21,7 @@
 package com.loohp.imageframe.media;
 
 import com.loohp.imageframe.ImageFrame;
-import com.loohp.imageframe.utils.HTTPRequestUtils;
+import com.loohp.imageframe.utils.ImageResolver;
 import net.kyori.adventure.key.Key;
 
 import javax.imageio.ImageIO;
@@ -46,7 +46,7 @@ public class ImageIOMediaLoader implements MediaLoader {
 
     @Override
     public Iterator<MediaFrame> tryLoad(String url) throws Exception {
-        BufferedImage image = ImageIO.read(new ByteArrayInputStream(HTTPRequestUtils.download(url, ImageFrame.maxImageFileSize)));
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(ImageResolver.downloadResolvedImage(url, ImageFrame.maxImageFileSize)));
         if (image == null) {
             throw new IOException("ImageIO cannot read media type in " + url);
         }

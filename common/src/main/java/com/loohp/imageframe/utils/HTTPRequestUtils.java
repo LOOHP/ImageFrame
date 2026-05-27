@@ -23,8 +23,6 @@ package com.loohp.imageframe.utils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-
-import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -39,22 +37,7 @@ public class HTTPRequestUtils {
 
     private static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
-    public static JsonObject getJsonResponse(String link) throws IOException {
-        URL url = new URL(link);
-        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-        connection.setUseCaches(false);
-        connection.setDefaultUseCaches(false);
-        connection.addRequestProperty("User-Agent", "Mozilla/5.0");
-        connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
-        connection.addRequestProperty("Pragma", "no-cache");
-        connection.setConnectTimeout(30000);
-        connection.setReadTimeout(30000);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-            return GSON.fromJson(reader, JsonObject.class);
-        }
-    }
-
-    public static InputStream getInputStream(String link) throws IOException {
+    public static URLConnection openConnection(String link) throws IOException {
         URLConnection connection = new URL(link).openConnection();
         connection.setUseCaches(false);
         connection.setDefaultUseCaches(false);
@@ -63,7 +46,18 @@ public class HTTPRequestUtils {
         connection.addRequestProperty("Pragma", "no-cache");
         connection.setConnectTimeout(30000);
         connection.setReadTimeout(30000);
-        return connection.getInputStream();
+        return connection;
+    }
+
+    public static InputStream getInputStream(String link) throws IOException {
+        return openConnection(link).getInputStream();
+    }
+
+    public static JsonObject getJsonResponse(String link) throws IOException {
+        URLConnection connection = openConnection(link);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+            return GSON.fromJson(reader, JsonObject.class);
+        }
     }
 
     public static byte[] download(String link, long sizeLimit) throws IOException {
@@ -80,14 +74,7 @@ public class HTTPRequestUtils {
 
     public static long getContentSize(String link) {
         try {
-            URLConnection connection = new URL(link).openConnection();
-            connection.setUseCaches(false);
-            connection.setDefaultUseCaches(false);
-            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
-            connection.addRequestProperty("Pragma", "no-cache");
-            connection.setConnectTimeout(30000);
-            connection.setReadTimeout(30000);
+            URLConnection connection = openConnection(link);
             if (connection instanceof HttpURLConnection) {
                 ((HttpURLConnection) connection).setRequestMethod("HEAD");
             }
@@ -99,14 +86,7 @@ public class HTTPRequestUtils {
 
     public static String getContentType(String link) {
         try {
-            URLConnection connection = new URL(link).openConnection();
-            connection.setUseCaches(false);
-            connection.setDefaultUseCaches(false);
-            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.addRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
-            connection.addRequestProperty("Pragma", "no-cache");
-            connection.setConnectTimeout(30000);
-            connection.setReadTimeout(30000);
+            URLConnection connection = openConnection(link);
             if (connection instanceof HttpURLConnection) {
                 ((HttpURLConnection) connection).setRequestMethod("HEAD");
             }

@@ -22,11 +22,10 @@ package com.loohp.imageframe.media;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.utils.GifReader;
-import com.loohp.imageframe.utils.HTTPRequestUtils;
-import net.kyori.adventure.key.Key;
-
+import com.loohp.imageframe.utils.ImageResolver;
 import java.util.Iterator;
 import java.util.List;
+import net.kyori.adventure.key.Key;
 
 public class GifReaderMediaLoader implements MediaLoader {
 
@@ -44,7 +43,7 @@ public class GifReaderMediaLoader implements MediaLoader {
 
     @Override
     public Iterator<MediaFrame> tryLoad(String url) throws Exception {
-        List<GifReader.ImageFrame> frames = GifReader.readGif(HTTPRequestUtils.getInputStream(url), ImageFrame.maxImageFileSize).get();
+        List<GifReader.ImageFrame> frames = GifReader.readGif(ImageResolver.getResolvedImageInputStream(url), ImageFrame.maxImageFileSize).get();
         return frames.stream().map(f -> MediaFrame.animatedFrame(f.getImage(), f.getDelay())).iterator();
     }
 }
