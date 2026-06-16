@@ -27,11 +27,14 @@ public class SizeLimitedByteArrayOutputStream extends ByteArrayOutputStream {
     private final long maxSize;
 
     public SizeLimitedByteArrayOutputStream(long maxSize) {
+        if (maxSize < 0) {
+            throw new IllegalArgumentException("maxSize cannot be negative");
+        }
         this.maxSize = maxSize;
     }
 
     private void ensureSize(int added) {
-        if ((size() + added) > maxSize) {
+        if ((long) size() + added > maxSize) {
             throw new OversizeException("Size exceeded max size of " + maxSize + " bytes");
         }
     }
@@ -44,6 +47,13 @@ public class SizeLimitedByteArrayOutputStream extends ByteArrayOutputStream {
 
     @Override
     public synchronized void write(byte[] b, int off, int len) {
+        if (b == null) {
+            throw new NullPointerException();
+        }
+        if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException();
+        }
+
         ensureSize(len);
         super.write(b, off, len);
     }

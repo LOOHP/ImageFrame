@@ -20,7 +20,7 @@
 
 package com.loohp.imageframe.objectholders;
 
-import com.loohp.imageframe.utils.dithering.FloydSteinbergDithering;
+import com.loohp.imageframe.utils.DitheringUtils;
 import org.bukkit.map.MapPalette;
 
 import java.awt.image.BufferedImage;
@@ -35,7 +35,11 @@ public class DitheringType {
 
     @SuppressWarnings("removal")
     public static final DitheringType NEAREST_COLOR = register(new DitheringType("nearest-color", image -> MapPalette.imageToBytes(image)));
-    public static final DitheringType FLOYD_STEINBERG = register(new DitheringType("floyd-steinberg", image -> FloydSteinbergDithering.floydSteinbergDithering(image)));
+    public static final DitheringType FLOYD_STEINBERG = register(new DitheringType("floyd-steinberg", image -> DitheringUtils.floydSteinbergDithering(image)));
+    public static final DitheringType ATKINSON = register(new DitheringType("atkinson", image -> DitheringUtils.atkinsonDithering(image)));
+    public static final DitheringType ORDERED_BAYER_4X4 = register(new DitheringType("ordered-bayer-4x4", image -> DitheringUtils.orderedBayer4x4Dithering(image)));
+    public static final DitheringType ORDERED_BAYER_8X8 = register(new DitheringType("ordered-bayer-8x8", image -> DitheringUtils.orderedBayer8x8Dithering(image)));
+    public static final DitheringType SIERRA_LITE = register(new DitheringType("sierra-lite", image -> DitheringUtils.sierraLiteDithering(image)));
 
     public static DitheringType register(DitheringType ditheringType) {
         REGISTERED_TYPES.put(ditheringType.getName(), ditheringType);
