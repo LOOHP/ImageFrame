@@ -32,7 +32,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -46,8 +45,6 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 import org.bukkit.util.RayTraceResult;
@@ -110,21 +107,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             }
             Vector hitPosition = result.getHitPosition();
             ItemStack itemStack = itemFrame.getItem();
-            if (itemStack == null || itemStack.getType().equals(Material.AIR)) {
-                continue;
-            }
-            if (!itemStack.hasItemMeta()) {
-                continue;
-            }
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            if (!(itemMeta instanceof MapMeta)) {
-                continue;
-            }
-            MapMeta mapMeta = (MapMeta) itemMeta;
-            if (!mapMeta.hasMapView()) {
-                continue;
-            }
-            MapView mapView = mapMeta.getMapView();
+            MapView mapView = MapUtils.getItemMapView(itemStack);
             if (mapView == null) {
                 continue;
             }
@@ -194,21 +177,7 @@ public class MapMarkerEditManager implements Listener, AutoCloseable {
             return;
         }
         ItemStack itemStack = itemFrame.getItem();
-        if (itemStack == null || itemStack.getType().equals(Material.AIR)) {
-            return;
-        }
-        if (!itemStack.hasItemMeta()) {
-            return;
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (!(itemMeta instanceof MapMeta)) {
-            return;
-        }
-        MapMeta mapMeta = (MapMeta) itemMeta;
-        if (!mapMeta.hasMapView()) {
-            return;
-        }
-        MapView mapView = mapMeta.getMapView();
+        MapView mapView = MapUtils.getItemMapView(itemStack);
         if (mapView == null) {
             return;
         }
