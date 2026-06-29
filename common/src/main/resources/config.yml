@@ -104,7 +104,7 @@ InvisibleFrame:
 #Which storage system should ImageFrame use
 #Changing this section requires a restart
 Storage:
-  #Supported storage systems: file (Default), jdbc
+  #Supported storage systems: file (Default), jdbc (Currently only supports MYSQL dialect)
   Type: file
   #Options are only used if the storage system type requires it, such as jdbc
   Options:
