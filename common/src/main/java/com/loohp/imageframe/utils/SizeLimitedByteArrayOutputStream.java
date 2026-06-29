@@ -21,6 +21,7 @@
 package com.loohp.imageframe.utils;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Objects;
 
 public class SizeLimitedByteArrayOutputStream extends ByteArrayOutputStream {
 
@@ -34,7 +35,7 @@ public class SizeLimitedByteArrayOutputStream extends ByteArrayOutputStream {
     }
 
     private void ensureSize(int added) {
-        if ((long) size() + added > maxSize) {
+        if ((long) count + added > maxSize) {
             throw new OversizeException("Size exceeded max size of " + maxSize + " bytes");
         }
     }
@@ -47,13 +48,7 @@ public class SizeLimitedByteArrayOutputStream extends ByteArrayOutputStream {
 
     @Override
     public synchronized void write(byte[] b, int off, int len) {
-        if (b == null) {
-            throw new NullPointerException();
-        }
-        if (off < 0 || len < 0 || len > b.length - off) {
-            throw new IndexOutOfBoundsException();
-        }
-
+        Objects.checkFromIndexSize(off, len, b.length);
         ensureSize(len);
         super.write(b, off, len);
     }

@@ -325,7 +325,7 @@ public class V1_21_9 extends NMSWrapper {
             return null;
         }
         NBTTagCompound tag = customData.b();
-        if (!tag.b(CombinedMapItemInfo.KEY)) {
+        if (!tag.b(FilledMapItemInfo.KEY)) {
             return null;
         }
         int imageMapIndex = tag.b(FilledMapItemInfo.KEY, -1);
@@ -339,7 +339,7 @@ public class V1_21_9 extends NMSWrapper {
         CustomData customData = nmsItemStack.a(DataComponents.b, CustomData.a);
         NBTTagCompound tag = customData.b();
         tag.a(FilledMapItemInfo.KEY, filledMapItemInfo.getImageMapIndex());
-        tag.a(FilledMapItemInfo.INDEX_KEY, filledMapItemInfo.getImageMapIndex());
+        tag.a(FilledMapItemInfo.INDEX_KEY, filledMapItemInfo.getMapPartIndex());
         nmsItemStack.b(DataComponentPatch.a().a(DataComponents.b, CustomData.a(tag)).a());
         return CraftItemStack.asCraftMirror(nmsItemStack);
     }

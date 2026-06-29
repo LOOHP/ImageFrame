@@ -100,6 +100,10 @@ public class MapUtils {
         return Bukkit.getWorlds().get(0);
     }
 
+    public static boolean isFilledMap(ItemStack itemStack) {
+        return itemStack != null && itemStack.getType().equals(Material.FILLED_MAP);
+    }
+
     public static void sendImageMap(MapView mapView, Collection<? extends Player> players) {
         sendImageMap(mapView.getId(), mapView, -1, players, null);
     }
@@ -219,7 +223,7 @@ public class MapUtils {
     }
 
     public static MapView getItemMapView(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().equals(Material.AIR) || !itemStack.hasItemMeta()) {
+        if (!isFilledMap(itemStack) || !itemStack.hasItemMeta()) {
             return null;
         }
         ItemMeta meta = itemStack.getItemMeta();
@@ -286,7 +290,7 @@ public class MapUtils {
         }
         Vector hitPosition = rayTraceResult.getHitPosition();
         ItemStack itemStack = itemFrame.getItem();
-        if (itemStack == null || itemStack.getType().equals(Material.AIR) || !itemStack.hasItemMeta()) {
+        if (!isFilledMap(itemStack) || !itemStack.hasItemMeta()) {
             return null;
         }
         ItemMeta itemMeta = itemStack.getItemMeta();

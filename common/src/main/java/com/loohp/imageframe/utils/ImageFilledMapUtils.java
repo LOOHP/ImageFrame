@@ -72,10 +72,14 @@ public class ImageFilledMapUtils {
             }
         } else {
             ImageMap imageMap = ImageFrame.imageMapManager.getFromImageId(info.getImageMapIndex());
-            MapView correctMapView = imageMap.getMapViews().get(info.getMapPartIndex());
-            if (mapView == null || correctMapView.getId() != mapView.getId()) {
-                mapMeta.setMapView(correctMapView);
-                itemStack.setItemMeta(mapMeta);
+            if (imageMap == null || info.getMapPartIndex() < 0 || info.getMapPartIndex() >= imageMap.getMapViews().size()) {
+                return new ItemStack(Material.MAP, itemStack.getAmount());
+            } else {
+                MapView correctMapView = imageMap.getMapViews().get(info.getMapPartIndex());
+                if (mapView == null || correctMapView.getId() != mapView.getId()) {
+                    mapMeta.setMapView(correctMapView);
+                    itemStack.setItemMeta(mapMeta);
+                }
             }
         }
         return null;
