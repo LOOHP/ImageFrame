@@ -221,7 +221,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sendMessage(sender, translatable(DUPLICATE_MAP_NAME).color(NamedTextColor.RED));
                                     return true;
                                 }
-                                if (!ImageFrame.isURLAllowed(args[2])) {
+                                String requestedUrl = stripMatchingQuotes(args[2]);
+                                if (!ImageFrame.isURLAllowed(requestedUrl)) {
                                     sendMessage(sender, translatable(URL_RESTRICTED).color(NamedTextColor.RED));
                                     return true;
                                 }
@@ -238,7 +239,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     ImageMapCreationTask<ImageMap> creationTask = null;
                                     String url = "Pending...";
                                     try {
-                                        url = args[2];
+                                        url = requestedUrl;
                                         if (ImageFrame.imageUploadManager.isOperational() && url.equalsIgnoreCase("upload")) {
                                             UUID user = isConsole ? ImageMap.CONSOLE_CREATOR : player.getUniqueId();
                                             String playerName = isConsole ? ImageMap.CONSOLE_CREATOR_NAME : player.getName();
@@ -394,7 +395,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     Scheduler.runTaskAsynchronously(ImageFrame.plugin, () -> {
                                         ImageMapCreationTask<ImageMap> creationTask = null;
                                         try {
-                                            String url = args[2];
+                                            String url = stripMatchingQuotes(args[2]);
                                             if (ImageFrame.imageUploadManager.isOperational() && url.equalsIgnoreCase("upload")) {
                                                 PendingUpload pendingUpload = ImageFrame.imageUploadManager.newPendingUpload(player.getUniqueId(), player.getName(), name, width, height);
                                                 String uploadUrl = pendingUpload.getUrl(ImageFrame.uploadServiceDisplayURL);
@@ -796,12 +797,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (imageMap == null) {
                             ditheringType = DitheringType.fromNameOrNull(args[1].toLowerCase());
                             if (ditheringType == null) {
-                                url = args[1];
+                                url = stripMatchingQuotes(args[1]);
                             }
                         } else if (args.length > 2) {
                             ditheringType = DitheringType.fromNameOrNull(args[2].toLowerCase());
                             if (ditheringType == null) {
-                                url = args[2];
+                                url = stripMatchingQuotes(args[2]);
                             }
                         }
                     }
@@ -2247,6 +2248,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 return tab;
         }
+    }
+
+    private static String stripMatchingQuotes(String str) {
+        if (str.length() < 2) {
+            return str;
+        }
+        char first = str.charAt(0);
+        char last = str.charAt(str.length() - 1);
+        if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+            return str.substring(1, str.length() - 1);
+        }
+        return str;
     }
 
 }
