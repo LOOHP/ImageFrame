@@ -40,6 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.URL;
@@ -212,12 +213,31 @@ public class ImageUploadManager implements AutoCloseable {
         return message;
     }
 
+    private void sendHttpResponse(HttpExchange exchange, int statusCode, byte[] response) {
+        try {
+            exchange.sendResponseHeaders(statusCode, response == null ? -1 : response.length);
+            if (response != null) {
+                try (OutputStream responseBody = exchange.getResponseBody()) {
+                    responseBody.write(response);
+                }
+            }
+        } catch (IOException e) {
+            debugHttpException(exchange, "send response", e);
+        }
+    }
+
+    private void debugHttpException(HttpExchange exchange, String action, IOException exception) {
+        if (ImageFrame.debugLogging) {
+            new IOException("Unable to " + action + " for HTTP client " + exchange.getRemoteAddress(), exception).printStackTrace();
+        }
+    }
+
     private class FileHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             try {
                 if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
-                    exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    sendHttpResponse(exchange, 405, null); // Method Not Allowed
                     return;
                 }
                 if (!webRootDir.exists()) {
@@ -266,9 +286,7 @@ public class ImageUploadManager implements AutoCloseable {
                     bytes = outputStream.toByteArray();
                 }
 
-                exchange.sendResponseHeaders(200, bytes.length);
-                exchange.getResponseBody().write(bytes);
-                exchange.getResponseBody().close();
+                sendHttpResponse(exchange, 200, bytes);
             } catch (Throwable e) {
                 e.printStackTrace();
             } finally {
@@ -282,7 +300,7 @@ public class ImageUploadManager implements AutoCloseable {
         public void handle(HttpExchange exchange) throws IOException {
             try {
                 if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
-                    exchange.sendResponseHeaders(405, -1);
+                    sendHttpResponse(exchange, 405, null);
                     return;
                 }
 
@@ -332,6 +350,9 @@ public class ImageUploadManager implements AutoCloseable {
                             nextPart = multipartStream.readBoundary();
                         }
                     }
+                } catch (IOException e) {
+                    debugHttpException(exchange, "read upload request", e);
+                    return;
                 }
                 byte[] fileData = output.toByteArray();
 
@@ -356,11 +377,9 @@ public class ImageUploadManager implements AutoCloseable {
         }
 
         // Send JSON response
-        private void sendResponse(HttpExchange exchange, int statusCode, String message) throws IOException {
+        private void sendResponse(HttpExchange exchange, int statusCode, String message) {
             exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(statusCode, message.length());
-            exchange.getResponseBody().write(message.getBytes(StandardCharsets.UTF_8));
-            exchange.getResponseBody().close();
+            sendHttpResponse(exchange, statusCode, message.getBytes(StandardCharsets.UTF_8));
         }
     }
 
