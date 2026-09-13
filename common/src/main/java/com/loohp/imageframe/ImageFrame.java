@@ -97,6 +97,8 @@ public class ImageFrame extends JavaPlugin {
 
     public static String language;
 
+    public static boolean downloadLanguagesOnStartup;
+
     public static SimpleDateFormat dateFormat;
 
     public static String mapItemFormat;
@@ -325,6 +327,7 @@ public class ImageFrame extends JavaPlugin {
         viaDisableSmoothAnimationForLegacyPlayers = config.getConfiguration().getBoolean("Hooks.ViaVersion.DisableSmoothAnimationForLegacyPlayers");
 
         language = config.getConfiguration().getString("Settings.Language");
+        downloadLanguagesOnStartup = config.getConfiguration().getBoolean("Settings.DownloadLanguagesOnStartup");
 
         dateFormat = new SimpleDateFormat(config.getConfiguration().getString("Settings.DateFormat"));
 
