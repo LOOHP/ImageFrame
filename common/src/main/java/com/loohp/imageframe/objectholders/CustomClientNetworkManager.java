@@ -122,11 +122,13 @@ public class CustomClientNetworkManager implements PluginMessageListener, Listen
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        Scheduler.runTaskLater(ImageFrame.plugin, () -> {
-            if (player.isOnline()) {
-                sendAcknowledgement(player);
-            }
-        }, 40);
+        for (int i = 1; i <= 5; i++) {
+            Scheduler.runTaskLater(ImageFrame.plugin, () -> {
+                if (player.isOnline() && !hasPlayer(player.getUniqueId())) {
+                    sendAcknowledgement(player);
+                }
+            }, 40 * i);
+        }
     }
 
     @EventHandler
