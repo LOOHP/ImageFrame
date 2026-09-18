@@ -26,7 +26,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>2026.1.4.3</version>
+    <version>2026.1.5.0</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -540,6 +540,12 @@
         <dependency>
             <groupId>com.loohp</groupId>
             <artifactId>ImageFrame-V26_2</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.loohp</groupId>
+            <artifactId>ImageFrame-V26_3</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
