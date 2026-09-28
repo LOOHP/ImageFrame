@@ -29,6 +29,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -62,6 +63,9 @@ public class PlayerUtils {
     }
 
     public static boolean isInteractionAllowed(Player player, Entity entity) {
+        if (entity instanceof ItemFrame && ((ItemFrame) entity).isFixed()) {
+            return false;
+        }
         PlayerInteractEntityEvent event = new PlayerInteractEntityEvent(player, entity);
         Bukkit.getPluginManager().callEvent(event);
         return !event.isCancelled();
@@ -69,6 +73,9 @@ public class PlayerUtils {
 
     @SuppressWarnings("removal")
     public static boolean isDamageAllowed(Player player, Entity entity) {
+        if (entity instanceof ItemFrame && ((ItemFrame) entity).isFixed()) {
+            return false;
+        }
         EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, entity, EntityDamageEvent.DamageCause.CUSTOM, 1.0);
         Bukkit.getPluginManager().callEvent(event);
         return !event.isCancelled();
