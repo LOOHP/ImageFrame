@@ -22,6 +22,7 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
+import com.loohp.imageframe.hooks.bedrock.GeyserHook;
 import com.loohp.imageframe.hooks.viaversion.ViaHook;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.FakeItemUtils;
@@ -199,6 +200,10 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
             Set<Player> needReset = new HashSet<>();
             for (Iterator<Player> itr = players.iterator(); itr.hasNext();) {
                 Player player = itr.next();
+                if (isSmoothAnimationDisabledForBedrockPlayer(player)) {
+                    itr.remove();
+                    continue;
+                }
                 MapMarkerEditManager.MapMarkerEditData edit = ImageFrame.mapMarkerEditManager.getActiveEditing(player);
                 if (edit != null && Objects.equals(edit.getImageMap(), imageMap)) {
                     needReset.add(player);
@@ -247,7 +252,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
                             sendingTasks.computeIfAbsent(player, k -> new ArrayList<>()).add(() -> MapUtils.sendImageMap(data.getRealMapId(), data.getMapView(), data.getCurrentPosition(), Collections.singleton(player), true));
                         }
                     }
-                } else {
+                } else if (!isSmoothAnimationDisabledForBedrockPlayer(player)) {
                     sendingTasks.computeIfAbsent(player, k -> new ArrayList<>()).add(() -> FakeItemUtils.sendFakeItemChange(player, entry.getValue()));
                 }
             }
@@ -279,6 +284,10 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
         } else {
             sendingTasks.values().forEach(l -> l.forEach(Runnable::run));
         }
+    }
+
+    private boolean isSmoothAnimationDisabledForBedrockPlayer(Player player) {
+        return ImageFrame.geyserHook && ImageFrame.bedrockDisableSmoothAnimationForBedrockPlayers && GeyserHook.isBedrockPlayer(player);
     }
 
     @SuppressWarnings("deprecation")

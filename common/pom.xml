@@ -26,7 +26,7 @@
 
     <groupId>com.loohp</groupId>
     <artifactId>ImageFrame</artifactId>
-    <version>2026.1.5.0</version>
+    <version>2026.1.5.1</version>
     <packaging>jar</packaging>
 
     <name>ImageFrame</name>
@@ -260,6 +260,10 @@
             <url>https://repo.extendedclip.com/releases/</url>
         </repository>
         <repository>
+            <id>opencollab-snapshot</id>
+            <url>https://repo.opencollab.dev/main/</url>
+        </repository>
+        <repository>
             <id>maven_central</id>
             <name>Maven Central</name>
             <url>https://repo.maven.apache.org/maven2/</url>
@@ -332,6 +336,12 @@
             <artifactId>animated-gif-lib</artifactId>
             <version>1.4</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.geysermc.geyser</groupId>
+            <artifactId>api</artifactId>
+            <version>2.11.2-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>dev.folia</groupId>

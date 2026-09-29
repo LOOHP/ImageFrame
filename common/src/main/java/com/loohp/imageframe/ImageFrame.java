@@ -90,6 +90,9 @@ public class ImageFrame extends JavaPlugin {
     public static boolean viaHook = false;
     public static boolean viaDisableSmoothAnimationForLegacyPlayers = false;
 
+    public static boolean geyserHook = false;
+    public static boolean bedrockDisableSmoothAnimationForBedrockPlayers = false;
+
     public static boolean debugLogging;
 
     public static boolean updaterEnabled;
@@ -261,6 +264,10 @@ public class ImageFrame extends JavaPlugin {
             getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "[ImageFrame] ImageFrame has hooked into ViaVersion!");
             viaHook = true;
         }
+        if (isPluginEnabled("Geyser-Spigot")) {
+            getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "[ImageFrame] ImageFrame has hooked into Geyser!");
+            geyserHook = true;
+        }
 
         getServer().getPluginManager().registerEvents(new Debug(), this);
         getServer().getPluginManager().registerEvents(new Updater(), this);
@@ -323,6 +330,7 @@ public class ImageFrame extends JavaPlugin {
         config.reload();
 
         viaDisableSmoothAnimationForLegacyPlayers = config.getConfiguration().getBoolean("Hooks.ViaVersion.DisableSmoothAnimationForLegacyPlayers");
+        bedrockDisableSmoothAnimationForBedrockPlayers = config.getConfiguration().getBoolean("Hooks.Geyser.DisableSmoothAnimationForBedrockPlayers");
 
         language = config.getConfiguration().getString("Settings.Language");
 

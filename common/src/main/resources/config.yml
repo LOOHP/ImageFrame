@@ -118,6 +118,9 @@ Hooks:
   ViaVersion:
     #Enable this if your players below 1.13 is having network issues
     DisableSmoothAnimationForLegacyPlayers: false
+  Geyser:
+    #Enable this if your players on Bedrock are having a poor experience near animated imagemaps
+    DisableSmoothAnimationForBedrockPlayers: false
 
 DebugLogging: false
 
