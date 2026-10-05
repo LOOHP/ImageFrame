@@ -281,7 +281,10 @@ public class Events implements Listener {
             return;
         }
         Chunk chunk = event.getChunk();
-        Scheduler.executeOrScheduleSync(ImageFrame.plugin, () -> {
+        Scheduler.runTaskLater(ImageFrame.plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
+            }
             for (Entity entity : chunk.getEntities()) {
                 if (entity instanceof ItemFrame) {
                     ItemFrame itemFrame = (ItemFrame) entity;
@@ -294,7 +297,7 @@ public class Events implements Listener {
                     }
                 }
             }
-        }, chunk);
+        }, 1, chunk);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

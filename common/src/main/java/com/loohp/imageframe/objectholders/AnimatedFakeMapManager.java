@@ -323,12 +323,18 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkLoad(ChunkLoadEvent event) {
+        if (ModernEventsUtils.modernEventsExists()) {
+            return;
+        }
         Chunk chunk = event.getChunk();
-        Scheduler.executeOrScheduleSync(ImageFrame.plugin, () -> {
+        Scheduler.runTaskLater(ImageFrame.plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
+            }
             for (Entity entity : chunk.getEntities()) {
                 handleEntity(entity);
             }
-        }, chunk);
+        }, 1, chunk);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
