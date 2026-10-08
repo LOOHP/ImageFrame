@@ -22,7 +22,7 @@ package com.loohp.imageframe.objectholders;
 
 import com.loohp.imageframe.ImageFrame;
 import com.loohp.imageframe.api.events.ImageMapUpdatedEvent;
-import com.loohp.imageframe.hooks.bedrock.GeyserHook;
+import com.loohp.imageframe.hooks.bedrock.BedrockHook;
 import com.loohp.imageframe.hooks.viaversion.ViaHook;
 import com.loohp.imageframe.nms.NMS;
 import com.loohp.imageframe.utils.FakeItemUtils;
@@ -287,7 +287,7 @@ public class AnimatedFakeMapManager implements Listener, Runnable {
     }
 
     private boolean isSmoothAnimationDisabledForBedrockPlayer(Player player) {
-        return ImageFrame.geyserHook && ImageFrame.bedrockDisableSmoothAnimationForBedrockPlayers && GeyserHook.isBedrockPlayer(player);
+        return ImageFrame.bedrockHook && ImageFrame.bedrockDisableSmoothAnimationForBedrockPlayers && BedrockHook.isBedrockPlayer(player.getUniqueId());
     }
 
     @SuppressWarnings("deprecation")

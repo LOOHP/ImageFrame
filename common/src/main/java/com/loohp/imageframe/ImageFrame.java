@@ -22,6 +22,9 @@ package com.loohp.imageframe;
 
 import com.loohp.imageframe.config.Config;
 import com.loohp.imageframe.debug.Debug;
+import com.loohp.imageframe.hooks.bedrock.BedrockHook;
+import com.loohp.imageframe.hooks.bedrock.floodgate.FloodgateHookPlatform;
+import com.loohp.imageframe.hooks.bedrock.geyser.GeyserHookPlatform;
 import com.loohp.imageframe.invisibleframe.InvisibleFrameManager;
 import com.loohp.imageframe.language.LanguageManager;
 import com.loohp.imageframe.listeners.Events;
@@ -56,16 +59,6 @@ import com.loohp.imageframe.utils.ModernEventsUtils;
 import com.loohp.platformscheduler.ScheduledTask;
 import com.loohp.platformscheduler.Scheduler;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
-import net.kyori.adventure.key.Key;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
-
-import javax.imageio.ImageIO;
-import javax.imageio.spi.IIORegistry;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -75,6 +68,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
+import javax.imageio.spi.IIORegistry;
+import net.kyori.adventure.key.Key;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public class ImageFrame extends JavaPlugin {
 
@@ -90,7 +92,7 @@ public class ImageFrame extends JavaPlugin {
     public static boolean viaHook = false;
     public static boolean viaDisableSmoothAnimationForLegacyPlayers = false;
 
-    public static boolean geyserHook = false;
+    public static boolean bedrockHook = false;
     public static boolean bedrockDisableSmoothAnimationForBedrockPlayers = false;
 
     public static boolean debugLogging;
@@ -264,9 +266,15 @@ public class ImageFrame extends JavaPlugin {
             getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "[ImageFrame] ImageFrame has hooked into ViaVersion!");
             viaHook = true;
         }
-        if (isPluginEnabled("Geyser-Spigot")) {
-            getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "[ImageFrame] ImageFrame has hooked into Geyser!");
-            geyserHook = true;
+        if (isPluginEnabled("Geyser-Spigot") || isPluginEnabled("floodgate")) {
+            if (isPluginEnabled("floodgate")) {
+                getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "[ImageFrame] ImageFrame has hooked into Floodgate!");
+                BedrockHook.setBedrockHookPlatform(new FloodgateHookPlatform());
+            } else {
+                getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "[ImageFrame] ImageFrame has hooked into Geyser!");
+                BedrockHook.setBedrockHookPlatform(new GeyserHookPlatform());
+            }
+            bedrockHook = true;
         }
 
         getServer().getPluginManager().registerEvents(new Debug(), this);
