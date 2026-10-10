@@ -744,7 +744,7 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
         }
 
         @Override
-        public <T> T load(Reader<T> reader) throws IOException {
+        public <T> T load(Loader<T> loader) throws IOException {
             String sql = "SELECT IMAGE FROM IMAGE_MAP_IMAGES WHERE IMAGE_INDEX = ? AND FILE_NAME = ?";
             try (
                 Connection connection = storage.getDataSource().getConnection();
@@ -761,7 +761,32 @@ public class JdbcImageFrameStorage implements ImageFrameStorage {
                         return null;
                     }
                     ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
-                    return reader.read(inputStream);
+                    return loader.load(inputStream);
+                }
+            } catch (SQLException e) {
+                throw new IOException("Unable to load image data for imageIndex=" + imageIndex + ", fileName=" + fileName, e);
+            }
+        }
+
+        @Override
+        public void read(Reader reader) throws IOException {
+            String sql = "SELECT IMAGE FROM IMAGE_MAP_IMAGES WHERE IMAGE_INDEX = ? AND FILE_NAME = ?";
+            try (
+                Connection connection = storage.getDataSource().getConnection();
+                PreparedStatement ps = connection.prepareStatement(sql);
+            ) {
+                ps.setInt(1, imageIndex);
+                ps.setString(2, fileName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        return;
+                    }
+                    byte[] bytes = rs.getBytes("IMAGE");
+                    if (bytes == null || bytes.length == 0) {
+                        return;
+                    }
+                    ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+                    reader.read(inputStream);
                 }
             } catch (SQLException e) {
                 throw new IOException("Unable to load image data for imageIndex=" + imageIndex + ", fileName=" + fileName, e);

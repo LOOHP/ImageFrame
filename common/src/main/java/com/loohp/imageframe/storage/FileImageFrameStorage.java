@@ -317,11 +317,20 @@ public class FileImageFrameStorage implements ImageFrameStorage {
         }
 
         @Override
-        public <T> T load(Reader<T> reader) throws IOException {
+        public <T> T load(Loader<T> loader) throws IOException {
             File folder = new File(storage.imageMapFolder, String.valueOf(imageIndex));
             File file = new File(folder, fileName);
             try (InputStream inputStream = Files.newInputStream(file.toPath())) {
-                return reader.read(inputStream);
+                return loader.load(inputStream);
+            }
+        }
+
+        @Override
+        public void read(Reader reader) throws IOException {
+            File folder = new File(storage.imageMapFolder, String.valueOf(imageIndex));
+            File file = new File(folder, fileName);
+            try (InputStream inputStream = Files.newInputStream(file.toPath())) {
+                reader.read(inputStream);
             }
         }
 

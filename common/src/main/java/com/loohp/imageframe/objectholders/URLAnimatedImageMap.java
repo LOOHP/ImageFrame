@@ -32,6 +32,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 
+import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
@@ -72,50 +73,43 @@ public class URLAnimatedImageMap extends URLImageMap {
         byte[][][] cachedColors = new byte[cachedImages.length][][];
         int[][] fakeMapIds = new int[cachedColors.length][];
         Set<Integer> fakeMapIdsSet = new HashSet<>();
-        BufferedImage[] combined = new BufferedImage[cachedImages[0].length];
-        for (int i = 0; i < combined.length; i++) {
-            combined[i] = new BufferedImage(width * MapUtils.MAP_WIDTH, height * MapUtils.MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
+        int frames = cachedImages[0].length;
+        for (int i = 0; i < cachedImages.length; i++) {
+            cachedColors[i] = new byte[frames][];
+            fakeMapIds[i] = new int[frames];
+            Arrays.fill(fakeMapIds[i], -1);
         }
-        Graphics2D[] g = Arrays.stream(combined).map(i -> i.createGraphics()).toArray(Graphics2D[]::new);
-        int index = 0;
-        for (LazyMappedBufferedImage[] images : cachedImages) {
-            int f = 0;
-            for (LazyMappedBufferedImage image : images) {
-                //noinspection SuspiciousNameCombination
-                g[f++].drawImage(image.get(), (index % width) * MapUtils.MAP_WIDTH, (index / width) * MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH, null);
+        byte[][] lastDistinctFrames = new byte[cachedImages.length][];
+        BufferedImage combined = new BufferedImage(width * MapUtils.MAP_WIDTH, height * MapUtils.MAP_WIDTH, BufferedImage.TYPE_INT_ARGB);
+        for (int u = 0; u < frames; u++) {
+            Graphics2D g = combined.createGraphics();
+            g.setComposite(AlphaComposite.Clear);
+            g.fillRect(0, 0, combined.getWidth(), combined.getHeight());
+            g.dispose();
+            for (int i = 0; i < cachedImages.length; i++) {
+                cachedImages[i][u].drawInto(combined, (i % width) * MapUtils.MAP_WIDTH, (i / width) * MapUtils.MAP_WIDTH);
             }
-            index++;
-        }
-        for (Graphics2D g2 : g) {
-            g2.dispose();
-        }
-        byte[][] combinedData = new byte[combined.length][];
-        for (int i = 0; i < combined.length; i++) {
-            combinedData[i] = MapUtils.toMapPaletteBytes(combined[i], ditheringType);
-        }
-        int i = 0;
-        for (LazyMappedBufferedImage[] images : cachedImages) {
-            byte[][] data = new byte[images.length][];
-            int[] mapIds = new int[data.length];
-            Arrays.fill(mapIds, -1);
-            byte[] lastDistinctFrame = null;
-            for (int u = 0; u < images.length; u++) {
+            byte[] combinedData = MapUtils.toMapPaletteBytes(combined, ditheringType);
+            for (int i = 0; i < cachedImages.length; i++) {
                 byte[] b = new byte[MapUtils.MAP_WIDTH * MapUtils.MAP_WIDTH];
                 for (int y = 0; y < MapUtils.MAP_WIDTH; y++) {
                     int offset = ((i / width) * MapUtils.MAP_WIDTH + y) * (width * MapUtils.MAP_WIDTH) + ((i % width) * MapUtils.MAP_WIDTH);
-                    System.arraycopy(combinedData[u], offset, b, y * MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH);
+                    System.arraycopy(combinedData, offset, b, y * MapUtils.MAP_WIDTH, MapUtils.MAP_WIDTH);
                 }
-                if (u == 0 || !Arrays.equals(b, lastDistinctFrame)) {
-                    data[u] = b;
-                    int mapId = ImageMapManager.getNextFakeMapId();
-                    mapIds[u] = mapId;
-                    fakeMapIdsSet.add(mapId);
-                    lastDistinctFrame = b;
+                if (u == 0 || !Arrays.equals(b, lastDistinctFrames[i])) {
+                    cachedColors[i][u] = b;
+                    lastDistinctFrames[i] = b;
                 }
             }
-            cachedColors[i] = data;
-            fakeMapIds[i] = mapIds;
-            i++;
+        }
+        for (int i = 0; i < cachedColors.length; i++) {
+            for (int u = 0; u < cachedColors[i].length; u++) {
+                if (cachedColors[i][u] != null) {
+                    int mapId = ImageMapManager.getNextFakeMapId();
+                    fakeMapIds[i][u] = mapId;
+                    fakeMapIdsSet.add(mapId);
+                }
+            }
         }
         this.cachedColors = cachedColors;
         this.fakeMapIds = fakeMapIds;

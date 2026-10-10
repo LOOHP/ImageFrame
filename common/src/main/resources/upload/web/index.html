@@ -242,12 +242,12 @@
                 selectedFile = file;
                 uploadBtn.disabled = false;
 
-                const reader = new FileReader();
-                reader.onload = function(e) {
+                const loader = new FileReader();
+                loader.onload = function(e) {
                     imagePreview.src = e.target.result;
                     imagePreview.style.display = "block";
                 };
-                reader.readAsDataURL(file);
+                loader.readAsDataURL(file);
             } else {
                 alert(formatsAllowed);
                 fileInput.value = "";

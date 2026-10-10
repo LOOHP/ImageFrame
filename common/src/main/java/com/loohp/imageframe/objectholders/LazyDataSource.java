@@ -26,7 +26,9 @@ import java.io.OutputStream;
 
 public interface LazyDataSource {
 
-    <T> T load(Reader<T> reader) throws IOException;
+    <T> T load(Loader<T> loader) throws IOException;
+
+    void read(Reader reader) throws IOException;
 
     void save(Writer writer) throws IOException;
 
@@ -35,8 +37,13 @@ public interface LazyDataSource {
     LazyDataSource withFileName(String fileName);
 
     @FunctionalInterface
-    interface Reader<T> {
-        T read(InputStream inputStream) throws IOException;
+    interface Loader<T> {
+        T load(InputStream inputStream) throws IOException;
+    }
+
+    @FunctionalInterface
+    interface Reader {
+        void read(InputStream inputStream) throws IOException;
     }
 
     @FunctionalInterface

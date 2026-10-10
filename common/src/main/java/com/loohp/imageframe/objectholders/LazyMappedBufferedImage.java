@@ -36,4 +36,6 @@ public interface LazyMappedBufferedImage {
 
     BufferedImage getIfLoaded();
 
+    void drawInto(BufferedImage destination, int x, int y);
+
 }

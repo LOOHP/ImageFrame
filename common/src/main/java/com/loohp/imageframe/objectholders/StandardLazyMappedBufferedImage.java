@@ -20,17 +20,46 @@
 
 package com.loohp.imageframe.objectholders;
 
-import javax.imageio.ImageIO;
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.Iterator;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage {
 
-    private static final LazyDataSource.Reader<BufferedImage> IMAGE_READER = in -> ImageIO.read(in);
+    protected static LazyDataSource.Loader<BufferedImage> imageLoader() {
+        return in -> ImageIO.read(in);
+    }
 
-    protected static LazyDataSource.Reader<BufferedImage> imageReader() {
-        return IMAGE_READER;
+    protected static LazyDataSource.Reader imageReader(BufferedImage destination, int x, int y) {
+        return input -> {
+            try (ImageInputStream imageInput = ImageIO.createImageInputStream(input)) {
+                if (imageInput == null) {
+                    throw new IOException("Unable to create image input stream");
+                }
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
+                if (!readers.hasNext()) {
+                    throw new IOException("No ImageIO reader found for image");
+                }
+                ImageReader reader = readers.next();
+                try {
+                    reader.setInput(imageInput, true, true);
+                    ImageReadParam param = reader.getDefaultReadParam();
+                    param.setDestination(destination);
+                    param.setDestinationOffset(new Point(x, y));
+                    reader.read(0, param);
+                } finally {
+                    reader.dispose();
+                }
+            }
+        };
     }
 
     protected static LazyDataSource.Writer imageWriter(BufferedImage image) {
@@ -119,7 +148,7 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
             return image;
         }
         try {
-            image = source.load(imageReader());
+            image = source.load(imageLoader());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -132,7 +161,27 @@ public class StandardLazyMappedBufferedImage implements LazyMappedBufferedImage 
         if (strongReference != null) {
             return strongReference;
         }
-        return weakReference.get();
+        return weakReference == null ? null : weakReference.get();
+    }
+
+    @Override
+    public synchronized void drawInto(BufferedImage destination, int x, int y) {
+        BufferedImage loaded = getIfLoaded();
+        if (loaded == null) {
+            try {
+                source.read(imageReader(destination, x, y));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            Graphics2D g2 = destination.createGraphics();
+            try {
+                g2.setComposite(AlphaComposite.Src);
+                g2.drawImage(loaded, x, y, null);
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 
 }
