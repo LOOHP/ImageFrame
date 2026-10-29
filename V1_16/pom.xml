@@ -2,8 +2,8 @@
 <!--
   ~ This file is part of ImageFrame.
   ~
-  ~ Copyright (C) 2025. LoohpJames <jamesloohp@gmail.com>
-  ~ Copyright (C) 2025. Contributors
+  ~ Copyright (C) 2026. LoohpJames <jamesloohp@gmail.com>
+  ~ Copyright (C) 2026. Contributors
   ~
   ~ This program is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
     <parent>
         <groupId>com.loohp</groupId>
         <artifactId>ImageFrame-Parent</artifactId>
-        <version>2026.1.5.4</version>
+        <version>2026.1.5.5</version>
     </parent>
 
     <artifactId>ImageFrame-V1_16</artifactId>
