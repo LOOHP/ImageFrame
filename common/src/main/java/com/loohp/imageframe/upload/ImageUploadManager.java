@@ -57,6 +57,9 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import org.apache.commons.fileupload.MultipartStream;
 import org.bukkit.Bukkit;
 
@@ -360,8 +363,14 @@ public class ImageUploadManager implements AutoCloseable {
                     uploadDir.mkdir();
                 }
 
-                // Save the file with UUID as the filename
-                File outputFile = new File(uploadDir, id + ".png");
+                String fileExtension = getImageFileExtension(fileData);
+                if (fileExtension == null) {
+                    sendResponse(exchange, 400, "{\"error\":\"Unsupported image format\"}");
+                    return;
+                }
+
+                // Keep the detected extension so URLConnection can report the correct media type.
+                File outputFile = new File(uploadDir, id + "." + fileExtension);
                 Files.write(outputFile.toPath(), fileData);
                 imagesUploadedCounter.incrementAndGet();
 
@@ -373,6 +382,35 @@ public class ImageUploadManager implements AutoCloseable {
                 sendResponse(exchange, 200, "{\"message\":\"File uploaded successfully\"}");
             } finally {
                 exchange.close();
+            }
+        }
+
+        private String getImageFileExtension(byte[] fileData) throws IOException {
+            try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(fileData))) {
+                if (input == null) {
+                    return null;
+                }
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+                if (!readers.hasNext()) {
+                    return null;
+                }
+                ImageReader reader = readers.next();
+                try {
+                    String format = reader.getFormatName().toLowerCase();
+                    switch (format) {
+                        case "png":
+                        case "gif":
+                        case "webp":
+                            return format;
+                        case "jpeg":
+                        case "jpg":
+                            return "jpg";
+                        default:
+                            return null;
+                    }
+                } finally {
+                    reader.dispose();
+                }
             }
         }
 
