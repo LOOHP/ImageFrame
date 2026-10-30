@@ -78,6 +78,10 @@ public class LanguageManager {
     }
 
     public void downloadTranslations() {
+        if (!ImageFrame.downloadLanguagesOnStartup) {
+            ImageFrame.plugin.getLogger().info("DownloadLanguagesOnStartup is disabled. Skipped downloading language files from the internet; using the locally installed language files.");
+            return;
+        }
         try {
             File languageHashFile = new File(ImageFrame.plugin.getDataFolder(), "language_hashes.json");
             JsonObject languageHashes;
@@ -129,6 +133,7 @@ public class LanguageManager {
                 new IOException("Unable to save language hashes to " + languageHashFile.getAbsolutePath(), e).printStackTrace();
             }
         } catch (Throwable e) {
+            ImageFrame.plugin.getLogger().warning("Failed to fetch language files from the internet. The plugin will use the locally installed language files. If your server cannot reach api.loohpjames.com, or you intend to run it offline, set \"Settings.DownloadLanguagesOnStartup\" to false in config.yml to skip this network request on startup.");
             e.printStackTrace();
         }
     }
